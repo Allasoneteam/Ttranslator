@@ -29,7 +29,7 @@ func TestOwnWindow(t *testing.T) {
 	u := "http://127.0.0.1:8765/"
 
 	// no window program in the folder
-	if err := a.startOwnWindow(u, false); err == nil || !strings.Contains(err.Error(), "нет программы окна "+windowHelperName) {
+	if err := a.startOwnWindow(u, false, true); err == nil || !strings.Contains(err.Error(), "нет программы окна "+windowHelperName) {
 		t.Errorf("missing program: %v", err)
 	}
 	if a.windowStateJSON()["available"] != false {
@@ -44,16 +44,16 @@ func TestOwnWindow(t *testing.T) {
 		{"exit 5", "программа окна завершилась с кодом 5"},
 	} {
 		fakeWindow(t, a, c.body)
-		err := a.startOwnWindow(u, false)
+		err := a.startOwnWindow(u, false, true)
 		if err == nil || err.Error() != c.want {
 			t.Errorf("%s: %v, want %q", c.body, err, c.want)
 		}
 	}
 
-	// a working window: "ready", the arguments, the icon; closing it marks the window as gone
+	// a working window: "ready", the arguments (maximized), the icon; closing it marks the window as gone
 	args := fakeWindow(t, a, "echo ready; exec sleep 30")
 	start := time.Now()
-	if err := a.startOwnWindow(u, false); err != nil {
+	if err := a.startOwnWindow(u, false, true); err != nil {
 		t.Fatalf("working window: %v", err)
 	}
 	if time.Since(start) > 5*time.Second {
@@ -62,7 +62,7 @@ func TestOwnWindow(t *testing.T) {
 	b, _ := os.ReadFile(args)
 	data := filepath.Join(a.dataDir, "webview")
 	icon := filepath.Join(data, "ttranslator.png")
-	want := strings.Join([]string{u, "--title", "Ttranslator", "--size", windowSize, "--data", data, "--icon", icon}, "\n") + "\n"
+	want := strings.Join([]string{u, "--title", "Ttranslator", "--size", windowSize, "--data", data, "--icon", icon, "--maximized"}, "\n") + "\n"
 	if string(b) != want {
 		t.Errorf("arguments:\n%s\nwant\n%s", b, want)
 	}
@@ -90,11 +90,25 @@ func TestOwnWindow(t *testing.T) {
 		t.Errorf("closing the window: gone %v, cmd %v", a.windowGone, a.windowCmd)
 	}
 
-	// a window for another running copy is not kept by this one
-	fakeWindow(t, a, "echo ready; exec sleep 1")
+	// a window for another running copy is not kept by this one; not maximized when start_maximized is off
+	args = fakeWindow(t, a, "echo ready; exec sleep 1")
 	a.windowGone = time.Time{}
-	if err := a.startOwnWindow(u, true); err != nil || a.windowCmd != nil {
+	if err := a.startOwnWindow(u, true, false); err != nil || a.windowCmd != nil {
 		t.Errorf("second copy: %v, cmd %v", err, a.windowCmd)
+	}
+	if b, _ := os.ReadFile(args); strings.Contains(string(b), "--maximized") {
+		t.Errorf("not maximized, arguments:\n%s", b)
+	}
+}
+
+// The Edge/Chrome window (when the own window cannot open): maximized or of the usual size.
+func TestAppWindowArgs(t *testing.T) {
+	u := "http://127.0.0.1:8765/"
+	if got := strings.Join(appWindowArgs(u, true), " "); got != "--app="+u+" --start-maximized --no-first-run --no-default-browser-check" {
+		t.Errorf("maximized: %s", got)
+	}
+	if got := strings.Join(appWindowArgs(u, false), " "); got != "--app="+u+" --window-size=1180,780 --no-first-run --no-default-browser-check" {
+		t.Errorf("usual size: %s", got)
 	}
 }
 

@@ -33,8 +33,9 @@ follows your own glossary, answers questions about a translation and can read te
 3. On the first start the program shows what it will download, from where and to which folder: the
    [llama.cpp](https://github.com/ggml-org/llama.cpp) engine and a Gemma 4 model. After that it works offline.
 
-The window can be an Edge/Chrome window without tabs, a tab of your browser, or (trial) the program's own window on
-the web engine of the system — Microsoft Edge WebView2 on Windows, WebKitGTK 4.1 on Linux.
+The app window is the program's own window (maximized at start) on the web engine of the system — Microsoft Edge
+WebView2 on Windows, WebKitGTK 4.1 on Linux; if it cannot open, an Edge/Chrome window without tabs opens instead.
+The interface can also run in a tab of your browser.
 
 ## Privacy
 
@@ -47,7 +48,7 @@ the web engine of the system — Microsoft Edge WebView2 on Windows, WebKitGTK 4
 
 - The launcher is written in Go using **only the standard library** (Go 1.24+):
   `sh source/build.sh` builds `Ttranslator.exe` and `ttranslator-linux` next to `README.txt`.
-- The own window (`source/window`, C++ on the [webview](https://github.com/webview/webview) library) is built by the
+- The app window (`source/window`, C++ on the [webview](https://github.com/webview/webview) library) is built by the
   same script when its tools are installed (Ubuntu/Debian):
   `g++ pkg-config libgtk-3-dev libwebkit2gtk-4.1-dev g++-mingw-w64-x86-64`.
 - The interface is a single file, `ui/index.html`, without external resources.
@@ -55,7 +56,7 @@ the web engine of the system — Microsoft Edge WebView2 on Windows, WebKitGTK 4
 ## Tests
 
 `bash source/tests/run_all.sh` runs all automated suites on Linux (Go unit tests, interface tests in Chromium with
-a tiny stand-in model, the own window under a virtual screen). See [source/tests/README.md](source/tests/README.md).
+a tiny stand-in model, the app window under a virtual screen). See [source/tests/README.md](source/tests/README.md).
 
 ## Repository layout
 
@@ -64,7 +65,7 @@ a tiny stand-in model, the own window under a virtual screen). See [source/tests
 | `ui/index.html` | the whole interface (settings for prompts, languages and styles are at its top) |
 | `ui/tests.txt` | phrases for the built-in test |
 | `source/launcher` | the launcher: downloads and runs the engine, serves the interface, files of the user |
-| `source/window` | the own window program (webview) |
+| `source/window` | the app window program (webview) |
 | `source/tests` | automated tests |
 | `source/docs` | architecture, development, roadmap and changelog (in Russian) |
 | `README.txt` | the user guide (in Russian) |
@@ -79,6 +80,6 @@ Third-party components:
 - Gemma 4 models (Google, Apache 2.0) — downloaded after confirmation; your own `.gguf` files work too.
 - [sherpa-onnx](https://github.com/k2-fsa/sherpa-onnx) (Apache 2.0, with espeak-ng inside, GPL-3.0) and Piper voices
   (the licence of each voice is shown in the program; some are for non-commercial use) — downloaded on demand.
-- [webview](https://github.com/webview/webview) 0.12.0 (MIT) — compiled into the own window program.
+- [webview](https://github.com/webview/webview) 0.12.0 (MIT) — compiled into the app window program.
 - Microsoft Edge WebView2 SDK header (BSD-style licence, `source/window/webview2/LICENSE.txt`) — for the Windows
-  build of the own window; the WebView2 Runtime itself is part of Windows.
+  build of the app window; the WebView2 Runtime itself is part of Windows.

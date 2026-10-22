@@ -1,7 +1,8 @@
 # End-to-end test for v0.9 reading aloud: the real sherpa-onnx program and real Piper voices (served by the local
 # mirror), the launcher and the UI in Chromium. Voices and their download (question with from/to/file, progress,
-# licence notes, a failed download), the 🔊 buttons (pale without a voice, green while speaking, pause, other
-# button or Esc stops, formulas not read, long text in pieces), the voice of each language, deleting a voice,
+# licence notes, a failed download), the 🔊 buttons (pale without a voice, green while speaking, pause without the
+# highlight, the ■ button, other button, Esc or editing the text stops, formulas not read, long text in pieces), the
+# voice of each language, deleting a voice,
 # /api/tts itself. Translation and chat answers are canned replies (fixtures written for the test).
 # Usage: e2e_v09.py <work> <ui_url> <root>   (a ready launcher started with TDOC_TTS_URL and TDOC_TEST_VOICES;
 #        voices: en-lj (works), ru-dm (works, non-commercial licence), de-x (its file is missing on the mirror))
@@ -111,12 +112,13 @@ with sync_playwright() as pw:
     n = len(tts_bodies)
     page.click('#srcSpeak'); page.wait_for_timeout(150)
     ok(speaking('#srcSpeak') and 'speaking-host' in cls('#src'), 'speaking: the button and the text are green')
+    ok(page.locator('#srcSpeak + button.speak-stop').count() == 1 and page.get_attribute('#srcSpeak + button.speak-stop', 'title') == 'Остановить чтение (Esc)', 'the ■ button appears next to 🔊 (0.9.2)')
     page.wait_for_function("speech && speech.audio && !speech.audio.paused && speech.audio.currentTime > 0", timeout=30000)
     body = tts_bodies[n] if len(tts_bodies) > n else {}
     ok(body.get('lang') == 'en' and '$' not in body.get('text', '') and 'hbar' not in body.get('text', '') and 'It is very small.' in body.get('text', ''), 'request without the formula: %s' % body)
     page.screenshot(path=os.path.join(shots, '2-speaking.png'))
     wait_silent('#srcSpeak')
-    ok('speaking-host' not in cls('#src') and 'no-voice' not in cls('#srcSpeak'), 'after the end: the green highlight is gone')
+    ok('speaking-host' not in cls('#src') and 'no-voice' not in cls('#srcSpeak') and page.locator('button.speak-stop').count() == 0, 'after the end: the green highlight and the ■ button are gone')
 
     # ================= a long text in pieces, pause and continue, Esc stops
     long = ' '.join('Sentence number %d tells a little more about the weather in the mountains today.' % i for i in range(1, 9))
@@ -130,11 +132,31 @@ with sync_playwright() as pw:
     ok(len(tts_bodies) - n >= 2, 'the next piece is prepared while the first one sounds (%d requests)' % (len(tts_bodies) - n))
     page.click('#srcSpeak'); page.wait_for_timeout(300)
     t1 = page.evaluate('speech.audio.currentTime'); page.wait_for_timeout(700); t2 = page.evaluate('speech.audio.currentTime')
-    ok('paused' in cls('#srcSpeak') and not speaking('#srcSpeak') and page.evaluate('speech.audio.paused') and t1 == t2 and 'speaking-host' in cls('#src'), 'pause: the sound stops, the green frame stays')
+    ok('paused' in cls('#srcSpeak') and not speaking('#srcSpeak') and page.evaluate('speech.audio.paused') and t1 == t2, 'pause: the sound stops')
+    ok('speaking-host' not in cls('#src') and page.locator('#srcSpeak + button.speak-stop').count() == 1, 'pause: the text is not highlighted, the ■ button stays (0.9.2)')
+    page.screenshot(path=os.path.join(shots, '3-paused.png'))
     page.click('#srcSpeak'); page.wait_for_timeout(700)
-    ok(speaking('#srcSpeak') and page.evaluate('speech.audio.currentTime') > t2, 'continue: the sound goes on')
+    ok(speaking('#srcSpeak') and 'speaking-host' in cls('#src') and page.evaluate('speech.audio.currentTime') > t2, 'continue: the sound goes on, the text is green again')
+    page.click('#srcSpeak + button.speak-stop'); page.wait_for_timeout(200)
+    ok(not speaking('#srcSpeak') and 'paused' not in cls('#srcSpeak') and 'speaking-host' not in cls('#src') and page.evaluate('speech') is None
+       and page.locator('button.speak-stop').count() == 0, 'the ■ button stops reading')
+    page.click('#srcSpeak')
+    page.wait_for_function("speech && speech.audio && !speech.audio.paused", timeout=30000)
     page.keyboard.press('Escape'); page.wait_for_timeout(200)
     ok(not speaking('#srcSpeak') and 'speaking-host' not in cls('#src') and page.evaluate('speech') is None, 'Esc stops reading')
+    # editing the text stops reading: typing while it sounds; a click into the field while it is paused
+    page.click('#srcSpeak')
+    page.wait_for_function("speech && speech.audio && !speech.audio.paused", timeout=30000)
+    page.focus('#src'); page.keyboard.press('End'); page.keyboard.type(' Yes.'); page.wait_for_timeout(200)
+    ok(page.evaluate('speech') is None and not speaking('#srcSpeak') and 'speaking-host' not in cls('#src') and page.input_value('#src').endswith(' Yes.'),
+       'typing in the field stops reading')
+    page.click('header .brand')
+    page.click('#srcSpeak')
+    page.wait_for_function("speech && speech.audio && !speech.audio.paused", timeout=30000)
+    page.click('#srcSpeak'); page.wait_for_timeout(200)
+    ok(page.evaluate('speech && speech.paused') is True, 'paused again')
+    page.click('#src'); page.wait_for_timeout(200)
+    ok(page.evaluate('speech') is None and 'paused' not in cls('#srcSpeak') and page.locator('button.speak-stop').count() == 0, 'a click into the paused field stops reading: back to editing')
 
     # ================= variants: the language of the result; a second voice
     page.fill('#src', 'The sky is blue.'); page.wait_for_timeout(300)

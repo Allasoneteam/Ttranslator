@@ -47,7 +47,7 @@ import (
 
 const (
 	appID      = "tdoc-translator"
-	appVersion = "0.9.1"
+	appVersion = "0.9.2"
 
 	// model selected on first start and when the configured one is gone
 	defaultModelID = "g4-e2b"
@@ -246,7 +246,8 @@ type Config struct {
 	FontScale  int    `json:"font_scale"`
 	// start options (the welcome window and the Settings panel)
 	ShowWelcome      bool   `json:"show_welcome"`        // show the welcome window in a new window
-	LaunchMode       string `json:"launch_mode"`         // "app": Edge/Chrome window without tabs; "tab": a tab of the default browser; "window": the own window (window.go)
+	LaunchMode       string `json:"launch_mode"`         // "window": the app window (own window, window.go; else Edge/Chrome); "tab": a tab of the default browser
+	StartMaximized   bool   `json:"start_maximized"`     // the app window starts maximized
 	LoadModelAtStart bool   `json:"load_model_at_start"` // load the chosen model when the program starts
 	// read aloud: the voice chosen for each language (language code → voice id, tts.go)
 	Voices map[string]string `json:"voices,omitempty"`
@@ -256,7 +257,9 @@ var (
 	uiLanguages = map[string]bool{"ru": true, "en": true, "de": true}
 	uiThemes    = map[string]bool{"light": true, "dark": true}
 	fontScales  = map[int]bool{90: true, 100: true, 115: true, 130: true}
-	launchModes = map[string]bool{"app": true, "tab": true, "window": true}
+	// "app" (an Edge/Chrome window, the default before 0.9.2) is no longer a choice: it becomes "window", and an
+	// Edge/Chrome window opens only when the own window cannot (window.go)
+	launchModes = map[string]bool{"window": true, "tab": true}
 )
 
 // normSettings replaces unknown interface settings with the defaults.
@@ -271,18 +274,20 @@ func normSettings(c *Config) {
 		c.FontScale = 100
 	}
 	if !launchModes[c.LaunchMode] {
-		c.LaunchMode = "app"
+		c.LaunchMode = "window"
 	}
 }
 
 func (a *App) settingsJSON() map[string]any { // call under a.mu
 	return map[string]any{"ui_language": a.cfg.UILanguage, "theme": a.cfg.Theme, "font_scale": a.cfg.FontScale,
-		"show_welcome": a.cfg.ShowWelcome, "launch_mode": a.cfg.LaunchMode, "load_model_at_start": a.cfg.LoadModelAtStart}
+		"show_welcome": a.cfg.ShowWelcome, "launch_mode": a.cfg.LaunchMode, "load_model_at_start": a.cfg.LoadModelAtStart,
+		"start_maximized": a.cfg.StartMaximized}
 }
 
 func defaultConfig() Config {
 	return Config{ActiveModel: defaultModelID, UIPort: 8765, CtxSize: 4096, Threads: 0, OpenWindow: true, ExtraEngineArgs: []string{},
-		UILanguage: "ru", Theme: "light", FontScale: 100, ShowWelcome: true, LaunchMode: "app", LoadModelAtStart: true}
+		UILanguage: "ru", Theme: "light", FontScale: 100, ShowWelcome: true, LaunchMode: "window", LoadModelAtStart: true,
+		StartMaximized: true}
 }
 
 // ---------------------------------------------------------------- state
@@ -1586,6 +1591,7 @@ func (a *App) routes() http.Handler {
 				ShowWelcome      *bool   `json:"show_welcome"`
 				LaunchMode       *string `json:"launch_mode"`
 				LoadModelAtStart *bool   `json:"load_model_at_start"`
+				StartMaximized   *bool   `json:"start_maximized"`
 			}
 			if err := json.NewDecoder(io.LimitReader(r.Body, 4096)).Decode(&req); err != nil {
 				jsonError(w, 400, tr("неверный запрос"))
@@ -1614,6 +1620,9 @@ func (a *App) routes() http.Handler {
 			}
 			if req.LoadModelAtStart != nil {
 				a.cfg.LoadModelAtStart = *req.LoadModelAtStart
+			}
+			if req.StartMaximized != nil {
+				a.cfg.StartMaximized = *req.StartMaximized
 			}
 			a.saveConfig(a.cfg)
 			lang := a.cfg.UILanguage

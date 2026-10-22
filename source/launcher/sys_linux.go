@@ -52,15 +52,15 @@ func exitMessage(code int, err error) string {
 	return fmt.Sprintf(tr("Движок неожиданно завершился (код %d). Подробности — в журнале ниже. Если в журнале упоминается GLIBC, соберите llama.cpp самостоятельно и укажите путь к llama-server в config.json (engine_path)."), code)
 }
 
-// openWindow opens the program's window: a Chrome-like window without tabs and address bar or, with tab
-// (launch_mode "tab") or when no such browser is installed, the default browser (xdg-open).
-func openWindow(u string, tab bool) error {
+// openWindow opens the program's window: a Chrome-like window without tabs and address bar (maximized, if asked) or,
+// with tab (launch_mode "tab") or when no such browser is installed, the default browser (xdg-open).
+func openWindow(u string, tab, maximized bool) error {
 	for _, b := range []string{"google-chrome", "google-chrome-stable", "chromium", "chromium-browser", "microsoft-edge", "microsoft-edge-stable", "brave-browser"} {
 		if tab {
 			break
 		}
 		if p, err := exec.LookPath(b); err == nil {
-			cmd := exec.Command(p, "--app="+u, "--window-size=1180,780", "--no-first-run", "--no-default-browser-check")
+			cmd := exec.Command(p, appWindowArgs(u, maximized)...)
 			cmd.SysProcAttr = &syscall.SysProcAttr{Setsid: true}
 			if err := cmd.Start(); err == nil {
 				_ = cmd.Process.Release()

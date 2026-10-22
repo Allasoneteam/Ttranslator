@@ -112,7 +112,7 @@ func TestSettings(t *testing.T) {
 		t.Errorf("font: %d %s", code, body)
 	}
 	// start options: welcome window, window kind, loading the model at start
-	if _, body := call("GET", "/api/settings", ""); !strings.Contains(body, `"show_welcome":true`) || !strings.Contains(body, `"launch_mode":"app"`) || !strings.Contains(body, `"load_model_at_start":true`) {
+	if _, body := call("GET", "/api/settings", ""); !strings.Contains(body, `"show_welcome":true`) || !strings.Contains(body, `"launch_mode":"window"`) || !strings.Contains(body, `"load_model_at_start":true`) || !strings.Contains(body, `"start_maximized":true`) {
 		t.Errorf("start defaults: %s", body)
 	}
 	if code, body := call("POST", "/api/settings", `{"show_welcome":false,"launch_mode":"tab","load_model_at_start":false}`); code != 200 ||
@@ -126,19 +126,27 @@ func TestSettings(t *testing.T) {
 	if code, _ := call("POST", "/api/settings", `{"launch_mode":"kiosk"}`); code != 400 {
 		t.Errorf("bad launch_mode accepted: %d", code)
 	}
-	if code, body := call("POST", "/api/settings", `{"launch_mode":"window"}`); code != 200 || !strings.Contains(body, `"launch_mode":"window"`) {
-		t.Errorf("the own window: %d %s", code, body)
+	if code, body := call("POST", "/api/settings", `{"launch_mode":"window","start_maximized":false}`); code != 200 || !strings.Contains(body, `"launch_mode":"window"`) || !strings.Contains(body, `"start_maximized":false`) {
+		t.Errorf("the app window, not maximized: %d %s", code, body)
+	}
+	if code, _ := call("POST", "/api/settings", `{"launch_mode":"app"}`); code != 400 {
+		t.Errorf("launch_mode app (before 0.9.2) is no longer a choice: %d", code)
 	}
 	// unknown values in config.json fall back to the defaults; an old config.json gets the new options on
 	c := defaultConfig()
 	c.UILanguage, c.Theme, c.FontScale, c.LaunchMode = "xx", "", 7, "x"
 	normSettings(&c)
-	if c.UILanguage != "ru" || c.Theme != "light" || c.FontScale != 100 || c.LaunchMode != "app" {
+	if c.UILanguage != "ru" || c.Theme != "light" || c.FontScale != 100 || c.LaunchMode != "window" {
 		t.Errorf("normSettings: %+v", c)
 	}
 	_ = os.WriteFile(filepath.Join(a.root, "config.json"), []byte(`{"active_model":"g4-e2b","ui_language":"en"}`), 0o644)
-	if old := a.loadConfig(); !old.ShowWelcome || old.LaunchMode != "app" || !old.LoadModelAtStart || old.UILanguage != "en" {
+	if old := a.loadConfig(); !old.ShowWelcome || old.LaunchMode != "window" || !old.LoadModelAtStart || old.UILanguage != "en" || !old.StartMaximized {
 		t.Errorf("config.json of an older version: %+v", old)
+	}
+	// 0.9.2: the Edge/Chrome window ("app", the default before) becomes the app window ("window")
+	_ = os.WriteFile(filepath.Join(a.root, "config.json"), []byte(`{"active_model":"g4-e2b","launch_mode":"app"}`), 0o644)
+	if old := a.loadConfig(); old.LaunchMode != "window" || !old.StartMaximized {
+		t.Errorf("launch_mode app of 0.9.1: %+v", old)
 	}
 }
 

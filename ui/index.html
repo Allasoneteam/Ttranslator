@@ -122,6 +122,7 @@ body[data-model="bye"] header.top > :not(.brand) { display: none; }
 .lesson-opts .lo-label { font-size: .7857rem; color: var(--muted); margin-top: 2px; }
 .lesson-opts .seg button { padding: 4px 10px; font-size: .8571rem; }
 .lesson-opts select, .lesson-opts input[type=text] { width: 100%; }
+.lesson-opts .lo-check { font-size: .8571rem; margin-top: 3px; white-space: normal; }
 
 /* Плашка над рабочим окном: модель загружается, выгружена или не запустилась. Окно при этом остаётся доступным. */
 .banner { display: flex; align-items: center; gap: 8px 10px; flex-wrap: wrap; padding: 8px 16px; border-bottom: 1px solid var(--border); background: var(--warn-bg); color: var(--warn); }
@@ -296,11 +297,14 @@ table.res td.num { text-align: right; white-space: nowrap; font-variant-numeric:
 .welcome-opts label.check { white-space: normal; }
 .own-card { background: var(--panel); border: 1px dashed var(--border2); border-radius: 10px; padding: 10px 12px; margin-top: 10px; }
 .own-card textarea { width: 100%; min-height: 60px; resize: vertical; }
-/* Чтение вслух: пока звучит текст, кнопка 🔊 зелёная (в ней — пауза), а сам текст подсвечен зелёным; на паузе —
-   зелёная рамка. Бледная кнопка — для языка текста не скачан голос. Без Ttranslator.exe кнопок нет. */
+/* Чтение вслух: пока звучит текст, кнопка 🔊 зелёная (в ней — пауза), а сам текст подсвечен зелёным; на паузе
+   подсветки текста нет, у кнопки — зелёная рамка. Рядом, пока чтение не закончено, — кнопка ■ «Стоп». Бледная
+   кнопка — для языка текста не скачан голос. Без Ttranslator.exe кнопок нет. */
 button.icon.speak.no-voice { opacity: .45; }
 button.icon.speak.speaking { color: var(--on-primary); background: var(--speak); border-color: var(--speak); }
 button.icon.speak.paused { color: var(--speak); border-color: var(--speak); }
+button.icon.speak-stop { color: var(--speak); }
+button.icon.speak-stop:hover { color: var(--text); }
 .speaking-host { outline: 2px solid var(--speak); outline-offset: 1px; background-color: var(--speak-bg) !important; }
 body.no-tts button.speak { display: none; }
 #srcSpeak { padding: 3px 5px; margin-right: 4px; }
@@ -402,7 +406,7 @@ footer.status {
     <div>
       <textarea id="src" placeholder="Введите или вставьте текст (до 1000 знаков)" aria-label="Исходный текст"></textarea>
       <div id="langHint" class="hint lang-hint" hidden><span class="txt"></span><button type="button"></button></div>
-      <div class="row small src-tools"><button id="randomBtn" class="ghost needs-model" type="button" title="Попросить модель придумать случайную пословицу, поговорку или устойчивое выражение на языке текста"><span id="randomIcon"></span><span id="randomLabel">Случайно</span></button><button id="lessonBtn" class="ghost needs-model" type="button" title="Попросить модель придумать короткий учебный пример на языке текста: правило, упражнение, «найдите ошибку» или любопытный факт. Маленькие модели иногда ошибаются в правилах — проверяйте."><span id="lessonIcon"></span><span id="lessonLabel">Учебный пример</span></button><button id="lessonMore" class="ghost" type="button" title="Учебный пример: уровень, тема и упражнение в «Спросить модель» (вы отвечаете — модель проверяет)" aria-label="Учебный пример: уровень, тема и упражнение в «Спросить модель» (вы отвечаете — модель проверяет)"></button><span id="cleanNote" class="muted"></span><span class="spacer"></span><button id="srcSpeak" class="icon speak" type="button" title="Прочитать вслух" aria-label="Прочитать вслух"></button><span id="counter" class="muted">0 из 1000</span></div>
+      <div class="row small src-tools"><button id="randomBtn" class="ghost needs-model" type="button" title="Попросить модель придумать случайную пословицу, поговорку или устойчивое выражение на языке текста"><span id="randomIcon"></span><span id="randomLabel">Случайно</span></button><button id="lessonBtn" class="ghost needs-model" type="button" title="Попросить модель придумать короткий учебный пример на языке текста: правило, упражнение, «найдите ошибку» или два слова, которые легко перепутать. Маленькие модели иногда ошибаются в правилах — проверяйте."><span id="lessonIcon"></span><span id="lessonLabel">Учебный пример</span></button><button id="lessonMore" class="ghost" type="button" title="Учебный пример: уровень, тема и упражнение в «Спросить модель» (вы отвечаете — модель проверяет)" aria-label="Учебный пример: уровень, тема и упражнение в «Спросить модель» (вы отвечаете — модель проверяет)"></button><span id="cleanNote" class="muted"></span><span class="spacer"></span><button id="srcSpeak" class="icon speak" type="button" title="Прочитать вслух" aria-label="Прочитать вслух"></button><span id="counter" class="muted">0 из 1000</span></div>
     </div>
     <div class="label" id="chipsLabel">Стили вариантов</div>
     <div id="chips" class="chips"></div>
@@ -514,7 +518,7 @@ footer.status {
         <div id="startRows" hidden>
           <div class="set-row">
             <div class="set-label">Вид окна</div>
-            <div class="set-ctl"><div id="modeSeg" class="seg"><button data-v="app" title="Окно Edge или Chrome без вкладок и адресной строки">Окно приложения</button><button data-v="tab" title="Вкладка браузера, выбранного в системе по умолчанию">Вкладка браузера</button><button data-v="window" title="Своё окно программы на веб-движке системы (WebView2 в Windows, WebKitGTK в Linux). Проба: если окно не откроется, откроется окно Edge или Chrome">Окно Ttranslator (проба)</button></div><div class="note">Вид окна меняется со следующего запуска.</div><div id="modeErr" class="note warn-note" hidden></div></div>
+            <div class="set-ctl"><div id="modeSeg" class="seg"><button data-v="window" title="Окно самой программы на веб-движке системы (WebView2 в Windows, WebKitGTK в Linux), без вкладок и адресной строки. Если оно не откроется, откроется окно Edge или Chrome">Окно приложения</button><button data-v="tab" title="Вкладка браузера, выбранного в системе по умолчанию">Вкладка браузера</button></div><label class="check"><input type="checkbox" id="setMax"> <span>Окно приложения — на весь экран</span></label><div class="note">Вид окна меняется со следующего запуска.</div><div id="modeErr" class="note warn-note" hidden></div></div>
           </div>
           <div class="set-row">
             <div class="set-label">При запуске</div>
@@ -578,7 +582,7 @@ footer.status {
     <ul id="welcomeNew"></ul>
     <div class="welcome-opts">
       <div class="set-row"><div class="set-label">Язык интерфейса</div><div class="set-ctl"><select id="welcomeLangSel" aria-label="Язык интерфейса"></select></div></div>
-      <div class="set-row"><div class="set-label">Вид окна</div><div class="set-ctl"><div id="welcomeModeSeg" class="seg"><button data-v="app" title="Окно Edge или Chrome без вкладок и адресной строки">Окно приложения</button><button data-v="tab" title="Вкладка браузера, выбранного в системе по умолчанию">Вкладка браузера</button><button data-v="window" title="Своё окно программы на веб-движке системы (WebView2 в Windows, WebKitGTK в Linux). Проба: если окно не откроется, откроется окно Edge или Chrome">Окно Ttranslator (проба)</button></div><div class="note">Вид окна меняется со следующего запуска.</div></div></div>
+      <div class="set-row"><div class="set-label">Вид окна</div><div class="set-ctl"><div id="welcomeModeSeg" class="seg"><button data-v="window" title="Окно самой программы на веб-движке системы (WebView2 в Windows, WebKitGTK в Linux), без вкладок и адресной строки. Если оно не откроется, откроется окно Edge или Chrome">Окно приложения</button><button data-v="tab" title="Вкладка браузера, выбранного в системе по умолчанию">Вкладка браузера</button></div><div class="note">Вид окна меняется со следующего запуска.</div></div></div>
       <label class="check"><input type="checkbox" id="welcomeLoad"> <span>Загружать выбранную модель при запуске</span> <span id="welcomeModel" class="muted"></span></label>
       <label class="check"><input type="checkbox" id="welcomeShow"> <span>Показывать это окно при запуске</span></label>
     </div>
@@ -636,7 +640,7 @@ const UI_LANGS = { ru: 'Русский', en: 'English', de: 'Deutsch' };
 const LOCALES = { ru: 'ru-RU', en: 'en-GB', de: 'de-DE' };
 const UI_LANG = UI_LANGS[document.documentElement.lang] ? document.documentElement.lang : 'ru';
 const LOCALE = LOCALES[UI_LANG];
-const APP_VERSION = '0.9.1';   // версия интерфейса — та же, что appVersion в source/launcher/main.go
+const APP_VERSION = '0.9.2';   // версия интерфейса — та же, что appVersion в source/launcher/main.go
 
 const I18N_COL = { en: 0, de: 1 };   // столбец перевода в I18N
 
@@ -849,20 +853,24 @@ const RANDOM = {
 };
 
 // «Учебный пример»: модель придумывает короткий учебный пример на языке текста (как «Случайно»): правило с примерами,
-// упражнение, «найдите ошибку» или любопытный факт. Пример попадает в поле текста — его можно перевести.
-// Стрелка ▾ у кнопки: уровень, тема, упражнение в «Спросить модель» (без ответов: вы отвечаете — модель проверяет).
-// kinds — виды примеров (слова для запроса к модели, по-английски), каждый раз берётся случайный.
+// упражнение, «найдите ошибку» или два слова, которые легко перепутать. Пример попадает в поле текста — его можно
+// перевести. Стрелка ▾ у кнопки: уровень, тема, проверка перед показом, упражнение в «Спросить модель».
+// Чтобы ошибок было меньше (по предложению автора от 22.10.2026): строгий запрос (только проверенные правила из
+// учебников; заголовок или вопрос — в начале, ответ или совет — в конце), низкая температура, темы без ударения и
+// произношения, а перед показом — проверка: второй запрос просит модель найти и исправить ошибки (selfCheck).
+// kinds — виды примеров (слова для запроса к модели, по-английски): what — что написать, body — середина примера,
+// last — последняя строка; виды чередуются.
 // levels — уровни: label — название в интерфейсе, en и words — слова для запроса к модели.
 // topics — темы, общие и для каждого языка: en — для запроса к модели (и название в английском интерфейсе),
 // ru и de — названия в русском и немецком интерфейсе. Если тема не выбрана, каждый раз берётся случайная.
-// Маленькие модели иногда ошибаются в правилах: об этом — подсказка у кнопки, строка под полем после примера
-// (с кнопкой «Проверить») и справка.
+// Маленькие модели всё равно иногда ошибаются в правилах: об этом — подсказка у кнопки, строка под полем после
+// примера (с кнопкой «Уточнить») и справка.
 const LESSON = {
   kinds: [
-    'a short rule of grammar or usage with two example sentences',
-    'a short exercise (fill in the blanks or choose the right form) with the answers on the last line',
-    'a sentence with one typical learner mistake, a short task to find and fix it, and the correct sentence on the last line',
-    'a curious or funny fact about the language with one example',
+    { what: 'a grammar or usage rule with examples', body: 'the rule in one or two sentences, then two example sentences', last: 'a short practical tip' },
+    { what: 'a short exercise', body: 'two or three sentences, each with a gap (___) to fill in or with two forms to choose from', last: 'the answers' },
+    { what: 'a "find the mistake" task', body: 'one sentence with a typical learner mistake and the task to find and correct it', last: 'the corrected sentence and a short explanation' },
+    { what: 'two words or forms that learners often confuse', body: 'the two words or forms, with one correct example sentence for each', last: 'a short tip on how to tell them apart' },
   ],
   levels: [
     { key: 'beginner', label: 'Начальный', cefr: 'A1–A2', en: 'beginner (A1–A2)', words: 'in very simple words and short sentences' },
@@ -877,9 +885,7 @@ const LESSON = {
       { en: 'plural forms', ru: 'множественное число', de: 'Pluralformen' },
       { en: 'punctuation', ru: 'пунктуация', de: 'Zeichensetzung' },
       { en: 'words that are easy to confuse', ru: 'слова, которые легко перепутать', de: 'leicht verwechselbare Wörter' },
-      { en: 'idioms', ru: 'идиомы', de: 'Redewendungen' },
       { en: 'spelling', ru: 'орфография', de: 'Rechtschreibung' },
-      { en: 'pronunciation', ru: 'произношение', de: 'Aussprache' },
       { en: 'polite and informal address', ru: 'вежливое и неформальное обращение', de: 'höfliche und informelle Anrede' },
       { en: 'numbers and dates', ru: 'числа и даты', de: 'Zahlen und Daten' },
       { en: 'word formation', ru: 'словообразование', de: 'Wortbildung' },
@@ -888,7 +894,6 @@ const LESSON = {
       { en: 'cases of nouns', ru: 'падежи существительных', de: 'Fälle der Substantive' },
       { en: 'verb aspect (perfective and imperfective)', ru: 'вид глагола (совершенный и несовершенный)', de: 'Verbaspekt (vollendet und unvollendet)' },
       { en: 'the endings -тся and -ться', ru: 'окончания -тся и -ться', de: 'die Endungen -тся und -ться' },
-      { en: 'stress in words', ru: 'ударение в словах', de: 'Betonung der Wörter' },
       { en: 'verbs of motion', ru: 'глаголы движения', de: 'Verben der Bewegung' },
       { en: 'the particles не and ни', ru: 'частицы не и ни', de: 'die Partikeln не und ни' },
       { en: 'the letter ё', ru: 'буква ё', de: 'der Buchstabe ё' },
@@ -915,7 +920,6 @@ const LESSON = {
       { en: 'capital letters of nouns', ru: 'заглавная буква у существительных', de: 'Großschreibung der Substantive' },
     ],
     fr: [
-      { en: 'liaison', ru: 'связывание (liaison)', de: 'die Bindung (liaison)' },
       { en: 'passé composé with être or avoir', ru: 'passé composé с être или avoir', de: 'passé composé mit être oder avoir' },
       { en: 'the gender of nouns', ru: 'род существительных', de: 'das Genus der Substantive' },
       { en: 'the subjunctive', ru: 'сослагательное наклонение (subjonctif)', de: 'der Subjonctif' },
@@ -939,7 +943,6 @@ const LESSON = {
     ],
     zh: [
       { en: 'measure words', ru: 'счётные слова', de: 'Zählwörter' },
-      { en: 'tones', ru: 'тоны', de: 'Töne' },
       { en: 'the particle 了', ru: 'частица 了', de: 'die Partikel 了' },
       { en: 'the particle 的', ru: 'частица 的', de: 'die Partikel 的' },
       { en: 'characters with several readings', ru: 'иероглифы с несколькими чтениями', de: 'Schriftzeichen mit mehreren Lesungen' },
@@ -961,10 +964,30 @@ const LESSON = {
     ],
   },
   prompt: (kind, lang, topic, level) =>
-    `Write ${kind} about ${topic}, for ${level.en} learners of ${lang}. Write everything in ${lang} only, ${level.words}, in at most five short lines. Do not add a title, a translation, Markdown formatting or any other comments.`,
-  sampling: { temperature: 0.9, top_p: 0.95, top_k: 64, repeat_penalty: 1.0 },
-  checkSampling: { temperature: 0.2, top_p: 0.95, top_k: 64, repeat_penalty: 1.0 },   // для «Проверить»
-  maxTokens: 320,
+    `You are an experienced, careful teacher of ${lang}. Write a short lesson for ${level.en} learners of ${lang}.\n` +
+    `Topic: ${topic}.\nType: ${kind.what}.\n\n` +
+    `Accuracy is more important than originality:\n` +
+    `- Use only standard rules and facts of ${lang}, as in school textbooks, that you are completely sure of. If you are not sure, choose a simpler, well-known case.\n` +
+    `- Every example must be a short, natural everyday sentence with correct grammar, spelling and punctuation.\n` +
+    `- Do not invent words, rules, exceptions or facts.\n\n` +
+    `Format: plain text, everything in ${lang} only, ${level.words}, at most six short lines:\n` +
+    `- first line: a short title or question;\n- then: ${kind.body};\n- last line: ${kind.last}.\n` +
+    `No Markdown, no translation, no other comments.`,
+  // Проверка перед показом: модель ищет ошибки в своём примере. Ответ «OK» — пример верен; иначе — исправленный пример.
+  selfCheck: true,   // по умолчанию; выбор — галочка в окошке ▾ (запоминается в браузере)
+  checkPrompt: (lang, level, text) =>
+    `You are a strict proofreader and an expert teacher of ${lang}. Check the lesson below, written for ${level.en} learners of ${lang}:\n` +
+    `1. Is every statement about ${lang} true?\n` +
+    `2. Is every example sentence grammatical, natural, and correctly spelled and punctuated?\n` +
+    `3. Are the task and the answers correct and unambiguous?\n` +
+    `If everything is correct, reply with the single word OK.\n` +
+    `If something is wrong, reply only with the corrected lesson: the same format, in ${lang} only, with no comments.\n\n` +
+    `Lesson:\n${text}`,
+  sampling: { temperature: 0.2, top_p: 0.9, top_k: 40, repeat_penalty: 1.0 },       // пример: близко к нулю — меньше ошибок
+  checkSampling: { temperature: 0, top_p: 1, top_k: 1, repeat_penalty: 1.0 },       // проверка перед показом и «Уточнить»
+  chatSampling: { temperature: 0.3, top_p: 0.9, top_k: 40, repeat_penalty: 1.0 },   // упражнение в «Спросить модель»
+  minSimilar: 0.2,   // исправленный пример должен быть похож на исходный (доля общих слов), иначе остаётся исходный
+  maxTokens: 360,
   maxChars: 700,     // ответ длиннее считается ошибкой модели и в поле не вставляется
   remember: 12,      // сколько последних примеров помнить, чтобы не повторяться
   tries: 2,          // сколько раз спросить, если модель повторила уже выданное
@@ -977,15 +1000,15 @@ const LESSON = {
 const LESSON_ASK = {
   // упражнение без ответов: вы отвечаете в переписке, модель проверяет
   exercise: {
-    ru: (x) => `Дай мне короткое упражнение. Язык — ${x.lang}, уровень — ${x.level}, тема — ${x.topic}. Напиши 3–5 пронумерованных заданий: вставить пропущенное слово или выбрать правильную форму. Задания — на этом языке, объяснения — по-русски. Ответов не показывай: я отвечу, а ты проверишь каждый ответ и коротко объяснишь ошибки.`,
-    en: (x) => `Give me a short exercise. Language: ${x.lang}; level: ${x.level}; topic: ${x.topic}. Write 3–5 numbered items: fill in the missing word or choose the right form. Write the items in that language and the explanations in English. Do not show the answers: I will reply, then you check each answer and briefly explain any mistakes.`,
-    de: (x) => `Gib mir eine kurze Übung. Sprache: ${x.lang}; Niveau: ${x.level}; Thema: ${x.topic}. Schreibe 3–5 nummerierte Aufgaben: ein fehlendes Wort einsetzen oder die richtige Form wählen. Die Aufgaben in dieser Sprache, die Erklärungen auf Deutsch. Zeige die Antworten nicht: Ich antworte, dann prüfst du jede Antwort und erklärst kurz die Fehler.`,
+    ru: (x) => `Дай мне короткое упражнение. Язык — ${x.lang}, уровень — ${x.level}, тема — ${x.topic}. Напиши 3–5 пронумерованных заданий: вставить пропущенное слово или выбрать правильную форму. Используй только стандартные правила из учебников, в которых ты полностью уверен; у каждого задания должен быть ровно один правильный ответ. Задания — на этом языке, объяснения — по-русски. Ответов не показывай: я отвечу, а ты проверишь каждый ответ и коротко объяснишь ошибки.`,
+    en: (x) => `Give me a short exercise. Language: ${x.lang}; level: ${x.level}; topic: ${x.topic}. Write 3–5 numbered items: fill in the missing word or choose the right form. Use only standard textbook rules that you are completely sure of; each item must have exactly one correct answer. Write the items in that language and the explanations in English. Do not show the answers: I will reply, then you check each answer and briefly explain any mistakes.`,
+    de: (x) => `Gib mir eine kurze Übung. Sprache: ${x.lang}; Niveau: ${x.level}; Thema: ${x.topic}. Schreibe 3–5 nummerierte Aufgaben: ein fehlendes Wort einsetzen oder die richtige Form wählen. Verwende nur Standardregeln aus Lehrbüchern, bei denen du dir völlig sicher bist; jede Aufgabe muss genau eine richtige Lösung haben. Die Aufgaben in dieser Sprache, die Erklärungen auf Deutsch. Zeige die Antworten nicht: Ich antworte, dann prüfst du jede Antwort und erklärst kurz die Fehler.`,
   },
-  // «Проверить»: второй запрос — модель ещё раз проверяет пример в поле
+  // «Уточнить»: модель ещё раз разбирает пример в поле — по пунктам
   check: {
-    ru: (x) => `Проверь этот учебный пример (язык — ${x.lang}): верны ли правило, примеры и ответы? Если что-то неверно, объясни ошибку и напиши исправленный вариант.\n\n${x.text}`,
-    en: (x) => `Check this lesson (language: ${x.lang}): are the rule, the examples and the answers correct? If something is wrong, explain the mistake and write a corrected version.\n\n${x.text}`,
-    de: (x) => `Prüfe diese Lektion (Sprache: ${x.lang}): Sind die Regel, die Beispiele und die Antworten richtig? Wenn etwas falsch ist, erkläre den Fehler und schreibe eine korrigierte Fassung.\n\n${x.text}`,
+    ru: (x) => `Внимательно разбери этот учебный пример (язык — ${x.lang}) по пунктам: 1) верно ли правило или утверждение; 2) правильны ли примеры — грамматика, орфография и пунктуация; 3) верны ли задание и ответ. Если всё верно, так и напиши и коротко поясни правило. Если есть ошибки, объясни каждую и напиши исправленный пример.\n\n${x.text}`,
+    en: (x) => `Go through this lesson (language: ${x.lang}) point by point: 1) is the rule or statement true; 2) are the examples correct — grammar, spelling and punctuation; 3) are the task and the answer correct. If everything is correct, say so and briefly explain the rule. If there are mistakes, explain each one and write a corrected lesson.\n\n${x.text}`,
+    de: (x) => `Geh diese Lektion (Sprache: ${x.lang}) Punkt für Punkt durch: 1) Ist die Regel oder Aussage richtig? 2) Sind die Beispiele korrekt – Grammatik, Rechtschreibung und Zeichensetzung? 3) Sind Aufgabe und Lösung richtig? Wenn alles stimmt, sage das und erkläre die Regel kurz. Wenn es Fehler gibt, erkläre jeden und schreibe eine korrigierte Lektion.\n\n${x.text}`,
   },
 };
 
@@ -1019,12 +1042,13 @@ const ABOUT = {
       'Быстрый многоязычный перевод: по Вашему выбору — разные стили, контекст и несколько вариантов.',
       'Собственный словарь со специальными переводами: его можно дополнять и редактировать.',
       'Выбор различных LLM-моделей (формат GGUF) и их локальная (офлайн) работа прямо в приложении.',
+      'Выбор различных моделей для чтения вслух.',
       'Переформулировки на выбранном языке, объяснения, тесты, справка, поиск, исправления и другие функции по Вашему выбору.',
     ],
     contact: 'Если у Вас возникнут вопросы, предложения или отзывы, напишите создателям приложения:',
     support: 'Создатели будут рады любой поддержке через GitHub Sponsors.',
     license: 'Лицензия: MIT (файл LICENSE.txt в папке программы).',
-    credits: 'Используются: движок llama.cpp (лицензия MIT) и модели Gemma 4 (Google, лицензия Apache 2.0); для чтения вслух — программа sherpa-onnx (лицензия Apache 2.0, внутри — espeak-ng, лицензия GPL-3.0) и голоса Piper (лицензия каждого голоса указана в меню моделей); своё окно — библиотека webview (лицензия MIT), в Windows — Microsoft Edge WebView2.',
+    credits: 'Используются: движок llama.cpp (лицензия MIT) и модели Gemma 4 (Google, лицензия Apache 2.0); для чтения вслух — программа sherpa-onnx (лицензия Apache 2.0, внутри — espeak-ng, лицензия GPL-3.0) и голоса Piper (лицензия каждого голоса указана в меню моделей); окно приложения — библиотека webview (лицензия MIT), в Windows — Microsoft Edge WebView2.',
   },
   en: {
     intro: 'Meet Ttranslator, a free, offline, open-source translator. Its features:',
@@ -1032,12 +1056,13 @@ const ABOUT = {
       'Fast multilingual translation, with the styles, context and number of variants of your choice.',
       'Your own glossary of special translations, which you can extend and edit.',
       'A choice of LLM models (GGUF format) that run locally (offline) right inside the app.',
+      'A choice of different models for reading aloud.',
       'Rephrasing in the chosen language, explanations, tests, help, search, corrections and other functions of your choice.',
     ],
     contact: 'If you have questions, suggestions or feedback, please write to the creators of the app:',
     support: 'The creators will be glad of any support via GitHub Sponsors.',
     license: 'Licence: MIT (the file LICENSE.txt in the program folder).',
-    credits: 'Built with the llama.cpp engine (MIT licence) and the Gemma 4 models (Google, Apache 2.0 licence); reading aloud uses the sherpa-onnx program (Apache 2.0 licence, with espeak-ng inside, GPL-3.0 licence) and Piper voices (the licence of each voice is shown in the model menu); the own window uses the webview library (MIT licence) and, on Windows, Microsoft Edge WebView2.',
+    credits: 'Built with the llama.cpp engine (MIT licence) and the Gemma 4 models (Google, Apache 2.0 licence); reading aloud uses the sherpa-onnx program (Apache 2.0 licence, with espeak-ng inside, GPL-3.0 licence) and Piper voices (the licence of each voice is shown in the model menu); the app window uses the webview library (MIT licence) and, on Windows, Microsoft Edge WebView2.',
   },
   de: {
     intro: 'Wir stellen Ihnen Ttranslator vor – einen kostenlosen Offline-Übersetzer mit offenem Quellcode. Seine Funktionen:',
@@ -1045,29 +1070,33 @@ const ABOUT = {
       'Schnelle mehrsprachige Übersetzung: nach Ihrer Wahl mit verschiedenen Stilen, Kontext und mehreren Varianten.',
       'Ein eigenes Glossar mit speziellen Übersetzungen, das Sie ergänzen und bearbeiten können.',
       'Auswahl verschiedener LLM-Modelle (GGUF-Format), die lokal (offline) direkt in der Anwendung laufen.',
+      'Auswahl verschiedener Modelle zum Vorlesen.',
       'Umformulierungen in der gewählten Sprache, Erklärungen, Tests, Hilfe, Suche, Korrekturen und weitere Funktionen nach Ihrer Wahl.',
     ],
     contact: 'Wenn Sie Fragen, Vorschläge oder Rückmeldungen haben, schreiben Sie den Entwicklern der Anwendung:',
     support: 'Die Entwickler freuen sich über jede Unterstützung über GitHub Sponsors.',
     license: 'Lizenz: MIT (Datei LICENSE.txt im Programmordner).',
-    credits: 'Verwendet werden die Engine llama.cpp (MIT-Lizenz) und die Modelle Gemma 4 (Google, Apache-2.0-Lizenz); zum Vorlesen das Programm sherpa-onnx (Apache-2.0-Lizenz, darin espeak-ng, GPL-3.0-Lizenz) und Piper-Stimmen (die Lizenz jeder Stimme steht im Modellmenü); das eigene Fenster nutzt die Bibliothek webview (MIT-Lizenz) und unter Windows Microsoft Edge WebView2.',
+    credits: 'Verwendet werden die Engine llama.cpp (MIT-Lizenz) und die Modelle Gemma 4 (Google, Apache-2.0-Lizenz); zum Vorlesen das Programm sherpa-onnx (Apache-2.0-Lizenz, darin espeak-ng, GPL-3.0-Lizenz) und Piper-Stimmen (die Lizenz jeder Stimme steht im Modellmenü); das App-Fenster nutzt die Bibliothek webview (MIT-Lizenz) und unter Windows Microsoft Edge WebView2.',
   },
 };
 
 // «Что нового» в окне приветствия — главное в этой версии, на трёх языках.
 const WHATS_NEW = {
-  version: '0.9.1',
+  version: '0.9.2',
   ru: [
-    '«Учебный пример»: стрелка ▾ у кнопки — уровень (начальный, средний, продвинутый), тема из списка или своя и «Упражнение в «Спросить модель»»: задания без ответов, Вы отвечаете — модель проверяет и объясняет ошибки. Кнопка «Проверить» под полем просит модель ещё раз проверить пример.',
-    'Проба своего окна: в «Настройках» — вид окна «Окно Ttranslator (проба)», окно самой программы на веб-движке системы (WebView2 в Windows, WebKitGTK в Linux), без браузера. Если оно не откроется, откроется окно Edge или Chrome, а причина будет видна в «Настройках».',
+    'Окно приложения — теперь собственное окно программы, без браузера, и вид окна по умолчанию; при запуске оно развёрнуто на весь экран (галочка в «Настройках»). Второй вариант — «Вкладка браузера». Если окно приложения не откроется, откроется окно Edge или Chrome.',
+    '«Учебный пример» точнее: строгий запрос (в начале — заголовок или вопрос, в конце — ответ или совет), низкая температура, без тем, где маленькие модели ошибаются чаще всего; перед показом модель проверяет пример и исправляет найденные ошибки. Кнопка «Уточнить» разбирает пример по пунктам в «Спросить модель».',
+    'Чтение вслух: на паузе подсветка текста снимается, кнопка ■ рядом с 🔊 останавливает чтение, а правка текста прекращает его сама.',
   ],
   en: [
-    '“Mini lesson”: the ▾ arrow at the button — the level (beginner, intermediate, advanced), a topic from the list or your own, and “Exercise in “Ask the model””: items without answers, you answer and the model checks and explains the mistakes. The “Check” button below the field asks the model to check the lesson once more.',
-    'A trial of the own window: in “Settings”, the window type “Ttranslator window (trial)” — the program’s own window on the web engine of the system (WebView2 on Windows, WebKitGTK on Linux), without a browser. If it does not open, an Edge or Chrome window opens, and the reason is shown in “Settings”.',
+    'The app window is now the program’s own window, without a browser, and the default window type; it starts maximized (a check box in “Settings”). The other choice is “Browser tab”. If the app window does not open, an Edge or Chrome window opens.',
+    '“Mini lesson” is more accurate: a strict request (a title or question at the beginning, an answer or tip at the end), a low temperature, no topics where small models make the most mistakes; before showing the lesson the model checks it and corrects the mistakes it finds. The “Clarify” button goes through the lesson point by point in “Ask the model”.',
+    'Reading aloud: when paused, the text is no longer highlighted, the ■ button next to 🔊 stops reading, and editing the text stops it by itself.',
   ],
   de: [
-    '„Mini-Lektion“: Der Pfeil ▾ an der Schaltfläche – Niveau (Anfänger, Mittelstufe, Fortgeschritten), ein Thema aus der Liste oder ein eigenes und „Übung in „Modell fragen““: Aufgaben ohne Lösungen, Sie antworten, und das Modell prüft und erklärt die Fehler. Die Schaltfläche „Prüfen“ unter dem Feld bittet das Modell, die Lektion noch einmal zu prüfen.',
-    'Test des eigenen Fensters: unter „Einstellungen“ die Fensterart „Ttranslator-Fenster (Test)“ – das eigene Fenster des Programms mit der Web-Engine des Systems (WebView2 unter Windows, WebKitGTK unter Linux), ohne Browser. Öffnet es sich nicht, öffnet sich ein Edge- oder Chrome-Fenster, und der Grund steht unter „Einstellungen“.',
+    'Das App-Fenster ist jetzt das eigene Fenster des Programms, ohne Browser, und die Standard-Fensterart; es startet maximiert (ein Kontrollkästchen unter „Einstellungen“). Die andere Wahl ist „Browser-Tab“. Öffnet sich das App-Fenster nicht, öffnet sich ein Edge- oder Chrome-Fenster.',
+    '„Mini-Lektion“ ist genauer: eine strenge Anfrage (am Anfang eine Überschrift oder Frage, am Ende eine Antwort oder ein Tipp), eine niedrige Temperatur, keine Themen, bei denen kleine Modelle die meisten Fehler machen; vor dem Anzeigen prüft das Modell die Lektion und korrigiert gefundene Fehler. Die Schaltfläche „Präzisieren“ geht die Lektion in „Modell fragen“ Punkt für Punkt durch.',
+    'Vorlesen: In der Pause ist der Text nicht mehr hervorgehoben, die Schaltfläche ■ neben 🔊 beendet das Vorlesen, und das Bearbeiten des Textes beendet es von selbst.',
   ],
 };
 
@@ -1083,9 +1112,9 @@ const HELP = {
       '- Контекст (необязательно) — одна строка о том, откуда текст: так перевод точнее. Двойной щелчок по пустому полю «Контекст» или «Свой» стиль вставляет пример.',
       '- У каждого варианта: копировать, сохранить (закладка), обратный перевод, «?» — спросить модель об этом варианте, «другой вариант».',
       '- «Случайно» под полем текста: модель придумает пословицу, поговорку или устойчивое выражение на языке текста.',
-      '- «Учебный пример» рядом: модель придумает короткое правило с примерами, упражнение, «найдите ошибку» или любопытный факт о языке текста — его можно сразу перевести.',
+      '- «Учебный пример» рядом: модель придумает на языке текста короткое правило с примерами, упражнение, «найдите ошибку» или пару слов, которые легко перепутать, — с заголовком и ответом или советом в конце; пример можно сразу перевести.',
       '- Стрелка ▾ у кнопки «Учебный пример»: уровень (начальный, средний, продвинутый), тема (из списка для языка текста или своя) и «Упражнение в «Спросить модель»» — задания без ответов: Вы отвечаете в переписке, модель проверяет и объясняет ошибки.',
-      '- Маленькие модели иногда ошибаются в правилах. Кнопка «Проверить» под полем просит модель ещё раз проверить пример (ответ — в «Спросить модель»); надёжнее всего — учебник или словарь; Gemma 4 E4B точнее E2B.',
+      '- Маленькие модели иногда ошибаются в правилах. Поэтому модель сначала проверяет свой пример и исправляет найденные ошибки, а потом показывает его (галочка «Проверять пример перед показом» в окошке ▾; так дольше). Кнопка «Уточнить» под полем просит модель ещё раз разобрать пример (ответ — в «Спросить модель»); надёжнее всего — учебник или словарь; Gemma 4 E4B точнее E2B.',
       '- «Свой вариант» под вариантами: напишите свой перевод или возьмите вариант модели за основу и поправьте его; его можно сохранить в «Сохранённые».',
       '- Формулы LaTeX ($…$ и $$…$$) не переводятся и не меняются: модель получает вместо них метки, а в варианты возвращаются сами формулы. Если модель потеряла формулу, запрос повторяется; если формула так и не вернулась, у варианта будет предупреждение. «Замечания» видят формулы как есть.'],
     ['Правка текста',
@@ -1097,7 +1126,7 @@ const HELP = {
     ['Сохранённые',
       'Закладка у варианта сохраняет перевод в выбранный файл (папка data\\saved). В панели «Сохранённые»: выбор файла, поиск, «В поле» — вернуть текст записи в поле перевода; меню «⋯» — новый файл, копия, импорт, экспорт в таблицу (.tsv) или в текст (.txt).'],
     ['Чтение вслух',
-      'Кнопка 🔊 у поля текста, у каждого варианта, у «Своего варианта» и у ответов модели читает текст вслух. Пока текст звучит, кнопка и текст подсвечены зелёным; второе нажатие — пауза, третье — продолжить; Esc или другая кнопка 🔊 останавливают чтение. Формулы LaTeX не читаются.',
+      'Кнопка 🔊 у поля текста, у каждого варианта, у «Своего варианта» и у ответов модели читает текст вслух. Пока текст звучит, кнопка и текст подсвечены зелёным; второе нажатие — пауза (подсветка текста снимается), третье — продолжить. Кнопка ■ рядом, Esc или другая кнопка 🔊 останавливают чтение; правка текста — тоже. Формулы LaTeX не читаются.',
       '- Голоса скачиваются в меню моделей (кнопка с названием модели вверху), по голосу на язык. Вместе с первым голосом один раз скачивается программа озвучки sherpa-onnx. Голос не занимает память постоянно: он запускается на секунду-две для каждой фразы.',
       '- Если для языка скачано два голоса, читает тот, что отмечен ✓; другой выбирается щелчком. Без голоса для языка текста кнопка 🔊 бледная.',
       '- Лицензии голосов разные (видны в меню моделей); Ruslan и HFC female — только для некоммерческого использования.'],
@@ -1107,7 +1136,7 @@ const HELP = {
       'Кнопка «Тест» переводит фразы из файла ui\\tests.txt и сохраняет отчёт со временем и оценкой в папку data\\reports — так удобно сравнивать модели.'],
     ['Настройки',
       'Кнопка ⚙ вверху: язык интерфейса, тема (светлая или тёмная), размер шрифта, «О программе» и «Выход». Настройки сохраняются сразу. Значок T вверху справа тоже открывает «О программе». При запуске программа показывает окно приветствия: язык, вид окна, загружать ли модель при запуске и показывать ли это окно; то же — в «Настройках».',
-      '- Вид окна: «Окно приложения» — окно Edge или Chrome без вкладок; «Вкладка браузера» — вкладка браузера по умолчанию; «Окно Ttranslator (проба)» — своё окно программы на веб-движке системы (WebView2 в Windows, WebKitGTK в Linux). Если своё окно не открылось, программа откроет окно Edge или Chrome, а причину покажет в «Настройках». В своём окне ссылки открываются в обычном браузере, а файлы сохраняются через окно «Сохранить как».'],
+      '- Вид окна: «Окно приложения» — окно самой программы на веб-движке системы (WebView2 в Windows, WebKitGTK в Linux), по умолчанию — на весь экран (галочка в «Настройках»); «Вкладка браузера» — вкладка браузера по умолчанию. Если окно приложения не открылось, программа откроет окно Edge или Chrome, а причину покажет в «Настройках». В окне приложения ссылки открываются в обычном браузере, а файлы сохраняются через окно «Сохранить как».'],
     ['Файлы программы',
       '- data\\saved — сохранённые переводы; data\\glossary — словари; data\\reports — отчёты теста; data\\logs — журналы.',
       '- models — модели; models\\voices — голоса для чтения вслух; engine — движок llama.cpp и программа озвучки sherpa-onnx; config.json — настройки.',
@@ -1124,9 +1153,9 @@ const HELP = {
       '- Context (optional) is one line about where the text comes from: it makes the translation more accurate. Double-click the empty “Context” or “Custom” style field to insert an example.',
       '- Each variant has buttons: copy, save (bookmark), back-translation, “?” to ask the model about this variant, “another variant”.',
       '- “Random” below the text field: the model makes up a proverb, saying or idiom in the language of the text.',
-      '- “Mini lesson” next to it: the model writes a short rule with examples, an exercise, “find the mistake” or a curious fact about the language of the text — you can translate it right away.',
+      '- “Mini lesson” next to it: the model writes, in the language of the text, a short rule with examples, an exercise, “find the mistake” or two words that are easy to confuse — with a title and an answer or tip at the end; you can translate it right away.',
       '- The ▾ arrow at the “Mini lesson” button: the level (beginner, intermediate, advanced), the topic (from the list for the language of the text, or your own) and “Exercise in “Ask the model”” — items without answers: you answer in the chat, the model checks and explains the mistakes.',
-      '- Small models sometimes get rules wrong. The “Check” button below the field asks the model to check the lesson once more (the answer appears in “Ask the model”); a textbook or dictionary is the most reliable; Gemma 4 E4B is more accurate than E2B.',
+      '- Small models sometimes get rules wrong. So the model first checks its lesson and corrects the mistakes it finds, and only then shows it (the “Check the lesson before showing it” box in the ▾ window; this takes longer). The “Clarify” button below the field asks the model to go through the lesson once more (the answer appears in “Ask the model”); a textbook or dictionary is the most reliable; Gemma 4 E4B is more accurate than E2B.',
       '- “Your version” below the variants: write your own translation or take a model variant as a basis and edit it; it can be saved to “Saved”.',
       '- LaTeX formulas ($…$ and $$…$$) are neither translated nor changed: the model gets placeholders instead, and the formulas themselves are put back into the variants. If the model loses a formula, the request is repeated; if the formula still does not come back, the variant shows a warning. “Remarks” see the formulas as they are.'],
     ['Text editing',
@@ -1138,7 +1167,7 @@ const HELP = {
     ['Saved',
       'The bookmark on a variant saves the translation to the chosen file (folder data\\saved). The “Saved” panel offers file choice, search and “To field” to put the entry’s text back into the input field; the “⋯” menu offers a new file, a copy, import, and export to a table (.tsv) or text (.txt).'],
     ['Reading aloud',
-      'The 🔊 button at the text field, at every variant, at “Your version” and at the model’s answers reads the text aloud. While the text is read, the button and the text are highlighted in green; a second click pauses, a third continues; Esc or another 🔊 button stops reading. LaTeX formulas are not read.',
+      'The 🔊 button at the text field, at every variant, at “Your version” and at the model’s answers reads the text aloud. While the text is read, the button and the text are highlighted in green; a second click pauses (the text is no longer highlighted), a third continues. The ■ button next to it, Esc or another 🔊 button stops reading, and so does editing the text. LaTeX formulas are not read.',
       '- Voices are downloaded in the model menu (the button with the model name at the top), one voice per language. With the first voice, the speech program sherpa-onnx is downloaded once. A voice does not stay in memory: it starts for a second or two for every phrase.',
       '- If two voices are downloaded for a language, the one marked ✓ reads; click the other one to choose it. Without a voice for the language of the text, the 🔊 button is pale.',
       '- The voices have different licences (shown in the model menu); Ruslan and HFC female are for non-commercial use only.'],
@@ -1148,7 +1177,7 @@ const HELP = {
       'The “Test” button translates the phrases from ui\\tests.txt and saves a report with timings and scores to data\\reports — handy for comparing models.'],
     ['Settings',
       'The ⚙ button at the top: interface language, theme (light or dark), font size, “About” and “Exit”. Settings are saved at once. The T icon at the top right also opens “About”. At start the program shows a welcome window: the language, the window type, whether to load the model at start and whether to show this window; the same options are in “Settings”.',
-      '- Window type: “App window” — an Edge or Chrome window without tabs; “Browser tab” — a tab of the default browser; “Ttranslator window (trial)” — the program’s own window on the web engine of the system (WebView2 on Windows, WebKitGTK on Linux). If the own window does not open, the program opens an Edge or Chrome window and shows the reason in “Settings”. In the own window, links open in your usual browser, and files are saved with the “Save as” dialog.'],
+      '- Window type: “App window” — the program’s own window on the web engine of the system (WebView2 on Windows, WebKitGTK on Linux), maximized by default (a check box in “Settings”); “Browser tab” — a tab of the default browser. If the app window does not open, the program opens an Edge or Chrome window and shows the reason in “Settings”. In the app window, links open in your usual browser, and files are saved with the “Save as” dialog.'],
     ['Program files',
       '- data\\saved — saved translations; data\\glossary — glossaries; data\\reports — test reports; data\\logs — logs.',
       '- models — models; models\\voices — voices for reading aloud; engine — the llama.cpp engine and the speech program sherpa-onnx; config.json — settings.',
@@ -1165,9 +1194,9 @@ const HELP = {
       '- Kontext (optional) ist eine Zeile darüber, woher der Text stammt: Die Übersetzung wird dadurch genauer. Ein Doppelklick in das leere Feld „Kontext“ oder „Eigener“ Stil fügt ein Beispiel ein.',
       '- Jede Variante hat Schaltflächen: kopieren, speichern (Lesezeichen), Rückübersetzung, „?“ – das Modell zu dieser Variante befragen, „andere Variante“.',
       '- „Zufällig“ unter dem Textfeld: Das Modell denkt sich ein Sprichwort, eine Redensart oder eine feste Wendung in der Sprache des Textes aus.',
-      '- „Mini-Lektion“ daneben: Das Modell schreibt eine kurze Regel mit Beispielen, eine Übung, „Finde den Fehler“ oder eine kuriose Tatsache über die Sprache des Textes – sie lässt sich gleich übersetzen.',
+      '- „Mini-Lektion“ daneben: Das Modell schreibt in der Sprache des Textes eine kurze Regel mit Beispielen, eine Übung, „Finde den Fehler“ oder zwei leicht verwechselbare Wörter – mit Überschrift und einer Antwort oder einem Tipp am Ende; sie lässt sich gleich übersetzen.',
       '- Der Pfeil ▾ an der Schaltfläche „Mini-Lektion“: Niveau (Anfänger, Mittelstufe, Fortgeschritten), Thema (aus der Liste für die Sprache des Textes oder ein eigenes) und „Übung in „Modell fragen““ – Aufgaben ohne Lösungen: Sie antworten im Chat, das Modell prüft und erklärt die Fehler.',
-      '- Kleine Modelle irren sich manchmal bei Regeln. Die Schaltfläche „Prüfen“ unter dem Feld bittet das Modell, die Lektion noch einmal zu prüfen (die Antwort erscheint in „Modell fragen“); am zuverlässigsten sind ein Lehrbuch oder ein Wörterbuch; Gemma 4 E4B ist genauer als E2B.',
+      '- Kleine Modelle irren sich manchmal bei Regeln. Deshalb prüft das Modell seine Lektion zuerst selbst, korrigiert gefundene Fehler und zeigt sie erst dann (das Kästchen „Lektion vor dem Anzeigen prüfen“ im Fenster ▾; das dauert länger). Die Schaltfläche „Präzisieren“ unter dem Feld bittet das Modell, die Lektion noch einmal durchzugehen (die Antwort erscheint in „Modell fragen“); am zuverlässigsten sind ein Lehrbuch oder ein Wörterbuch; Gemma 4 E4B ist genauer als E2B.',
       '- „Ihre Fassung“ unter den Varianten: Schreiben Sie Ihre eigene Übersetzung oder nehmen Sie eine Variante des Modells als Grundlage und passen Sie sie an; sie lässt sich unter „Gespeichert“ ablegen.',
       '- LaTeX-Formeln ($…$ und $$…$$) werden weder übersetzt noch verändert: Das Modell erhält stattdessen Platzhalter, und in die Varianten kommen die Formeln selbst zurück. Verliert das Modell eine Formel, wird die Anfrage wiederholt; kommt die Formel trotzdem nicht zurück, zeigt die Variante einen Hinweis. „Anmerkungen“ sehen die Formeln unverändert.'],
     ['Textkorrektur',
@@ -1179,7 +1208,7 @@ const HELP = {
     ['Gespeichert',
       'Das Lesezeichen an einer Variante speichert die Übersetzung in der gewählten Datei (Ordner data\\saved). Der Bereich „Gespeichert“ bietet Dateiauswahl, Suche und „Ins Feld“ – den Text des Eintrags zurück ins Eingabefeld; das Menü „⋯“ bietet eine neue Datei, eine Kopie, Import sowie Export als Tabelle (.tsv) oder Text (.txt).'],
     ['Vorlesen',
-      'Die Schaltfläche 🔊 beim Textfeld, bei jeder Variante, bei „Ihre Fassung“ und bei den Antworten des Modells liest den Text vor. Während der Text vorgelesen wird, sind Schaltfläche und Text grün hervorgehoben; ein zweiter Klick pausiert, ein dritter setzt fort; Esc oder eine andere Schaltfläche 🔊 beendet das Vorlesen. LaTeX-Formeln werden nicht vorgelesen.',
+      'Die Schaltfläche 🔊 beim Textfeld, bei jeder Variante, bei „Ihre Fassung“ und bei den Antworten des Modells liest den Text vor. Während der Text vorgelesen wird, sind Schaltfläche und Text grün hervorgehoben; ein zweiter Klick pausiert (der Text ist dann nicht mehr hervorgehoben), ein dritter setzt fort. Die Schaltfläche ■ daneben, Esc oder eine andere Schaltfläche 🔊 beendet das Vorlesen, ebenso das Bearbeiten des Textes. LaTeX-Formeln werden nicht vorgelesen.',
       '- Stimmen werden im Modellmenü heruntergeladen (die Schaltfläche mit dem Modellnamen oben), eine Stimme pro Sprache. Mit der ersten Stimme wird einmalig das Sprachausgabe-Programm sherpa-onnx heruntergeladen. Eine Stimme belegt keinen Arbeitsspeicher auf Dauer: Sie startet für jede Phrase für ein bis zwei Sekunden.',
       '- Sind für eine Sprache zwei Stimmen heruntergeladen, liest die mit ✓ markierte; die andere wählen Sie per Klick. Ohne Stimme für die Sprache des Textes ist die Schaltfläche 🔊 blass.',
       '- Die Stimmen haben verschiedene Lizenzen (im Modellmenü sichtbar); Ruslan und HFC female nur für nicht-kommerzielle Nutzung.'],
@@ -1189,7 +1218,7 @@ const HELP = {
       'Die Schaltfläche „Test“ übersetzt die Sätze aus ui\\tests.txt und speichert einen Bericht mit Zeiten und Bewertungen in data\\reports – praktisch, um Modelle zu vergleichen.'],
     ['Einstellungen',
       'Die Schaltfläche ⚙ oben: Sprache der Oberfläche, Design (hell oder dunkel), Schriftgröße, „Über das Programm“ und „Beenden“. Einstellungen werden sofort gespeichert. Auch das Symbol T oben rechts öffnet „Über das Programm“. Beim Start zeigt das Programm ein Begrüßungsfenster: Sprache, Fensterart, ob das Modell beim Start geladen wird und ob dieses Fenster erscheint; dieselben Optionen gibt es unter „Einstellungen“.',
-      '- Fensterart: „App-Fenster“ – ein Edge- oder Chrome-Fenster ohne Tabs; „Browser-Tab“ – ein Tab des Standardbrowsers; „Ttranslator-Fenster (Test)“ – das eigene Fenster des Programms mit der Web-Engine des Systems (WebView2 unter Windows, WebKitGTK unter Linux). Öffnet sich das eigene Fenster nicht, öffnet das Programm ein Edge- oder Chrome-Fenster und zeigt den Grund unter „Einstellungen“. Im eigenen Fenster öffnen sich Links im gewohnten Browser, und Dateien werden über „Speichern unter“ gespeichert.'],
+      '- Fensterart: „App-Fenster“ – das eigene Fenster des Programms mit der Web-Engine des Systems (WebView2 unter Windows, WebKitGTK unter Linux), standardmäßig maximiert (ein Kontrollkästchen unter „Einstellungen“); „Browser-Tab“ – ein Tab des Standardbrowsers. Öffnet sich das App-Fenster nicht, öffnet das Programm ein Edge- oder Chrome-Fenster und zeigt den Grund unter „Einstellungen“. Im App-Fenster öffnen sich Links im gewohnten Browser, und Dateien werden über „Speichern unter“ gespeichert.'],
     ['Programmdateien',
       '- data\\saved – gespeicherte Übersetzungen; data\\glossary – Glossare; data\\reports – Testberichte; data\\logs – Protokolle.',
       '- models – Modelle; models\\voices – Stimmen zum Vorlesen; engine – die Engine llama.cpp und das Sprachausgabe-Programm sherpa-onnx; config.json – Einstellungen.',
@@ -2106,7 +2135,7 @@ function disarmRandom() {
 // строке под кнопками (длинная строка с кнопкой «Проверить»).
 function setNote(text, ownLine = false) {
   const n = $('#cleanNote');
-  n.textContent = text;
+  n.textContent = text; n.title = '';
   n.classList.toggle('own-line', ownLine);
   return n;
 }
@@ -2172,9 +2201,10 @@ async function randomText() {
 
 let lessonSeen = [];        // последние примеры (язык + текст), чтобы не повторяться
 let lessonTopics = [];      // последние случайные темы: следующая берётся из других
+let lessonKinds = [];       // последние виды примеров: следующий берётся из других
 let lessonTimer = null;     // ждём второго нажатия, если в поле уже есть текст
 let lessonHymtShown = false;
-let lessonLast = null;      // последний пример в поле: { text, code } — для «Проверить»
+let lessonLast = null;      // последний пример в поле: { text, code } — для «Уточнить»
 
 function disarmLesson() {
   clearTimeout(lessonTimer); lessonTimer = null;
@@ -2188,6 +2218,46 @@ function cleanLesson(text) {
   s = s.replace(/\*\*|__/g, '').replace(/^#{1,6}[ \t]*/gm, '').replace(/^[ \t]*[*•][ \t]+/gm, '– ');
   s = s.split('\n').map(x => x.trim()).join('\n').replace(/\n{3,}/g, '\n\n').trim();
   return s.length > LESSON.maxChars ? '' : s;
+}
+
+// Вид примера — не из двух последних: при низкой температуре разные виды дают разные примеры и на одну тему.
+function lessonKind() {
+  const all = LESSON.kinds.map((k, i) => i);
+  const fresh = all.filter(i => !lessonKinds.includes(i));
+  const pool = fresh.length ? fresh : all;
+  const i = pool[Math.floor(Math.random() * pool.length)];
+  lessonKinds.push(i); if (lessonKinds.length > Math.max(1, all.length - 2)) lessonKinds.shift();
+  return LESSON.kinds[i];
+}
+
+// Проверка перед показом (галочка в окошке ▾; по умолчанию — LESSON.selfCheck).
+const lessonSelfCheckOn = () => store.get('lessonSelfCheck', LESSON.selfCheck) !== false;
+
+// Доля общих слов двух текстов (для китайского — общих иероглифов).
+function wordOverlap(a, b) {
+  const toks = (x) => /[㐀-鿿]/.test(x) ? [...x.replace(/[^㐀-鿿]/g, '')] : glossTokens(x);
+  const A = new Set(toks(a)), B = new Set(toks(b));
+  if (!A.size || !B.size) return 0;
+  let n = 0;
+  for (const w of A) if (B.has(w)) n++;
+  return n / (A.size + B.size - n);
+}
+
+// Ответ проверки → { text, verdict }: «OK» — пример верен (verdict 'ok'); иначе — исправленный пример (без
+// пояснений вокруг, 'fixed'), если он похож на исходный и написан на том же языке; иначе остаётся исходный ('').
+function lessonCheckResult(original, reply, code) {
+  const s = cleanOutput(reply, '').replace(/\r/g, '').trim();
+  const first = (s.split('\n')[0] || '').replace(/[*_`"'«»“”]/g, '').trim();
+  if (/^(ok|ок|o\.k\.)[\s.!]*$/i.test(first)) return { text: original, verdict: 'ok' };
+  // «Исправленный пример:» и т. п. перед самим примером — взять то, что после
+  let lines = s.split('\n');
+  const mark = lines.map((x, i) => /(correct|исправлен|korrigiert|richtig)\S*[^:\n]{0,30}:\s*$/i.test(x.trim()) ? i : -1).filter(i => i >= 0).pop();
+  if (mark !== undefined) lines = lines.slice(mark + 1);
+  const fixed = cleanLesson(lines.join('\n'));
+  if (!fixed || normForCompare(fixed) === normForCompare(original)) return { text: original, verdict: fixed ? 'ok' : '' };
+  const lang = detectLang(fixed);
+  if (wordOverlap(fixed, original) < LESSON.minSimilar || (lang && lang !== code)) return { text: original, verdict: '' };
+  return { text: fixed, verdict: 'fixed' };
 }
 
 // Уровень и тема (выбираются стрелкой ▾ у кнопки, запоминаются в браузере).
@@ -2213,12 +2283,14 @@ function lessonTopicFor(code) {
   return { en: x.en, name: lessonTopicName(x) };
 }
 
-// Строка под полем после примера: напоминание об ошибках и кнопка «Проверить».
-function showLessonNote() {
-  const n = setNote(t('Пример придуман моделью — в правилах возможны ошибки'), true);
-  const b = el('button', '', t('Проверить'));
+// Строка под полем после примера: напоминание о возможных ошибках (в подсказке — что показала проверка) и кнопка
+// «Уточнить» (текст — по предложению автора от 22.10.2026).
+function showLessonNote(verdict) {
+  const n = setNote(t('Пример придуман моделью — возможны неточности и ошибки'), true);
+  n.title = verdict === 'fixed' ? t('Модель проверила пример и исправила его') : verdict === 'ok' ? t('Модель проверила пример и ошибок не нашла') : '';
+  const b = el('button', '', t('Уточнить'));
   b.type = 'button'; b.id = 'lessonCheck';
-  b.title = t('Попросить модель ещё раз проверить пример: ответ появится в «Спросить модель»');
+  b.title = t('Попросить модель ещё раз разобрать пример по пунктам: ответ появится в «Спросить модель»');
   b.onclick = lessonCheck;
   n.appendChild(b);
 }
@@ -2241,26 +2313,36 @@ async function lessonText() {
   const L = LANGS[code];
   const lang = L.target || L.prompt;
   const level = lessonLevel();
-  const pick = (a) => a[Math.floor(Math.random() * a.length)];
   abortCtl = new AbortController();
   setBusy(true);
   $('#lessonBtn').disabled = true; $('#randomBtn').disabled = true;
   setNote(t('Придумываю…'));
   formError('');
-  let done = false;
+  let done = false, verdict = '';
+  const seen = (x) => lessonSeen.includes(lang + '|' + normForCompare(x));
+  const remember = (x) => { lessonSeen.push(lang + '|' + normForCompare(x)); if (lessonSeen.length > LESSON.remember) lessonSeen.shift(); };
   try {
     let text = '';
     for (let i = 0; i < LESSON.tries; i++) {
       const topic = lessonTopicFor(code);
-      const r = await chat(LESSON.prompt(pick(LESSON.kinds), lang, topic.en, level), {
+      const r = await chat(LESSON.prompt(lessonKind(), lang, topic.en, level), {
         seed: Math.floor(Math.random() * 1e9), maxTokens: LESSON.maxTokens, signal: abortCtl.signal, sampling: LESSON.sampling,
       });
       text = cleanLesson(r.text);
-      if (text && !lessonSeen.includes(lang + '|' + normForCompare(text))) break;
+      if (text && !seen(text)) break;
     }
     if (!text) { toast(t('Модель не придумала подходящий пример. Нажмите ещё раз.')); return; }
-    lessonSeen.push(lang + '|' + normForCompare(text));
-    if (lessonSeen.length > LESSON.remember) lessonSeen.shift();
+    remember(text);
+    // проверка перед показом: модель ищет ошибки в своём примере и исправляет их
+    if (lessonSelfCheckOn()) {
+      setNote(t('Проверяю пример…'));
+      const r = await chat(LESSON.checkPrompt(lang, level, text), {
+        seed: 1, maxTokens: LESSON.maxTokens, signal: abortCtl.signal, sampling: LESSON.checkSampling,
+      });
+      const c = lessonCheckResult(text, r.text, code);
+      text = c.text; verdict = c.verdict;
+      if (verdict === 'fixed') remember(text);
+    }
     field.value = text.slice(0, MAX_CHARS); updateCounter(); renderDir();
     lessonLast = { text: field.value, code };
     field.focus();
@@ -2272,11 +2354,11 @@ async function lessonText() {
     setBusy(false);
     $('#lessonBtn').disabled = false; $('#randomBtn').disabled = false;
     // напоминание: пример придуман моделью (строка исчезнет, когда текст в поле изменят)
-    if (done) showLessonNote(); else setNote('');
+    if (done) showLessonNote(verdict); else setNote('');
   }
 }
 
-// «Проверить»: второй запрос — модель ещё раз проверяет пример (вопрос и ответ — в «Спросить модель»).
+// «Уточнить»: модель ещё раз разбирает пример по пунктам (вопрос и ответ — в «Спросить модель»).
 function lessonCheck() {
   const field = $('#src');
   if (!lessonLast || field.value !== lessonLast.text) { setNote(''); return; }
@@ -2290,7 +2372,7 @@ function lessonExercise() {
   const code = resolveDir($('#src').value).src;
   const topic = lessonTopicFor(code);
   const q = (LESSON_ASK.exercise[UI_LANG] || LESSON_ASK.exercise.ru)({ lang: langLower(code), level: lessonLevelName(lessonLevel()), topic: topic.name });
-  askAboutSend(q, { sampling: LESSON.sampling });
+  askAboutSend(q, { sampling: LESSON.chatSampling });
 }
 
 // Окошко у кнопки «Учебный пример» (стрелка ▾): уровень, тема (из списка языка текста или своя) и действия.
@@ -2331,11 +2413,16 @@ function openLessonMenu(btn) {
   own.oninput = () => store.set('lessonOwnTopic', own.value);
   own.onkeydown = (e) => { if (e.key === 'Enter') { e.preventDefault(); closePop(); lessonText(); } };
   box.appendChild(sel); box.appendChild(own);
+  const chk = el('label', 'check lo-check');
+  const cb = el('input'); cb.type = 'checkbox'; cb.id = 'lessonSelfCheck'; cb.checked = lessonSelfCheckOn();
+  cb.onchange = () => store.set('lessonSelfCheck', cb.checked);
+  chk.appendChild(cb); chk.appendChild(el('span', '', t('Проверять пример перед показом (дольше, но точнее)')));
+  box.appendChild(chk);
   const items = [{ node: box }, { sep: true },
-    { label: t('Пример в поле текста'), sub: t('правило, упражнение или факт — его можно перевести'), run: lessonText },
+    { label: t('Пример в поле текста'), sub: t('правило, упражнение или «найдите ошибку» — его можно перевести'), run: lessonText },
     { label: t('Упражнение в «Спросить модель»'), sub: t('без ответов: вы отвечаете — модель проверяет'), run: lessonExercise }];
   if (lessonLast && $('#src').value === lessonLast.text) {
-    items.push({ label: t('Проверить пример в поле'), sub: t('модель ещё раз проверит правило и ответы'), run: lessonCheck });
+    items.push({ label: t('Уточнить пример в поле'), sub: t('модель ещё раз разберёт правило, примеры и ответы'), run: lessonCheck });
   }
   openPop(btn, items, t('Учебный пример'));
 }
@@ -2347,7 +2434,7 @@ function openLessonMenu(btn) {
 // Длинный текст читается кусками по предложениям: звук начинается после первого куска, следующий готовится, пока
 // звучит предыдущий. Формулы LaTeX и разметка не читаются. Без голоса для языка кнопка бледная и подсказывает,
 // где его скачать.
-let speech = null;   // { btn, host, chunks, lang, audio, paused, ctl, pending, urls }
+let speech = null;   // { btn, host, chunks, lang, audio, paused, ctl, pending, urls, stopBtn }
 
 const ttsState = () => (MODE === 'launcher' && STATE && STATE.tts) || null;
 function voiceFor(lang) {
@@ -2380,14 +2467,26 @@ function speechChunks(text) {
   return out;
 }
 
+// Вид кнопки 🔊 и текста: playing — кнопка зелёная, текст подсвечен; paused — зелёная рамка у кнопки, текст без
+// подсветки (его можно править); off — как обычно.
 function setSpeakLook(btn, host, state) {
   btn.classList.toggle('speaking', state === 'playing');
   btn.classList.toggle('paused', state === 'paused');
   btn.innerHTML = state === 'playing' ? ICON.pause : ICON.speaker;
   btn.title = state === 'playing' ? t('Пауза') : state === 'paused' ? t('Продолжить чтение') : t('Прочитать вслух');
   btn.setAttribute('aria-label', btn.title);
-  if (host) host.classList.toggle('speaking-host', state !== 'off');
+  if (host) host.classList.toggle('speaking-host', state === 'playing');
   if (state === 'off') updateSpeakBtn(btn);
+}
+
+// Кнопка ■ рядом с 🔊, пока чтение не закончено: остановить совсем (как Esc).
+function speakStopButton(sp) {
+  const b = el('button', 'icon speak-stop');
+  b.type = 'button'; b.innerHTML = ICON.stop;
+  b.title = t('Остановить чтение (Esc)'); b.setAttribute('aria-label', b.title);
+  b.onclick = (e) => { e.stopPropagation(); if (speech === sp) stopSpeech(); };
+  sp.btn.after(b);
+  return b;
 }
 
 // Бледная кнопка — для языка нет голоса; подсказка называет голос.
@@ -2431,6 +2530,7 @@ function speakToggle(btn, host, text, lang) {
   const chunks = speechChunks(text);
   if (!chunks.length) { toast(t('Нет текста для чтения')); return; }
   speech = { btn, host, chunks, lang, audio: null, paused: false, ctl: new AbortController(), pending: new Map(), urls: [] };
+  speech.stopBtn = speakStopButton(speech);
   setSpeakLook(btn, host, 'playing');
   playChunk(speech, 0);
 }
@@ -2475,7 +2575,15 @@ function stopSpeech() {
   sp.ctl.abort();
   if (sp.audio) { sp.audio.onended = null; sp.audio.onerror = null; sp.audio.pause(); }
   for (const u of sp.urls) URL.revokeObjectURL(u);
+  if (sp.stopBtn) sp.stopBtn.remove();
   setSpeakLook(sp.btn, sp.host, 'off');
+}
+
+// Правка текста, который читается (или стоит на паузе), прекращает чтение: возврат к редактированию. На паузе — уже
+// при щелчке в поле.
+function stopSpeechOnEdit(field) {
+  field.addEventListener('input', () => { if (speech && speech.host === field) stopSpeech(); });
+  field.addEventListener('focus', () => { if (speech && speech.host === field && speech.paused) stopSpeech(); });
 }
 
 // Голоса в меню моделей: скачать (с вопросом «откуда, куда, файл»), выбрать для языка, удалить.
@@ -4268,7 +4376,7 @@ async function refreshState() {
   // настройки «при запуске» могли поменять в другом окне; ответ, запрошенный до изменения в этом окне, не в счёт
   if (s.settings && seq === settingsSeq) {
     let changed = false;
-    for (const k of ['show_welcome', 'launch_mode', 'load_model_at_start']) if (k in s.settings && SETTINGS[k] !== s.settings[k]) { SETTINGS[k] = s.settings[k]; changed = true; }
+    for (const k of ['show_welcome', 'launch_mode', 'load_model_at_start', 'start_maximized']) if (k in s.settings && SETTINGS[k] !== s.settings[k]) { SETTINGS[k] = s.settings[k]; changed = true; }
     if (changed && !$('#settingsView').hidden) renderSettings();
     if (changed && !$('#welcomeView').hidden) renderWelcome();
   }
@@ -4423,7 +4531,7 @@ const SETTINGS = {
   theme: document.documentElement.dataset.theme === 'dark' ? 'dark' : 'light',
   font_scale: Number(document.documentElement.dataset.font) || 100,
   // при запуске (только с Ttranslator.exe): окно приветствия, вид окна, загружать ли модель — приходят из /api/state
-  show_welcome: true, launch_mode: 'app', load_model_at_start: true,
+  show_welcome: true, launch_mode: 'window', load_model_at_start: true, start_maximized: true,
 };
 
 let settingsSeq = 0;   // растёт при каждом изменении настроек в этом окне
@@ -4441,17 +4549,10 @@ function fillUiLangSelect(sel) {
   sel.value = UI_LANG;
 }
 
-// Вид окна: выбранный вариант; «Окно Ttranslator» недоступно, если рядом с программой нет программы своего окна.
+// Вид окна: «Окно приложения» (своё окно программы, а если оно не откроется — окно Edge или Chrome) или «Вкладка
+// браузера».
 function renderModeSeg(seg) {
-  const avail = !STATE || !STATE.window || STATE.window.available !== false;
-  for (const b of seg.children) {
-    b.setAttribute('aria-pressed', String(b.dataset.v === SETTINGS.launch_mode));
-    if (b.dataset.v === 'window') {
-      if (b.dataset.title === undefined) b.dataset.title = b.title;   // обычная подсказка (уже на языке интерфейса)
-      b.disabled = !avail && SETTINGS.launch_mode !== 'window';
-      b.title = avail ? b.dataset.title : t('Программы своего окна нет в папке программы');
-    }
-  }
+  for (const b of seg.children) b.setAttribute('aria-pressed', String(b.dataset.v === SETTINGS.launch_mode));
 }
 
 function renderSettings() {
@@ -4459,8 +4560,10 @@ function renderSettings() {
   const launcher = MODE === 'launcher';
   $('#startRows').hidden = !launcher; $('#openWelcomeBtn').hidden = !launcher;
   renderModeSeg($('#modeSeg'));
+  $('#setMax').checked = SETTINGS.start_maximized !== false;
+  $('#setMax').disabled = SETTINGS.launch_mode === 'tab';
   const werr = STATE && STATE.window && STATE.window.error;
-  $('#modeErr').textContent = werr ? t('Своё окно не открылось: {e}. Открыто окно Edge или Chrome.', { e: werr }) : '';
+  $('#modeErr').textContent = werr ? t('Окно приложения не открылось: {e}. Открыто окно Edge или Chrome.', { e: werr }) : '';
   $('#modeErr').hidden = !werr;
   $('#setLoad').checked = SETTINGS.load_model_at_start !== false;
   $('#setWelcome').checked = SETTINGS.show_welcome !== false;
@@ -4723,9 +4826,16 @@ const I18N = {
   'художественно-литературный': ['literary, as in fiction', 'literarisch, wie in einem Roman'],
   'название не переводится': ['names are not translated', 'Namen werden nicht übersetzt'],
   'Учебный пример': ['Mini lesson', 'Mini-Lektion'],
+  'Уточнить': ['Clarify', 'Präzisieren'],
+  'Попросить модель ещё раз разобрать пример по пунктам: ответ появится в «Спросить модель»': ['Ask the model to go through the lesson point by point once more: the answer appears in “Ask the model”', 'Das Modell bitten, die Lektion noch einmal Punkt für Punkt durchzugehen: Die Antwort erscheint in „Modell fragen“'],
+  'Модель проверила пример и исправила его': ['The model checked the lesson and corrected it', 'Das Modell hat die Lektion geprüft und korrigiert'],
+  'Модель проверила пример и ошибок не нашла': ['The model checked the lesson and found no mistakes', 'Das Modell hat die Lektion geprüft und keine Fehler gefunden'],
+  'Проверяю пример…': ['Checking the lesson…', 'Lektion wird geprüft…'],
+  'Проверять пример перед показом (дольше, но точнее)': ['Check the lesson before showing it (slower, but more accurate)', 'Lektion vor dem Anzeigen prüfen (langsamer, aber genauer)'],
+  'правило, упражнение или «найдите ошибку» — его можно перевести': ['a rule, an exercise or “find the mistake” — you can translate it', 'eine Regel, eine Übung oder „Finde den Fehler“ – Sie können sie übersetzen'],
+  'Уточнить пример в поле': ['Clarify the lesson in the field', 'Lektion im Feld präzisieren'],
+  'модель ещё раз разберёт правило, примеры и ответы': ['the model goes through the rule, the examples and the answers once more', 'das Modell geht Regel, Beispiele und Lösungen noch einmal durch'],
   'Учебный пример: уровень, тема и упражнение в «Спросить модель» (вы отвечаете — модель проверяет)': ['Mini lesson: level, topic and an exercise in “Ask the model” (you answer, the model checks)', 'Mini-Lektion: Niveau, Thema und eine Übung in „Modell fragen“ (Sie antworten, das Modell prüft)'],
-  'Проверить': ['Check', 'Prüfen'],
-  'Попросить модель ещё раз проверить пример: ответ появится в «Спросить модель»': ['Ask the model to check the lesson once more: the answer appears in “Ask the model”', 'Das Modell bitten, die Lektion noch einmal zu prüfen: Die Antwort erscheint in „Modell fragen“'],
   'Уровень': ['Level', 'Niveau'],
   'Начальный': ['Beginner', 'Anfänger'],
   'Средний': ['Intermediate', 'Mittelstufe'],
@@ -4737,14 +4847,12 @@ const I18N = {
   'Своя тема': ['Your own topic', 'Eigenes Thema'],
   'например: предлоги места': ['e.g. prepositions of place', 'z. B. Präpositionen des Ortes'],
   'Пример в поле текста': ['Lesson in the text field', 'Lektion im Textfeld'],
-  'правило, упражнение или факт — его можно перевести': ['a rule, an exercise or a fact — you can translate it', 'eine Regel, eine Übung oder eine Tatsache – Sie können sie übersetzen'],
   'Упражнение в «Спросить модель»': ['Exercise in “Ask the model”', 'Übung in „Modell fragen“'],
   'без ответов: вы отвечаете — модель проверяет': ['without answers: you answer, the model checks', 'ohne Lösungen: Sie antworten, das Modell prüft'],
-  'Проверить пример в поле': ['Check the lesson in the field', 'Lektion im Feld prüfen'],
-  'модель ещё раз проверит правило и ответы': ['the model checks the rule and the answers once more', 'das Modell prüft die Regel und die Lösungen noch einmal'],
   'Прочитать вслух': ['Read aloud', 'Vorlesen'],
   'Прочитать вслух ({v})': ['Read aloud ({v})', 'Vorlesen ({v})'],
   'Пауза': ['Pause', 'Pause'],
+  'Остановить чтение (Esc)': ['Stop reading (Esc)', 'Vorlesen beenden (Esc)'],
   'Продолжить чтение': ['Continue reading', 'Weiterlesen'],
   'общественное достояние': ['public domain', 'gemeinfrei'],
   'Для языка «{l}» нет голоса. Скачайте его в меню моделей (кнопка с названием модели вверху).': ['There is no voice for {l}. Download one in the model menu (the button with the model name at the top).', 'Für {l} gibt es keine Stimme. Laden Sie eine im Modellmenü herunter (die Schaltfläche mit dem Modellnamen oben).'],
@@ -4777,9 +4885,9 @@ const I18N = {
   'Один раз понадобится и программа озвучки sherpa-onnx ({s}):': ['The speech program sherpa-onnx ({s}) is also needed, once:', 'Einmalig wird auch das Sprachausgabe-Programm sherpa-onnx ({s}) benötigt:'],
   'Лицензия голоса ({l}) разрешает только некоммерческое использование.': ['The voice licence ({l}) allows non-commercial use only.', 'Die Lizenz der Stimme ({l}) erlaubt nur nicht-kommerzielle Nutzung.'],
   'Голос «{v}» скачан. Кнопка 🔊 читает текст вслух.': ['The voice “{v}” is downloaded. The 🔊 button reads text aloud.', 'Die Stimme „{v}“ ist heruntergeladen. Die Schaltfläche 🔊 liest Text vor.'],
-  'Попросить модель придумать короткий учебный пример на языке текста: правило, упражнение, «найдите ошибку» или любопытный факт. Маленькие модели иногда ошибаются в правилах — проверяйте.': ['Ask the model for a short lesson in the language of the text: a rule, an exercise, “find the mistake” or a curious fact. Small models sometimes get rules wrong — double-check.', 'Das Modell um eine kurze Lektion in der Sprache des Textes bitten: eine Regel, eine Übung, „Finde den Fehler“ oder eine kuriose Tatsache. Kleine Modelle irren sich manchmal bei Regeln – bitte prüfen.'],
+  'Попросить модель придумать короткий учебный пример на языке текста: правило, упражнение, «найдите ошибку» или два слова, которые легко перепутать. Маленькие модели иногда ошибаются в правилах — проверяйте.': ['Ask the model for a short lesson in the language of the text: a rule, an exercise, “find the mistake” or two words that are easy to confuse. Small models sometimes get rules wrong — double-check.', 'Das Modell um eine kurze Lektion in der Sprache des Textes bitten: eine Regel, eine Übung, „Finde den Fehler“ oder zwei leicht verwechselbare Wörter. Kleine Modelle irren sich manchmal bei Regeln – bitte prüfen.'],
   'Модель не придумала подходящий пример. Нажмите ещё раз.': ['The model did not come up with a suitable example. Press again.', 'Das Modell hat kein passendes Beispiel gefunden. Bitte noch einmal drücken.'],
-  'Пример придуман моделью — в правилах возможны ошибки': ['Written by the model — rules may contain mistakes', 'Vom Modell geschrieben – Regeln können Fehler enthalten'],
+  'Пример придуман моделью — возможны неточности и ошибки': ['Written by the model — inaccuracies and mistakes are possible', 'Vom Modell geschrieben – Ungenauigkeiten und Fehler sind möglich'],
   'Hy-MT2 обучена только переводу: для кнопки «Учебный пример» лучше выбрать Gemma 4.': ['Hy-MT2 is trained for translation only: for the “Mini lesson” button, Gemma 4 is better.', 'Hy-MT2 ist nur auf Übersetzung trainiert: Für die Schaltfläche „Mini-Lektion“ eignet sich Gemma 4 besser.'],
   'отличие: по-русски «декада» — это десять дней': ['difference: the Russian “dekada” means ten days, not ten years', 'Unterschied: Das russische „dekada“ bedeutet zehn Tage, nicht zehn Jahre'],
   'вместо кальки «дружественный к пользователю»': ['instead of a word-for-word calque', 'statt einer wörtlichen Lehnübersetzung'],
@@ -5165,12 +5273,10 @@ const I18N = {
   'Что нового в версии {v}': ['What’s new in version {v}', 'Neu in Version {v}'],
   'Вид окна': ['Window type', 'Fensterart'],
   'Окно приложения': ['App window', 'App-Fenster'],
-  'Окно Ttranslator (проба)': ['Ttranslator window (trial)', 'Ttranslator-Fenster (Test)'],
-  'Окно Edge или Chrome без вкладок и адресной строки': ['An Edge or Chrome window without tabs and address bar', 'Ein Edge- oder Chrome-Fenster ohne Tabs und Adressleiste'],
+  'Окно самой программы на веб-движке системы (WebView2 в Windows, WebKitGTK в Linux), без вкладок и адресной строки. Если оно не откроется, откроется окно Edge или Chrome': ['The program’s own window on the web engine of the system (WebView2 on Windows, WebKitGTK on Linux), without tabs and address bar. If it does not open, an Edge or Chrome window opens', 'Das eigene Fenster des Programms mit der Web-Engine des Systems (WebView2 unter Windows, WebKitGTK unter Linux), ohne Tabs und Adressleiste. Öffnet es sich nicht, öffnet sich ein Edge- oder Chrome-Fenster'],
+  'Окно приложения — на весь экран': ['App window maximized', 'App-Fenster maximiert'],
+  'Окно приложения не открылось: {e}. Открыто окно Edge или Chrome.': ['The app window did not open: {e}. An Edge or Chrome window was opened instead.', 'Das App-Fenster hat sich nicht geöffnet: {e}. Stattdessen wurde ein Edge- oder Chrome-Fenster geöffnet.'],
   'Вкладка браузера, выбранного в системе по умолчанию': ['A tab of the default browser of the system', 'Ein Tab des Standardbrowsers des Systems'],
-  'Своё окно программы на веб-движке системы (WebView2 в Windows, WebKitGTK в Linux). Проба: если окно не откроется, откроется окно Edge или Chrome': ['The program’s own window on the web engine of the system (WebView2 on Windows, WebKitGTK on Linux). A trial: if it does not open, an Edge or Chrome window opens', 'Das eigene Fenster des Programms mit der Web-Engine des Systems (WebView2 unter Windows, WebKitGTK unter Linux). Ein Test: Öffnet es sich nicht, öffnet sich ein Edge- oder Chrome-Fenster'],
-  'Своё окно не открылось: {e}. Открыто окно Edge или Chrome.': ['The own window did not open: {e}. An Edge or Chrome window was opened instead.', 'Das eigene Fenster hat sich nicht geöffnet: {e}. Stattdessen wurde ein Edge- oder Chrome-Fenster geöffnet.'],
-  'Программы своего окна нет в папке программы': ['The program of the own window is not in the program folder', 'Das Programm des eigenen Fensters fehlt im Programmordner'],
   'Сохранить файл': ['Save file', 'Datei speichern'],
   'Не удалось открыть ссылку: {e}': ['Could not open the link: {e}', 'Der Link konnte nicht geöffnet werden: {e}'],
   'Вкладка браузера': ['Browser tab', 'Browser-Tab'],
@@ -5394,6 +5500,7 @@ function init() {
   for (const id of ['welcomeModeSeg', 'modeSeg']) $('#' + id).addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) setStartOption({ launch_mode: b.dataset.v }); });
   $('#welcomeLoad').addEventListener('change', () => setStartOption({ load_model_at_start: $('#welcomeLoad').checked }));
   $('#setLoad').addEventListener('change', () => setStartOption({ load_model_at_start: $('#setLoad').checked }));
+  $('#setMax').addEventListener('change', () => setStartOption({ start_maximized: $('#setMax').checked }));
   $('#welcomeShow').addEventListener('change', () => setStartOption({ show_welcome: $('#welcomeShow').checked }));
   $('#setWelcome').addEventListener('change', () => setStartOption({ show_welcome: $('#setWelcome').checked }));
   $('#welcomeStart').onclick = closeWelcome;
@@ -5408,6 +5515,7 @@ function init() {
   };
   $('#ownFromBtn').onclick = (e) => { e.stopPropagation(); if (popAnchor === e.currentTarget) closePop(); else ownFromVariant(e.currentTarget); };
   $('#ownText').addEventListener('input', ownInput);
+  stopSpeechOnEdit($('#src')); stopSpeechOnEdit($('#ownText'));
   $('#themeSeg').addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) setTheme(b.dataset.v); });
   $('#fontSeg').addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) setFontScale(Number(b.dataset.v)); });
   $('#quit2Btn').onclick = quitApp;

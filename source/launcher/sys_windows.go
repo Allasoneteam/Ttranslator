@@ -118,9 +118,9 @@ func exitMessage(code int, err error) string {
 	return fmt.Sprintf(tr("Движок неожиданно завершился (код %d). Подробности — в журнале ниже."), code)
 }
 
-// openWindow opens the program's window: an Edge or Chrome window without tabs and address bar or, with tab
-// (launch_mode "tab") or when neither is installed, a tab of the default browser.
-func openWindow(u string, tab bool) error {
+// openWindow opens the program's window: an Edge or Chrome window without tabs and address bar (maximized, if asked)
+// or, with tab (launch_mode "tab") or when neither is installed, a tab of the default browser.
+func openWindow(u string, tab, maximized bool) error {
 	if tab {
 		return exec.Command("rundll32", "url.dll,FileProtocolHandler", u).Start()
 	}
@@ -137,7 +137,7 @@ func openWindow(u string, tab bool) error {
 	}
 	for _, c := range cands {
 		if _, err := os.Stat(c); err == nil {
-			cmd := exec.Command(c, "--app="+u, "--window-size=1180,780", "--no-first-run", "--no-default-browser-check")
+			cmd := exec.Command(c, appWindowArgs(u, maximized)...)
 			if err := cmd.Start(); err == nil {
 				_ = cmd.Process.Release()
 				return nil

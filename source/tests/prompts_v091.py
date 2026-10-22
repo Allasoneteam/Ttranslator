@@ -1,5 +1,5 @@
 # v0.9.1: «Учебный пример» — the ▾ window (level, topic from the list of the language or your own), the exercise in
-# «Спросить модель» (items without answers, the model checks your answers), «Проверить» (a second request that
+# «Спросить модель» (items without answers, the model checks your answers), «Уточнить» (0.9.1: «Проверить»; a request that
 # checks the lesson), with canned engine replies (fixtures written for the test, not model output).
 # Usage: prompts_v091.py <work> <ui_url>   (a launcher past the first run; models/my-custom-model.gguf must exist in the root)
 import sys, json, os, re, time, urllib.request
@@ -32,7 +32,8 @@ def reply(route):
 post('/api/model', {'id': 'file:my-custom-model.gguf'}); wait_phase('ready')
 with sync_playwright() as pw:
     b = pw.chromium.launch(); ctx = b.new_context(viewport={'width': 1180, 'height': 820}, locale='ru-RU')
-    ctx.add_init_script("try { sessionStorage.setItem('tdoc.window', '1'); sessionStorage.setItem('tdoc.welcome', 'done') } catch (e) {}")
+    # the check of a lesson before it is shown (0.9.2) is off here — prompts_v092.py tests it
+    ctx.add_init_script("try { sessionStorage.setItem('tdoc.window', '1'); sessionStorage.setItem('tdoc.welcome', 'done'); localStorage.setItem('tdoc.lessonSelfCheck', 'false') } catch (e) {}")
     page = ctx.new_page(); errs = []
     page.on('pageerror', lambda e: errs.append(str(e)))
     page.on('console', lambda m: errs.append(m.text) if m.type == 'error' and 'status of 503' not in m.text else None)
@@ -83,30 +84,30 @@ with sync_playwright() as pw:
     queue[:] = [LESSON1]
     n = len(prompts); page.locator('#popMenu .mi', has_text='Пример в поле текста').click(); idle()
     c = prompts[-1]['messages'][0]['content']
-    m = re.fullmatch(r'Write (.+) about prepositions, for beginner \(A1–A2\) learners of Russian\. Write everything in Russian only, in very simple words and short sentences, in at most five short lines\. Do not add a title, a translation, Markdown formatting or any other comments\.', c)
-    ok(bool(m) and m.group(1) in W['kinds'] and len(prompts) == n + 1 and page.is_hidden('#popMenu'), 'request with the level and the topic: ' + c)
-    ok(page.input_value('#src') == LESSON1 and page.inner_text('#lessonCheck') == 'Проверить', 'the lesson is in the field, «Проверить» under it')
+    ok('Write a short lesson for beginner (A1–A2) learners of Russian.\nTopic: prepositions.\n' in c and 'everything in Russian only, in very simple words and short sentences' in c
+       and len(prompts) == n + 1 and page.is_hidden('#popMenu'), 'request with the level and the topic: ' + c[:200])
+    ok(page.input_value('#src') == LESSON1 and page.inner_text('#lessonCheck') == 'Уточнить', 'the lesson is in the field, «Уточнить» under it')
 
-    # ================= «Проверить»: the second request, in «Спросить модель»
+    # ================= «Уточнить»: a question in «Спросить модель»
     page.click('#tabGloss')
     CHECK = 'Всё верно: «в доме», «на столе».'
     queue[:] = [CHECK]
     n = len(prompts); page.click('#lessonCheck'); chat_idle(n)
     p = prompts[-1]
-    want = 'Проверь этот учебный пример (язык — русский): верны ли правило, примеры и ответы? Если что-то неверно, объясни ошибку и напиши исправленный вариант.\n\n' + LESSON1
+    want = 'Внимательно разбери этот учебный пример (язык — русский) по пунктам: 1) верно ли правило или утверждение; 2) правильны ли примеры — грамматика, орфография и пунктуация; 3) верны ли задание и ответ. Если всё верно, так и напиши и коротко поясни правило. Если есть ошибки, объясни каждую и напиши исправленный пример.\n\n' + LESSON1
     ok(page.is_visible('#askPane') and p['messages'][0]['role'] == 'system' and last_user(p) == want and len(p['messages']) == 2, 'the check question: %r' % last_user(p)[:120])
-    ok(p['temperature'] == W['checkSampling']['temperature'] == 0.2, 'the check is asked with a low temperature: %s' % p['temperature'])
+    ok(p['temperature'] == W['checkSampling']['temperature'] == 0, 'the check is asked with temperature 0: %s' % p['temperature'])
     ok(page.locator('#askLog .msg.user').last.inner_text() == want and CHECK in page.locator('#askLog .msg.bot').last.inner_text(), 'question and answer are in the chat')
 
     # the window remembers the choice and offers the check while the lesson is in the field
     open_menu()
     ok(chips.nth(0).get_attribute('aria-pressed') == 'true' and page.input_value('#lessonTopicSel') == 'prepositions', 'the window shows the remembered level and topic')
-    ok(menu_items()[-1] == 'Проверить пример в поле', 'with a lesson in the field the window offers the check: %s' % menu_items())
+    ok(menu_items()[-1] == 'Уточнить пример в поле', 'with a lesson in the field the window offers «Уточнить»: %s' % menu_items())
     page.keyboard.press('Escape')
     page.type('#src', '!')
-    ok(page.inner_text('#cleanNote') == '', 'changing the text removes the note and «Проверить»')
+    ok(page.inner_text('#cleanNote') == '', 'changing the text removes the note and «Уточнить»')
     open_menu()
-    ok('Проверить пример в поле' not in menu_items(), 'no check of a changed text: %s' % menu_items())
+    ok('Уточнить пример в поле' not in menu_items(), 'no «Уточнить» for a changed text: %s' % menu_items())
 
     # ================= your own topic
     page.select_option('#lessonTopicSel', '*')
@@ -117,7 +118,7 @@ with sync_playwright() as pw:
     ok(page.input_value('#lessonTopicSel') == '*' and page.input_value('#lessonOwnTopic') == 'дроби и проценты', 'your own topic is shown again')
     queue[:] = ['Половина — это одна вторая: 1/2.']
     n = len(prompts); page.press('#lessonOwnTopic', 'Enter'); idle()
-    ok(len(prompts) == n + 1 and ' about дроби и проценты, for beginner (A1–A2) learners of Russian.' in prompts[-1]['messages'][0]['content'], 'Enter in the field: a lesson on your own topic')
+    ok(len(prompts) == n + 1 and 'for beginner (A1–A2) learners of Russian.\nTopic: дроби и проценты.\n' in prompts[-1]['messages'][0]['content'], 'Enter in the field: a lesson on your own topic')
 
     # ================= the exercise in «Спросить модель»
     EX = '1. Одна ___ (вторая) пирога.\n2. Пятьдесят ___ (процент).'
@@ -125,9 +126,9 @@ with sync_playwright() as pw:
     open_menu()
     n = len(prompts); page.locator('#popMenu .mi', has_text='Упражнение в «Спросить модель»').click(); chat_idle(n)
     p = prompts[-1]
-    want = 'Дай мне короткое упражнение. Язык — русский, уровень — начальный, тема — дроби и проценты. Напиши 3–5 пронумерованных заданий: вставить пропущенное слово или выбрать правильную форму. Задания — на этом языке, объяснения — по-русски. Ответов не показывай: я отвечу, а ты проверишь каждый ответ и коротко объяснишь ошибки.'
+    want = 'Дай мне короткое упражнение. Язык — русский, уровень — начальный, тема — дроби и проценты. Напиши 3–5 пронумерованных заданий: вставить пропущенное слово или выбрать правильную форму. Используй только стандартные правила из учебников, в которых ты полностью уверен; у каждого задания должен быть ровно один правильный ответ. Задания — на этом языке, объяснения — по-русски. Ответов не показывай: я отвечу, а ты проверишь каждый ответ и коротко объяснишь ошибки.'
     ok(last_user(p) == want, 'the exercise question: %r' % last_user(p))
-    ok(p['temperature'] == W['sampling']['temperature'] and len(p['messages']) == 4, 'varied (temperature %s), after the earlier check in the same chat (%d messages)' % (p['temperature'], len(p['messages'])))
+    ok(p['temperature'] == W['chatSampling']['temperature'] == 0.3 and len(p['messages']) == 4, 'low temperature (%s), after the earlier check in the same chat (%d messages)' % (p['temperature'], len(p['messages'])))
     ok(page.input_value('#src') == 'Половина — это одна вторая: 1/2.', 'the exercise does not touch the text field')
     page.screenshot(path=os.path.join(shots, '2-exercise.png'))
     # your answers: an ordinary chat question, the model sees the exercise
@@ -148,7 +149,7 @@ with sync_playwright() as pw:
     page.keyboard.press('Escape'); page.fill('#src', '')
     n = len(prompts); page.click('#lessonBtn'); idle()
     c = prompts[-1]['messages'][0]['content']
-    ok(' about separable verbs, for advanced (C1–C2) learners of German. Write everything in German only, in clear, natural language, ' in c, 'German, advanced: ' + c[:150])
+    ok('for advanced (C1–C2) learners of German.\nTopic: separable verbs.\n' in c and 'everything in German only, in clear, natural language, ' in c, 'German, advanced: ' + c[:200])
     page.select_option('#srcSel', 'ru'); open_menu()
     ok(page.input_value('#lessonTopicSel') == '', 'Russian: the German topic is not in the list, «Любая» is shown')
     page.keyboard.press('Escape')
@@ -156,7 +157,7 @@ with sync_playwright() as pw:
     for i in range(4):
         page.fill('#src', ''); queue[:] = ['Пример номер %d.' % i]
         page.click('#lessonBtn'); idle()
-        m = re.search(r'.* about (.+), for advanced \(C1–C2\) learners of Russian\.', prompts[-1]['messages'][0]['content'])
+        m = re.search(r'for advanced \(C1–C2\) learners of Russian\.\nTopic: (.+)\.\n', prompts[-1]['messages'][0]['content'])
         seen.append(m.group(1) if m else None)
     ok(all(x in topics('ru') for x in seen) and len(set(seen)) == 4, 'random topics of the language, no repeats in a row: %s' % seen)
 
@@ -169,7 +170,7 @@ with sync_playwright() as pw:
 
     # ================= the window type «Окно Ttranslator (проба)»: the reason why it did not open (state of the launcher)
     page.evaluate("STATE.window = { available: true, error: 'нет веб-движка системы', pages: 0 }; showPane('settings'); renderSettings()")
-    ok(page.is_visible('#modeErr') and page.inner_text('#modeErr') == 'Своё окно не открылось: нет веб-движка системы. Открыто окно Edge или Chrome.', 'settings show why the own window did not open: ' + page.inner_text('#modeErr'))
+    ok(page.is_visible('#modeErr') and page.inner_text('#modeErr') == 'Окно приложения не открылось: нет веб-движка системы. Открыто окно Edge или Chrome.', 'settings show why the own window did not open: ' + page.inner_text('#modeErr'))
     page.evaluate("STATE.window = { available: true, error: '', pages: 0 }; renderSettings()")
     ok(page.is_hidden('#modeErr') and page.is_enabled('#modeSeg button[data-v="window"]'), 'no reason, the choice is available')
     page.evaluate("showPane('results')")
@@ -177,7 +178,7 @@ with sync_playwright() as pw:
     # help
     page.click('#helpBtn'); page.wait_for_timeout(200)
     h = page.inner_text('#helpBody')
-    ok('Стрелка ▾ у кнопки «Учебный пример»' in h and 'Кнопка «Проверить» под полем' in h, 'help describes the level, the topic, the exercise and the check')
+    ok('Стрелка ▾ у кнопки «Учебный пример»' in h and 'Кнопка «Уточнить» под полем' in h, 'help describes the level, the topic, the exercise and «Уточнить»')
     page.click('#closeHelpBtn')
     ok(not errs, 'no console errors: %s' % errs[:3])
     b.close()

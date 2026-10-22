@@ -32,8 +32,9 @@ def reply(route):
 post('/api/model', {'id': 'file:my-custom-model.gguf'}); wait_phase('ready')
 with sync_playwright() as pw:
     b = pw.chromium.launch(); ctx = b.new_context(viewport={'width': 1180, 'height': 820}, locale='ru-RU')
-    # an "old" window: the start languages and the welcome window are tested elsewhere
-    ctx.add_init_script("try { sessionStorage.setItem('tdoc.window', '1'); sessionStorage.setItem('tdoc.welcome', 'done') } catch (e) {}")
+    # an "old" window: the start languages and the welcome window are tested elsewhere; the check of a lesson before it
+    # is shown (0.9.2) is off here — prompts_v092.py tests it
+    ctx.add_init_script("try { sessionStorage.setItem('tdoc.window', '1'); sessionStorage.setItem('tdoc.welcome', 'done'); localStorage.setItem('tdoc.lessonSelfCheck', 'false') } catch (e) {}")
     page = ctx.new_page(); errs = []
     page.on('pageerror', lambda e: errs.append(str(e)))
     page.on('console', lambda m: errs.append(m.text) if m.type == 'error' and 'status of 503' not in m.text else None)
@@ -82,12 +83,16 @@ with sync_playwright() as pw:
     n = len(prompts); page.click('#lessonBtn'); idle()
     p = prompts[-1]; c = content(p)
     topics = lambda code: [x['en'] for x in words['topics']['all'] + words['topics'].get(code, [])]
-    m = re.fullmatch(r'Write (.+) about (.+), for intermediate \(B1–B2\) learners of Russian\. Write everything in Russian only, in simple words, in at most five short lines\. Do not add a title, a translation, Markdown formatting or any other comments\.', c)
-    ok(bool(m) and m.group(1) in words['kinds'] and m.group(2) in topics('ru'), 'request text (the default level is intermediate): ' + c)
-    ok(p['temperature'] == 0.9 and p['max_tokens'] == 320 and isinstance(p['seed'], int) and len(p['messages']) == 1, 'generation parameters: %s' % {k: p[k] for k in ('temperature', 'max_tokens', 'seed')})
+    def parse(c):   # the request of 0.9.2: topic, type, level, language
+        m = re.search(r'Write a short lesson for (.+?) learners of (.+?)\.\nTopic: (.+)\.\nType: (.+)\.\n', c)
+        return m.groups() if m else (None,) * 4
+    level, lang_, topic, kind = parse(c)
+    ok(c.startswith('You are an experienced, careful teacher of Russian.') and level == 'intermediate (B1–B2)' and lang_ == 'Russian' and topic in topics('ru')
+       and kind in [k['what'] for k in words['kinds']] and 'everything in Russian only, in simple words, at most six short lines' in c, 'request text (the default level is intermediate): ' + c[:200])
+    ok(p['temperature'] == 0.2 and p['max_tokens'] == 360 and isinstance(p['seed'], int) and len(p['messages']) == 1, 'generation parameters (0.9.2: temperature 0.2): %s' % {k: p[k] for k in ('temperature', 'max_tokens', 'seed')})
     want = 'Правило: после шипящих пишется «и».\n\n– Пример: жи, ши.\n– Упражнение: маш_на.\nОтвет: машина.'
     ok(page.input_value('#src') == want, 'Markdown removed, text in the field: %r' % page.input_value('#src'))
-    ok(page.inner_text('#cleanNote').startswith('Пример придуман моделью — в правилах возможны ошибки') and page.inner_text('#lessonCheck') == 'Проверить', 'the note under the field with «Проверить»: ' + page.inner_text('#cleanNote'))
+    ok(page.inner_text('#cleanNote').startswith('Пример придуман моделью — возможны неточности и ошибки') and page.inner_text('#lessonCheck') == 'Уточнить', 'the note under the field with «Уточнить»: ' + page.inner_text('#cleanNote'))
     ok(len(prompts) == n + 1, 'one request, no translation started')
     page.screenshot(path=os.path.join(shots, '1-lesson.png'))
     page.type('#src', ' ')
@@ -110,12 +115,12 @@ with sync_playwright() as pw:
     page.select_option('#srcSel', 'de'); page.fill('#src', '')
     queue[:] = ['Der Artikel von „Mädchen“ ist „das“: das Mädchen.']
     page.click('#lessonBtn'); idle()
-    c = content(prompts[-1]); m = re.search(r'.* about (.+), for intermediate \(B1–B2\) learners of German\. Write everything in German only', c)
-    ok(bool(m) and m.group(1) in topics('de'), 'German: ' + c[:120])
+    c = content(prompts[-1]); level, lang_, topic, kind = parse(c)
+    ok(lang_ == 'German' and topic in topics('de') and 'everything in German only' in c, 'German: ' + c[:160])
     page.select_option('#srcSel', 'auto'); page.fill('#src', 'We have been living here for ten years and we like it very much.'); page.wait_for_timeout(400)
     queue[:] = ['Use "for" with a period of time: for ten years.']
     page.click('#lessonBtn'); page.click('#lessonBtn'); idle()
-    ok('learners of English. Write everything in English only' in content(prompts[-1]), '«Авто»: the language of the text in the field')
+    ok(parse(content(prompts[-1]))[1] == 'English' and 'everything in English only' in content(prompts[-1]), '«Авто»: the language of the text in the field')
     page.select_option('#srcSel', 'zh'); page.fill('#src', '')
     queue[:] = ['量词：一本书。']
     page.click('#lessonBtn'); idle()

@@ -4,11 +4,12 @@
 // one small patch, see README.md). The launcher stays on the Go standard library; it starts this program and, if
 // it cannot start (no WebView2 Runtime, no WebKitGTK), opens an Edge/Chrome window instead.
 //
-//   ttranslator-window URL [--title TEXT] [--size WxH] [--data DIR] [--icon FILE.png]
+//   ttranslator-window URL [--title TEXT] [--size WxH] [--maximized] [--data DIR] [--icon FILE.png]
 //
 //   URL      a page of the launcher: http://127.0.0.1:PORT/... or http://localhost:PORT/...
 //   --data   Windows: folder for the WebView2 profile (else WebView2 writes into %APPDATA%)
 //   --icon   Linux: window icon (PNG); on Windows the icon is a resource of this program
+//   --maximized  start maximized (the size of --size is the size after "restore")
 //
 // Prints "ready" on stdout when the window exists. Exit codes: 0 — the window was closed, 2 — wrong arguments,
 // 3 — the web engine is not available.
@@ -345,6 +346,8 @@ void guard_navigation() {
 
 void set_icon(const std::string &) {}   // the icon is a resource of the exe (ttranslator-window.rc)
 
+void maximize() { ShowWindow(static_cast<HWND>(webview_get_window(g_wv)), SW_MAXIMIZE); }
+
 #else   // Linux: GTK 3 and WebKitGTK
 
 void open_external(const std::string &u) {
@@ -421,6 +424,8 @@ void set_icon(const std::string &icon) {
   if (!icon.empty()) gtk_window_set_icon_from_file(GTK_WINDOW(webview_get_window(g_wv)), icon.c_str(), nullptr);
 }
 
+void maximize() { gtk_window_maximize(GTK_WINDOW(webview_get_window(g_wv))); }
+
 #endif
 
 // ---------------------------------------------------------------- functions for the page
@@ -488,12 +493,14 @@ bool parse_size(const std::string &s, int &w, int &h) {
 int run(const std::vector<std::string> &args) {
   std::string url, title = "Ttranslator", data, icon;
   int width = 1180, height = 780;
+  bool maximized = false;
   for (size_t i = 0; i < args.size(); i++) {
     const std::string &a = args[i];
     bool has = i + 1 < args.size();
     if (a == "--title" && has) title = args[++i];
     else if (a == "--data" && has) data = args[++i];
     else if (a == "--icon" && has) icon = args[++i];
+    else if (a == "--maximized") maximized = true;
     else if (a == "--size" && has) {
       int w = 0, h = 0;
       if (parse_size(args[++i], w, h)) {
@@ -508,7 +515,7 @@ int run(const std::vector<std::string> &args) {
   }
   g_origin = local_origin(url);
   if (g_origin.empty()) {
-    std::fprintf(stderr, "usage: ttranslator-window http://127.0.0.1:PORT/ [--title TEXT] [--size WxH] [--data DIR] [--icon FILE.png]\n");
+    std::fprintf(stderr, "usage: ttranslator-window http://127.0.0.1:PORT/ [--title TEXT] [--size WxH] [--maximized] [--data DIR] [--icon FILE.png]\n");
     return 2;
   }
 #if defined(_WIN32)
@@ -526,6 +533,7 @@ int run(const std::vector<std::string> &args) {
   }
   webview_set_title(g_wv, title.c_str());
   webview_set_size(g_wv, width, height, WEBVIEW_HINT_NONE);
+  if (maximized) maximize();
   set_icon(icon);
   bind_functions();
   guard_navigation();

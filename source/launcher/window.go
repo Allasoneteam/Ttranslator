@@ -1,11 +1,11 @@
 package main
 
-// The own window of the program (launch_mode "window", a trial since 0.9.1). The small program ttranslator-window
-// (source/window: C++ on the webview library, MIT) shows the interface in a native window with the web engine of
-// the system: WebView2 on Windows, WebKitGTK on Linux. The launcher keeps to the Go standard library: it only
-// starts that program and waits for its "ready". If the program is missing or cannot start (no WebView2 Runtime
-// on an old Windows 10, no WebKitGTK 4.1 on Linux), an Edge/Chrome window opens instead and the reason is shown
-// in the settings.
+// The app window (launch_mode "window"; a trial in 0.9.1, the default since 0.9.2). The small program
+// ttranslator-window (source/window: C++ on the webview library, MIT) shows the interface in a native window with
+// the web engine of the system: WebView2 on Windows, WebKitGTK on Linux. The launcher keeps to the Go standard
+// library: it only starts that program and waits for its "ready". If the program is missing or cannot start (no
+// WebView2 Runtime on an old Windows 10, no WebKitGTK 4.1 on Linux), an Edge/Chrome window opens instead and the
+// reason is shown in the settings. The window starts maximized unless start_maximized is off.
 
 import (
 	"bufio"
@@ -38,10 +38,10 @@ func (a *App) windowHelper() string {
 // running copy of the program (this copy exits soon), so the own window is not tied to this process.
 func (a *App) openUI(u string, second bool) {
 	a.mu.Lock()
-	mode := a.cfg.LaunchMode
+	mode, maximized := a.cfg.LaunchMode, a.cfg.StartMaximized
 	a.mu.Unlock()
 	if mode == "window" {
-		err := a.startOwnWindow(u, second)
+		err := a.startOwnWindow(u, second, maximized)
 		if err == nil {
 			return
 		}
@@ -50,9 +50,18 @@ func (a *App) openUI(u string, second bool) {
 		a.windowErr = err.Error()
 		a.mu.Unlock()
 	}
-	if err := openWindow(u, mode == "tab"); err != nil {
+	if err := openWindow(u, mode == "tab", maximized); err != nil {
 		logger.Printf("open window: %v", err)
 	}
+}
+
+// appWindowArgs: the arguments of Edge/Chrome for a window without tabs and address bar (the fallback window).
+func appWindowArgs(u string, maximized bool) []string {
+	size := "--window-size=1180,780"
+	if maximized {
+		size = "--start-maximized"
+	}
+	return []string{"--app=" + u, size, "--no-first-run", "--no-default-browser-check"}
 }
 
 // tailBuffer keeps the last bytes written to it (what the window program printed on stderr).
@@ -104,7 +113,7 @@ func windowStartError(err error, stderr string) error {
 }
 
 // startOwnWindow starts the window program and waits until it says "ready" (or ends, or windowReadyTimeout passes).
-func (a *App) startOwnWindow(u string, second bool) error {
+func (a *App) startOwnWindow(u string, second, maximized bool) error {
 	exe := a.windowHelper()
 	if exe == "" {
 		return fmt.Errorf(tr("нет программы окна %s в папке программы"), windowHelperName)
@@ -114,6 +123,9 @@ func (a *App) startOwnWindow(u string, second bool) error {
 		return err
 	}
 	args := append([]string{u, "--title", "Ttranslator", "--size", windowSize, "--data", data}, windowArgs(data)...)
+	if maximized {
+		args = append(args, "--maximized")
+	}
 	cmd := exec.Command(exe, args...)
 	cmd.Dir = a.root
 	windowChildAttrs(cmd)

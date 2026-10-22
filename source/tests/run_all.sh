@@ -5,8 +5,8 @@
 #
 # Needs: Go 1.24+, Python 3 with playwright + its Chromium, numpy and gguf (pip install playwright numpy gguf),
 # internet access to github.com once (the official llama.cpp engine archive, sherpa-onnx and two Piper voices for
-# reading aloud are cached in the work dir). The own window (source/window) is built and tested if these are there
-# (Ubuntu/Debian): g++ pkg-config libgtk-3-dev libwebkit2gtk-4.1-dev xvfb xdotool imagemagick, and for the Windows
+# reading aloud are cached in the work dir). The app window (source/window) is built and tested if these are there
+# (Ubuntu/Debian): g++ pkg-config libgtk-3-dev libwebkit2gtk-4.1-dev xvfb xdotool imagemagick openbox, and for the Windows
 # build g++-mingw-w64-x86-64; without them those suites are skipped.
 # Real models are not needed: a tiny stand-in model with random weights checks the plumbing (its output is
 # gibberish); translation quality is checked on the user's computer with the «Тест» button.
@@ -188,14 +188,16 @@ make_ready 18781
 cp "$W/mirror/tiny-q8.gguf" "$W/r11/models/my-custom-model.gguf"
 run "prompts v0.9: examples, «Учебный пример» (canned replies)" python3 "$T/prompts_v09.py" "$W" http://127.0.0.1:18781/
 run "prompts v0.9.1: «Учебный пример» — level, topic, exercise, check (canned replies)" python3 "$T/prompts_v091.py" "$W" http://127.0.0.1:18781/
+run "prompts v0.9.2: «Учебный пример» — strict request, check before showing, kinds; About (canned replies)" python3 "$T/prompts_v092.py" "$W" http://127.0.0.1:18781/
 
 # v0.9: reading aloud with the real sherpa-onnx program and Piper voices served by the mirror
 XENV="TDOC_TTS_URL=http://127.0.0.1:$MIRROR/$TTS TDOC_TEST_VOICES=$W/voices.json" start_launcher "$W/r12" 18782
 make_ready 18782
 run "e2e v0.9: reading aloud (sherpa-onnx, Piper voices)" python3 "$T/e2e_v09.py" "$W" http://127.0.0.1:18782/ "$W/r12"
 
-# v0.9.1: the own window (ttranslator-window, source/window): the Windows program builds and needs only system DLLs;
-# the Linux program on WebKitGTK under a virtual screen — the launcher with it, then its functions for the page
+# v0.9.1–0.9.2: the app window (ttranslator-window, source/window): the Windows program builds and needs only system
+# DLLs; the Linux program on WebKitGTK under a virtual screen (with openbox, if there is one: the maximized start) —
+# the launcher with it, then its functions for the page
 if command -v x86_64-w64-mingw32-g++ >/dev/null; then
   run "window program for Windows: builds, only system DLLs" sh -c '
     OUT="$1" sh "$2/window/build.sh" windows > "$1/window-build-win.log" 2>&1 || { echo "ERROR: build"; tail -20 "$1/window-build-win.log"; exit; }
@@ -205,14 +207,14 @@ if command -v x86_64-w64-mingw32-g++ >/dev/null; then
 else SUMMARY="$SUMMARY\n  skip  window program for Windows (no g++-mingw-w64-x86-64)"; fi
 if pkg-config --exists gtk+-3.0 webkit2gtk-4.1 2>/dev/null && command -v xvfb-run >/dev/null; then
   if OUT="$W" sh "$SRC/window/build.sh" linux > "$W/window-build.log" 2>&1; then
-    run "e2e v0.9.1: own window — start, close, Exit, fallback (WebKitGTK, virtual screen)" \
+    run "e2e v0.9.1–0.9.2: app window — start, maximized, close, Exit, fallback (WebKitGTK, virtual screen)" \
       xvfb-run -a -s "-screen 0 1280x860x24" python3 "$T/e2e_window.py" "$W" "$W/ttranslator" "$W/ttranslator-window-linux" "http://127.0.0.1:$MIRROR/$ENGINE" "$W/models.json" 18783
     if command -v xdotool >/dev/null; then
       run "window program: functions for the page (WebKitGTK, virtual screen)" \
         xvfb-run -a -s "-screen 0 1280x860x24" python3 "$T/window_functions.py" "$W" "$W/ttranslator-window-linux" 18784
     else SUMMARY="$SUMMARY\n  skip  window program functions (no xdotool)"; fi
   else echo "ERROR: window build"; tail -20 "$W/window-build.log"; FAILED=$((FAILED + 1)); SUMMARY="$SUMMARY\n  FAIL  window program for Linux: build"; fi
-else SUMMARY="$SUMMARY\n  skip  own window (no libwebkit2gtk-4.1-dev or xvfb-run)"; fi
+else SUMMARY="$SUMMARY\n  skip  app window (no libwebkit2gtk-4.1-dev or xvfb-run)"; fi
 
 # fallback start without the launcher
 R4=$W/r4; rm -rf "$R4"; mkdir -p "$R4/ui" "$R4/models"

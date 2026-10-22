@@ -99,7 +99,7 @@ try:
       page.wait_for_selector('#setupView:not([hidden])', timeout=15000)
       ok(page.evaluate('document.documentElement.lang') == 'en' and page.inner_text('#setupTitle') == 'First start' and page.inner_text('#dlBtn') == 'Download', 'first-start screen in English')
       ok(page.input_value('#setupLangSel') == 'en' and cfg().get('ui_language') == 'en', 'choice kept in config.json: %s' % cfg().get('ui_language'))
-      ok(api('/api/state')['settings'] == {'ui_language': 'en', 'theme': 'light', 'font_scale': 100, 'show_welcome': True, 'launch_mode': 'app', 'load_model_at_start': True}, 'state reports the settings')
+      ok(api('/api/state')['settings'] == {'ui_language': 'en', 'theme': 'light', 'font_scale': 100, 'show_welcome': True, 'launch_mode': 'window', 'load_model_at_start': True, 'start_maximized': True}, 'state reports the settings')
       page.click('#manualHelp summary')
       bad = page.evaluate(SCAN)
       ok(not bad, 'no Russian on the first-start screen: %s' % bad[:5])
