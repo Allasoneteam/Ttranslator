@@ -1,5 +1,5 @@
 # Tests and builds on every change. Builds go to the run's artifacts; releases are made separately, only after the
-# author's "yes".
+# author's "yes". On a failure the last lines of the output are also shown as annotations of the run.
 name: CI
 on:
   push:
@@ -17,19 +17,25 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version: '1.24'
+          cache: false
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: System packages (own window, virtual screen, Windows cross-build)
+      - name: System packages (app window, virtual screen with a window manager, Windows cross-build)
         run: |
           sudo apt-get update
-          sudo apt-get install -y g++ pkg-config libgtk-3-dev libwebkit2gtk-4.1-dev xvfb xdotool imagemagick g++-mingw-w64-x86-64
+          sudo apt-get install -y g++ pkg-config libgtk-3-dev libwebkit2gtk-4.1-dev xvfb xdotool imagemagick openbox g++-mingw-w64-x86-64
       - name: Python packages
         run: |
           pip install playwright numpy gguf pefile pillow
           python -m playwright install --with-deps chromium
       - name: All test suites
-        run: bash source/tests/run_all.sh "$RUNNER_TEMP/tdoc-tests"
+        run: |
+          set -o pipefail
+          bash source/tests/run_all.sh "$RUNNER_TEMP/tdoc-tests" 2>&1 | tee "$RUNNER_TEMP/tests.log" || {
+            grep -E '^(  FAIL|FAIL |ERROR:)' "$RUNNER_TEMP/tests.log" | head -40 | while IFS= read -r l; do echo "::error::$l"; done
+            exit 1
+          }
       - name: Screenshots of the tests
         if: always()
         uses: actions/upload-artifact@v4
@@ -46,12 +52,18 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version: '1.24'
+          cache: false
       - name: System packages
         run: |
           sudo apt-get update
           sudo apt-get install -y g++ pkg-config libgtk-3-dev libwebkit2gtk-4.1-dev g++-mingw-w64-x86-64
       - name: Build
-        run: sh source/build.sh
+        run: |
+          set -o pipefail
+          sh source/build.sh 2>&1 | tee "$RUNNER_TEMP/build.log" || {
+            grep -v -E 'pragma|^ *\||^ *[0-9]+ \|' "$RUNNER_TEMP/build.log" | tail -30 | while IFS= read -r l; do echo "::error::$l"; done
+            exit 1
+          }
       - name: Checksums
         run: sha256sum Ttranslator.exe ttranslator-linux ttranslator-window.exe ttranslator-window-linux | tee SHA256SUMS.txt
       - uses: actions/upload-artifact@v4
