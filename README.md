@@ -16,7 +16,8 @@ follows your own glossary, answers questions about a translation and can read te
 - **Your glossary:** term tables (TSV, editable in Excel) whose terms are passed to the model when they occur.
 - **LaTeX formulas** (`$…$`, `$$…$$`) are never translated or damaged.
 - **Ask the model:** a chat about translations, terms and grammar; mini lessons and exercises with checking.
-- **Reading aloud:** Piper voices through the sherpa-onnx program, downloaded on demand.
+- **Reading aloud:** Piper voices for Russian, English, German, Spanish, Chinese and Swedish through the sherpa-onnx
+  program, downloaded on demand.
 - **Saved translations** in plain files, import and export (TSV, TXT).
 - A built-in **test** (“Тест”) that checks a model on your computer and writes a report.
 
@@ -72,14 +73,16 @@ a tiny stand-in model, the app window under a virtual screen). See [source/tests
 
 ## License
 
-MIT — see [LICENSE](LICENSE) (the program folder carries the licence as `LICENSE.txt`).
+MIT, © 2026 Allasoneteam and Ttranslator authors — see [LICENSE](LICENSE) (the program folder carries the licence as
+`LICENSE.txt`).
 
 Third-party components:
 
 - [llama.cpp](https://github.com/ggml-org/llama.cpp) (MIT) — the engine, downloaded on the first start.
 - Gemma 4 models (Google, Apache 2.0) — downloaded after confirmation; your own `.gguf` files work too.
 - [sherpa-onnx](https://github.com/k2-fsa/sherpa-onnx) (Apache 2.0, with espeak-ng inside, GPL-3.0) and Piper voices
-  (the licence of each voice is shown in the program; some are for non-commercial use) — downloaded on demand.
+  (the licence of each voice is shown in the program; some are for non-commercial use) — downloaded on demand from the
+  sherpa-onnx releases (the Spanish voice from the Hugging Face page of the sherpa-onnx author).
 - [webview](https://github.com/webview/webview) 0.12.0 (MIT) — compiled into the app window program.
 - Microsoft Edge WebView2 SDK header (BSD-style licence, `source/window/webview2/LICENSE.txt`) — for the Windows
   build of the app window; the WebView2 Runtime itself is part of Windows.

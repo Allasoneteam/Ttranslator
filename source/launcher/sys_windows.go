@@ -24,6 +24,7 @@ var (
 	procGlobalMemoryStatusEx     = kernel32.NewProc("GlobalMemoryStatusEx")
 	procSetErrorMode             = kernel32.NewProc("SetErrorMode")
 	procMessageBoxW              = user32.NewProc("MessageBoxW")
+	procAllowSetForegroundWindow = user32.NewProc("AllowSetForegroundWindow")
 )
 
 const (
@@ -121,6 +122,7 @@ func exitMessage(code int, err error) string {
 // openWindow opens the program's window: an Edge or Chrome window without tabs and address bar (maximized, if asked)
 // or, with tab (launch_mode "tab") or when neither is installed, a tab of the default browser.
 func openWindow(u string, tab, maximized bool) error {
+	allowForeground(asfwAny) // the browser process that opens the window is not known beforehand
 	if tab {
 		return exec.Command("rundll32", "url.dll,FileProtocolHandler", u).Start()
 	}
@@ -148,6 +150,14 @@ func openWindow(u string, tab, maximized bool) error {
 }
 
 func openFolder(p string) error { return exec.Command("explorer", p).Start() }
+
+// allowForeground lets another program bring its window to the front (pid, or asfwAny for any program). A program
+// started by a program in the background (the launcher has no window) may not take the foreground by itself, and
+// its window would open behind the folder window in which Ttranslator.exe was started. The launcher may pass the
+// right on: it was started by the foreground program (Explorer, after the double-click).
+const asfwAny = -1
+
+func allowForeground(pid int) { procAllowSetForegroundWindow.Call(uintptr(uint32(int32(pid)))) }
 
 // The own window (window.go): the program ttranslator-window.exe next to Ttranslator.exe. Its icon is its own
 // resource; WebView2 keeps its data in the folder given by --data.

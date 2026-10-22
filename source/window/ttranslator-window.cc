@@ -21,6 +21,13 @@
 //                                               resolves to {path} or {cancelled: true}
 //   ttwClose()                                  close the window (after «Выход»)
 // and window.TTW = { version } tells the page that it runs in this window.
+//
+// At start the window comes to the front (0.9.3): the launcher, started from Explorer, passes its right to take the
+// foreground to this program (AllowSetForegroundWindow); Linux: gtk_window_present.
+
+#if defined(_WIN32) && !defined(_WIN32_WINNT)
+#define _WIN32_WINNT 0x0A00   // Windows 10 (older MinGW headers default to XP and hide QueryFullProcessImageNameW)
+#endif
 
 #include "webview/webview.h"
 
@@ -348,6 +355,43 @@ void set_icon(const std::string &) {}   // the icon is a resource of the exe (tt
 
 void maximize() { ShowWindow(static_cast<HWND>(webview_get_window(g_wv)), SW_MAXIMIZE); }
 
+// The window of the shell: a folder window or the desktop (explorer.exe).
+bool is_shell_window(HWND w) {
+  DWORD pid = 0;
+  GetWindowThreadProcessId(w, &pid);
+  HANDLE p = pid ? OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, FALSE, pid) : nullptr;
+  if (!p) return false;
+  wchar_t buf[MAX_PATH];
+  DWORD n = MAX_PATH;
+  bool shell = false;
+  if (QueryFullProcessImageNameW(p, 0, buf, &n)) {
+    std::wstring s(buf, n);
+    size_t k = s.find_last_of(L"\\/");
+    shell = _wcsicmp(s.c_str() + (k == std::wstring::npos ? 0 : k + 1), L"explorer.exe") == 0;
+  }
+  CloseHandle(p);
+  return shell;
+}
+
+// To the front at start. A program started by another program in the background (the launcher) may not take the
+// foreground by itself: its window would open behind the folder window in which Ttranslator.exe was started. The
+// launcher passes its right on (AllowSetForegroundWindow), so SetForegroundWindow works. If Windows still refuses
+// and the foreground window is the shell (the folder or the desktop), the input of the two threads is joined for a
+// moment — the usual way around; never over another program the user switched to meanwhile.
+void bring_to_front() {
+  HWND hwnd = static_cast<HWND>(webview_get_window(g_wv));
+  if (!hwnd || GetForegroundWindow() == hwnd) return;
+  if (SetForegroundWindow(hwnd) && GetForegroundWindow() == hwnd) return;
+  HWND fg = GetForegroundWindow();
+  if (!fg || !is_shell_window(fg)) return;
+  DWORD fg_tid = GetWindowThreadProcessId(fg, nullptr), tid = GetCurrentThreadId();
+  if (fg_tid && fg_tid != tid && AttachThreadInput(tid, fg_tid, TRUE)) {
+    BringWindowToTop(hwnd);
+    SetForegroundWindow(hwnd);
+    AttachThreadInput(tid, fg_tid, FALSE);
+  }
+}
+
 #else   // Linux: GTK 3 and WebKitGTK
 
 void open_external(const std::string &u) {
@@ -425,6 +469,8 @@ void set_icon(const std::string &icon) {
 }
 
 void maximize() { gtk_window_maximize(GTK_WINDOW(webview_get_window(g_wv))); }
+
+void bring_to_front() { gtk_window_present(GTK_WINDOW(webview_get_window(g_wv))); }
 
 #endif
 
@@ -535,6 +581,7 @@ int run(const std::vector<std::string> &args) {
   webview_set_size(g_wv, width, height, WEBVIEW_HINT_NONE);
   if (maximized) maximize();
   set_icon(icon);
+  bring_to_front();
   bind_functions();
   guard_navigation();
   webview_navigate(g_wv, url.c_str());

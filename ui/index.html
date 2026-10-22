@@ -295,6 +295,11 @@ table.res td.num { text-align: right; white-space: nowrap; font-variant-numeric:
 .welcome-opts { display: flex; flex-direction: column; gap: 10px; border-top: 1px solid var(--border); padding-top: 12px; margin-top: 8px; }
 .welcome-opts .set-label { width: 140px; }
 .welcome-opts label.check { white-space: normal; }
+/* Окно приветствия можно двигать: за заголовок (курсор-крестик) или за пустое место окна. */
+.welcome .about-head { cursor: move; }
+.panel.welcome.dragging { user-select: none; cursor: move; }
+.welcome-btns .push { margin-left: auto; }
+#welcomeQuit.confirm { color: var(--danger); background: var(--danger-bg); border-color: transparent; }
 .own-card { background: var(--panel); border: 1px dashed var(--border2); border-radius: 10px; padding: 10px 12px; margin-top: 10px; }
 .own-card textarea { width: 100%; min-height: 60px; resize: vertical; }
 /* Чтение вслух: пока звучит текст, кнопка 🔊 зелёная (в ней — пауза), а сам текст подсвечен зелёным; на паузе
@@ -586,7 +591,7 @@ footer.status {
       <label class="check"><input type="checkbox" id="welcomeLoad"> <span>Загружать выбранную модель при запуске</span> <span id="welcomeModel" class="muted"></span></label>
       <label class="check"><input type="checkbox" id="welcomeShow"> <span>Показывать это окно при запуске</span></label>
     </div>
-    <div class="row" style="margin-top:14px"><button id="welcomeStart" class="primary">Начать работу</button><button id="welcomeAbout" class="ghost">О программе</button></div>
+    <div class="row welcome-btns" style="margin-top:14px"><button id="welcomeStart" class="primary">Начать работу</button><button id="welcomeQuit" title="Выйти из программы: модель выгрузится из памяти, движок остановится">Выйти</button><button id="welcomeAbout" class="ghost push">О программе</button></div>
   </div>
 </div>
 
@@ -640,7 +645,7 @@ const UI_LANGS = { ru: 'Русский', en: 'English', de: 'Deutsch' };
 const LOCALES = { ru: 'ru-RU', en: 'en-GB', de: 'de-DE' };
 const UI_LANG = UI_LANGS[document.documentElement.lang] ? document.documentElement.lang : 'ru';
 const LOCALE = LOCALES[UI_LANG];
-const APP_VERSION = '0.9.2';   // версия интерфейса — та же, что appVersion в source/launcher/main.go
+const APP_VERSION = '0.9.3';   // версия интерфейса — та же, что appVersion в source/launcher/main.go
 
 const I18N_COL = { en: 0, de: 1 };   // столбец перевода в I18N
 
@@ -1013,9 +1018,10 @@ const LESSON_ASK = {
 };
 
 // Чтение вслух (кнопки 🔊): голоса Piper скачиваются в меню моделей. Длинный текст читается кусками по предложениям
-// (не длиннее maxChunk знаков): звук начинается после первого куска, следующий готовится, пока звучит предыдущий.
+// (не длиннее maxChunk знаков; китайский — maxChunkZh: иероглиф — целый слог, кусок звучал бы втрое дольше): звук
+// начинается после первого куска, следующий готовится, пока звучит предыдущий.
 // speed — скорость речи: 1 — обычная, больше — быстрее (от 0.5 до 2).
-const SPEAK = { maxChunk: 240, speed: 1.0 };
+const SPEAK = { maxChunk: 240, maxChunkZh: 80, speed: 1.0 };
 
 // Словарь терминов: имя первого файла, его языки и начальные термины с примечаниями (примечание записывается на
 // языке интерфейса). Начальный словарь создаётся один раз — при самом первом запуске; ваши файлы не меняются.
@@ -1047,7 +1053,7 @@ const ABOUT = {
     ],
     contact: 'Если у Вас возникнут вопросы, предложения или отзывы, напишите создателям приложения:',
     support: 'Создатели будут рады любой поддержке через GitHub Sponsors.',
-    license: 'Лицензия: MIT (файл LICENSE.txt в папке программы).',
+    license: 'Лицензия: MIT, © 2026 Allasoneteam and Ttranslator authors (файл LICENSE.txt в папке программы).',
     credits: 'Используются: движок llama.cpp (лицензия MIT) и модели Gemma 4 (Google, лицензия Apache 2.0); для чтения вслух — программа sherpa-onnx (лицензия Apache 2.0, внутри — espeak-ng, лицензия GPL-3.0) и голоса Piper (лицензия каждого голоса указана в меню моделей); окно приложения — библиотека webview (лицензия MIT), в Windows — Microsoft Edge WebView2.',
   },
   en: {
@@ -1061,7 +1067,7 @@ const ABOUT = {
     ],
     contact: 'If you have questions, suggestions or feedback, please write to the creators of the app:',
     support: 'The creators will be glad of any support via GitHub Sponsors.',
-    license: 'Licence: MIT (the file LICENSE.txt in the program folder).',
+    license: 'Licence: MIT, © 2026 Allasoneteam and Ttranslator authors (the file LICENSE.txt in the program folder).',
     credits: 'Built with the llama.cpp engine (MIT licence) and the Gemma 4 models (Google, Apache 2.0 licence); reading aloud uses the sherpa-onnx program (Apache 2.0 licence, with espeak-ng inside, GPL-3.0 licence) and Piper voices (the licence of each voice is shown in the model menu); the app window uses the webview library (MIT licence) and, on Windows, Microsoft Edge WebView2.',
   },
   de: {
@@ -1075,28 +1081,28 @@ const ABOUT = {
     ],
     contact: 'Wenn Sie Fragen, Vorschläge oder Rückmeldungen haben, schreiben Sie den Entwicklern der Anwendung:',
     support: 'Die Entwickler freuen sich über jede Unterstützung über GitHub Sponsors.',
-    license: 'Lizenz: MIT (Datei LICENSE.txt im Programmordner).',
+    license: 'Lizenz: MIT, © 2026 Allasoneteam and Ttranslator authors (Datei LICENSE.txt im Programmordner).',
     credits: 'Verwendet werden die Engine llama.cpp (MIT-Lizenz) und die Modelle Gemma 4 (Google, Apache-2.0-Lizenz); zum Vorlesen das Programm sherpa-onnx (Apache-2.0-Lizenz, darin espeak-ng, GPL-3.0-Lizenz) und Piper-Stimmen (die Lizenz jeder Stimme steht im Modellmenü); das App-Fenster nutzt die Bibliothek webview (MIT-Lizenz) und unter Windows Microsoft Edge WebView2.',
   },
 };
 
 // «Что нового» в окне приветствия — главное в этой версии, на трёх языках.
 const WHATS_NEW = {
-  version: '0.9.2',
+  version: '0.9.3',
   ru: [
-    'Окно приложения — теперь собственное окно программы, без браузера, и вид окна по умолчанию; при запуске оно развёрнуто на весь экран (галочка в «Настройках»). Второй вариант — «Вкладка браузера». Если окно приложения не откроется, откроется окно Edge или Chrome.',
-    '«Учебный пример» точнее: строгий запрос (в начале — заголовок или вопрос, в конце — ответ или совет), низкая температура, без тем, где маленькие модели ошибаются чаще всего; перед показом модель проверяет пример и исправляет найденные ошибки. Кнопка «Уточнить» разбирает пример по пунктам в «Спросить модель».',
-    'Чтение вслух: на паузе подсветка текста снимается, кнопка ■ рядом с 🔊 останавливает чтение, а правка текста прекращает его сама.',
+    'Новые голоса для чтения вслух: испанский (MLS 9972) и китайский (Chaowen) — в меню моделей. Китайский текст читается по предложениям.',
+    'Окно приветствия: окно программы при запуске открывается поверх других окон (а не за окном папки), окно приветствия можно передвинуть за заголовок, и в нём есть кнопка «Выйти».',
+    'Лицензия MIT: правообладатели — Allasoneteam and Ttranslator authors.',
   ],
   en: [
-    'The app window is now the program’s own window, without a browser, and the default window type; it starts maximized (a check box in “Settings”). The other choice is “Browser tab”. If the app window does not open, an Edge or Chrome window opens.',
-    '“Mini lesson” is more accurate: a strict request (a title or question at the beginning, an answer or tip at the end), a low temperature, no topics where small models make the most mistakes; before showing the lesson the model checks it and corrects the mistakes it finds. The “Clarify” button goes through the lesson point by point in “Ask the model”.',
-    'Reading aloud: when paused, the text is no longer highlighted, the ■ button next to 🔊 stops reading, and editing the text stops it by itself.',
+    'New voices for reading aloud: Spanish (MLS 9972) and Chinese (Chaowen) — in the model menu. Chinese text is read sentence by sentence.',
+    'Welcome window: at start the program window opens on top of other windows (not behind the folder window), the welcome window can be moved by its title, and it has an “Exit” button.',
+    'MIT licence: the copyright holders are Allasoneteam and Ttranslator authors.',
   ],
   de: [
-    'Das App-Fenster ist jetzt das eigene Fenster des Programms, ohne Browser, und die Standard-Fensterart; es startet maximiert (ein Kontrollkästchen unter „Einstellungen“). Die andere Wahl ist „Browser-Tab“. Öffnet sich das App-Fenster nicht, öffnet sich ein Edge- oder Chrome-Fenster.',
-    '„Mini-Lektion“ ist genauer: eine strenge Anfrage (am Anfang eine Überschrift oder Frage, am Ende eine Antwort oder ein Tipp), eine niedrige Temperatur, keine Themen, bei denen kleine Modelle die meisten Fehler machen; vor dem Anzeigen prüft das Modell die Lektion und korrigiert gefundene Fehler. Die Schaltfläche „Präzisieren“ geht die Lektion in „Modell fragen“ Punkt für Punkt durch.',
-    'Vorlesen: In der Pause ist der Text nicht mehr hervorgehoben, die Schaltfläche ■ neben 🔊 beendet das Vorlesen, und das Bearbeiten des Textes beendet es von selbst.',
+    'Neue Stimmen zum Vorlesen: Spanisch (MLS 9972) und Chinesisch (Chaowen) – im Modellmenü. Chinesischer Text wird Satz für Satz vorgelesen.',
+    'Begrüßungsfenster: Beim Start öffnet sich das Programmfenster über anderen Fenstern (nicht hinter dem Ordnerfenster), das Begrüßungsfenster lässt sich an der Überschrift verschieben und hat eine Schaltfläche „Beenden“.',
+    'MIT-Lizenz: Rechteinhaber sind Allasoneteam and Ttranslator authors.',
   ],
 };
 
@@ -1129,13 +1135,14 @@ const HELP = {
       'Кнопка 🔊 у поля текста, у каждого варианта, у «Своего варианта» и у ответов модели читает текст вслух. Пока текст звучит, кнопка и текст подсвечены зелёным; второе нажатие — пауза (подсветка текста снимается), третье — продолжить. Кнопка ■ рядом, Esc или другая кнопка 🔊 останавливают чтение; правка текста — тоже. Формулы LaTeX не читаются.',
       '- Голоса скачиваются в меню моделей (кнопка с названием модели вверху), по голосу на язык. Вместе с первым голосом один раз скачивается программа озвучки sherpa-onnx. Голос не занимает память постоянно: он запускается на секунду-две для каждой фразы.',
       '- Если для языка скачано два голоса, читает тот, что отмечен ✓; другой выбирается щелчком. Без голоса для языка текста кнопка 🔊 бледная.',
+      '- Голоса есть для русского, английского, немецкого, испанского, китайского и шведского. Испанский голос состоит из трёх файлов (с Hugging Face и GitHub) — перед скачиванием видны все адреса.',
       '- Лицензии голосов разные (видны в меню моделей); Ruslan и HFC female — только для некоммерческого использования.'],
     ['Модели',
       'Кнопка с названием модели вверху открывает список. Перед скачиванием модели программа показывает, откуда, в какую папку и под каким именем скачивается файл; ненужную модель можно удалить; свой файл .gguf можно положить в папку models. Кнопка ⏏ выгружает модель из памяти: окно остаётся, а для перевода модель нужно загрузить снова. Если закрыть окно программы, через несколько секунд модель выгрузится из памяти и программа завершится.'],
     ['Тест',
       'Кнопка «Тест» переводит фразы из файла ui\\tests.txt и сохраняет отчёт со временем и оценкой в папку data\\reports — так удобно сравнивать модели.'],
     ['Настройки',
-      'Кнопка ⚙ вверху: язык интерфейса, тема (светлая или тёмная), размер шрифта, «О программе» и «Выход». Настройки сохраняются сразу. Значок T вверху справа тоже открывает «О программе». При запуске программа показывает окно приветствия: язык, вид окна, загружать ли модель при запуске и показывать ли это окно; то же — в «Настройках».',
+      'Кнопка ⚙ вверху: язык интерфейса, тема (светлая или тёмная), размер шрифта, «О программе» и «Выход». Настройки сохраняются сразу. Значок T вверху справа тоже открывает «О программе». При запуске программа показывает окно приветствия: язык, вид окна, загружать ли модель при запуске и показывать ли это окно; то же — в «Настройках». Окно приветствия можно передвинуть за заголовок; «Выйти» в нём закрывает программу.',
       '- Вид окна: «Окно приложения» — окно самой программы на веб-движке системы (WebView2 в Windows, WebKitGTK в Linux), по умолчанию — на весь экран (галочка в «Настройках»); «Вкладка браузера» — вкладка браузера по умолчанию. Если окно приложения не открылось, программа откроет окно Edge или Chrome, а причину покажет в «Настройках». В окне приложения ссылки открываются в обычном браузере, а файлы сохраняются через окно «Сохранить как».'],
     ['Файлы программы',
       '- data\\saved — сохранённые переводы; data\\glossary — словари; data\\reports — отчёты теста; data\\logs — журналы.',
@@ -1170,13 +1177,14 @@ const HELP = {
       'The 🔊 button at the text field, at every variant, at “Your version” and at the model’s answers reads the text aloud. While the text is read, the button and the text are highlighted in green; a second click pauses (the text is no longer highlighted), a third continues. The ■ button next to it, Esc or another 🔊 button stops reading, and so does editing the text. LaTeX formulas are not read.',
       '- Voices are downloaded in the model menu (the button with the model name at the top), one voice per language. With the first voice, the speech program sherpa-onnx is downloaded once. A voice does not stay in memory: it starts for a second or two for every phrase.',
       '- If two voices are downloaded for a language, the one marked ✓ reads; click the other one to choose it. Without a voice for the language of the text, the 🔊 button is pale.',
+      '- There are voices for Russian, English, German, Spanish, Chinese and Swedish. The Spanish voice consists of three files (from Hugging Face and GitHub) — all addresses are shown before the download.',
       '- The voices have different licences (shown in the model menu); Ruslan and HFC female are for non-commercial use only.'],
     ['Models',
       'The button with the model name at the top opens the list. Before downloading a model, the program shows where the file comes from, the folder it goes to and its name; a model you do not need can be deleted; your own .gguf file can be put into the models folder. The ⏏ button unloads the model from memory: the window stays, but to translate you need to load the model again. If you close the program window, the model is unloaded from memory within a few seconds and the program exits.'],
     ['Test',
       'The “Test” button translates the phrases from ui\\tests.txt and saves a report with timings and scores to data\\reports — handy for comparing models.'],
     ['Settings',
-      'The ⚙ button at the top: interface language, theme (light or dark), font size, “About” and “Exit”. Settings are saved at once. The T icon at the top right also opens “About”. At start the program shows a welcome window: the language, the window type, whether to load the model at start and whether to show this window; the same options are in “Settings”.',
+      'The ⚙ button at the top: interface language, theme (light or dark), font size, “About” and “Exit”. Settings are saved at once. The T icon at the top right also opens “About”. At start the program shows a welcome window: the language, the window type, whether to load the model at start and whether to show this window; the same options are in “Settings”. The welcome window can be moved by its title; “Exit” in it closes the program.',
       '- Window type: “App window” — the program’s own window on the web engine of the system (WebView2 on Windows, WebKitGTK on Linux), maximized by default (a check box in “Settings”); “Browser tab” — a tab of the default browser. If the app window does not open, the program opens an Edge or Chrome window and shows the reason in “Settings”. In the app window, links open in your usual browser, and files are saved with the “Save as” dialog.'],
     ['Program files',
       '- data\\saved — saved translations; data\\glossary — glossaries; data\\reports — test reports; data\\logs — logs.',
@@ -1211,13 +1219,14 @@ const HELP = {
       'Die Schaltfläche 🔊 beim Textfeld, bei jeder Variante, bei „Ihre Fassung“ und bei den Antworten des Modells liest den Text vor. Während der Text vorgelesen wird, sind Schaltfläche und Text grün hervorgehoben; ein zweiter Klick pausiert (der Text ist dann nicht mehr hervorgehoben), ein dritter setzt fort. Die Schaltfläche ■ daneben, Esc oder eine andere Schaltfläche 🔊 beendet das Vorlesen, ebenso das Bearbeiten des Textes. LaTeX-Formeln werden nicht vorgelesen.',
       '- Stimmen werden im Modellmenü heruntergeladen (die Schaltfläche mit dem Modellnamen oben), eine Stimme pro Sprache. Mit der ersten Stimme wird einmalig das Sprachausgabe-Programm sherpa-onnx heruntergeladen. Eine Stimme belegt keinen Arbeitsspeicher auf Dauer: Sie startet für jede Phrase für ein bis zwei Sekunden.',
       '- Sind für eine Sprache zwei Stimmen heruntergeladen, liest die mit ✓ markierte; die andere wählen Sie per Klick. Ohne Stimme für die Sprache des Textes ist die Schaltfläche 🔊 blass.',
+      '- Stimmen gibt es für Russisch, Englisch, Deutsch, Spanisch, Chinesisch und Schwedisch. Die spanische Stimme besteht aus drei Dateien (von Hugging Face und GitHub) – vor dem Herunterladen sind alle Adressen zu sehen.',
       '- Die Stimmen haben verschiedene Lizenzen (im Modellmenü sichtbar); Ruslan und HFC female nur für nicht-kommerzielle Nutzung.'],
     ['Modelle',
       'Die Schaltfläche mit dem Modellnamen oben öffnet die Liste. Vor dem Herunterladen eines Modells zeigt das Programm Quelle, Zielordner und Dateinamen; ein nicht benötigtes Modell lässt sich löschen; eine eigene .gguf-Datei können Sie in den Ordner models legen. Die Schaltfläche ⏏ entlädt das Modell aus dem Arbeitsspeicher: Das Fenster bleibt, zum Übersetzen muss das Modell aber wieder geladen werden. Wenn Sie das Programmfenster schließen, wird das Modell nach wenigen Sekunden aus dem Arbeitsspeicher entladen und das Programm beendet.'],
     ['Test',
       'Die Schaltfläche „Test“ übersetzt die Sätze aus ui\\tests.txt und speichert einen Bericht mit Zeiten und Bewertungen in data\\reports – praktisch, um Modelle zu vergleichen.'],
     ['Einstellungen',
-      'Die Schaltfläche ⚙ oben: Sprache der Oberfläche, Design (hell oder dunkel), Schriftgröße, „Über das Programm“ und „Beenden“. Einstellungen werden sofort gespeichert. Auch das Symbol T oben rechts öffnet „Über das Programm“. Beim Start zeigt das Programm ein Begrüßungsfenster: Sprache, Fensterart, ob das Modell beim Start geladen wird und ob dieses Fenster erscheint; dieselben Optionen gibt es unter „Einstellungen“.',
+      'Die Schaltfläche ⚙ oben: Sprache der Oberfläche, Design (hell oder dunkel), Schriftgröße, „Über das Programm“ und „Beenden“. Einstellungen werden sofort gespeichert. Auch das Symbol T oben rechts öffnet „Über das Programm“. Beim Start zeigt das Programm ein Begrüßungsfenster: Sprache, Fensterart, ob das Modell beim Start geladen wird und ob dieses Fenster erscheint; dieselben Optionen gibt es unter „Einstellungen“. Das Begrüßungsfenster lässt sich an der Überschrift verschieben; „Beenden“ darin schließt das Programm.',
       '- Fensterart: „App-Fenster“ – das eigene Fenster des Programms mit der Web-Engine des Systems (WebView2 unter Windows, WebKitGTK unter Linux), standardmäßig maximiert (ein Kontrollkästchen unter „Einstellungen“); „Browser-Tab“ – ein Tab des Standardbrowsers. Öffnet sich das App-Fenster nicht, öffnet das Programm ein Edge- oder Chrome-Fenster und zeigt den Grund unter „Einstellungen“. Im App-Fenster öffnen sich Links im gewohnten Browser, und Dateien werden über „Speichern unter“ gespeichert.'],
     ['Programmdateien',
       '- data\\saved – gespeicherte Übersetzungen; data\\glossary – Glossare; data\\reports – Testberichte; data\\logs – Protokolle.',
@@ -2445,23 +2454,28 @@ function voiceFor(lang) {
 const voiceLabel = (v) => (LANGS[v.lang] ? langName(v.lang) + ' · ' : '') + v.name;
 const voiceLicense = (v) => v.license === 'public domain' ? t('общественное достояние') : v.license;
 
-// Текст → куски для чтения: без формул и разметки, по предложениям, не длиннее SPEAK.maxChunk знаков.
-function speechChunks(text) {
+// Текст → куски для чтения: без формул и разметки, по предложениям, не длиннее SPEAK.maxChunk знаков (китайский —
+// SPEAK.maxChunkZh). Китайские 。！？； заканчивают предложение и без пробела; длинное китайское предложение
+// делится по «，» и «、».
+function speechChunks(text, lang) {
+  const zh = lang === 'zh';
+  const max = zh ? SPEAK.maxChunkZh : SPEAK.maxChunk;
+  const sep = zh ? '' : ' ';
   const s = stripMath(String(text || '')).replace(/[*_`#>|~]+/g, ' ').replace(/[ \t]+/g, ' ');
-  const sentences = s.split(/(?<=[.!?…;:。！？；])\s+|\n+/).map(x => x.trim()).filter(x => /[\p{L}\p{N}]/u.test(x));
+  const sentences = s.split(/(?<=[.!?…;:])\s+|(?<=[。！？；])\s*|\n+/).map(x => x.trim()).filter(x => /[\p{L}\p{N}]/u.test(x));
   const out = [];
   let cur = '';
   const push = (x) => { if (x) out.push(x); };
   for (let x of sentences) {
-    while (x.length > SPEAK.maxChunk) {   // очень длинное предложение — по запятым или пробелам
-      let k = x.lastIndexOf(', ', SPEAK.maxChunk);
-      if (k < SPEAK.maxChunk / 3) k = x.lastIndexOf(' ', SPEAK.maxChunk);
-      if (k < 1) k = SPEAK.maxChunk;
+    while (x.length > max) {   // очень длинное предложение — по запятым или пробелам
+      let k = Math.max(x.lastIndexOf(', ', max), x.lastIndexOf('，', max - 1), x.lastIndexOf('、', max - 1));
+      if (k < max / 3) k = x.lastIndexOf(' ', max);
+      if (k < 1) k = max;
       push(cur); cur = '';
       push(x.slice(0, k + 1).trim()); x = x.slice(k + 1).trim();
     }
-    if (cur && cur.length + 1 + x.length > SPEAK.maxChunk) { push(cur); cur = x; }
-    else cur = cur ? cur + ' ' + x : x;
+    if (cur && cur.length + sep.length + x.length > max) { push(cur); cur = x; }
+    else cur = cur ? cur + sep + x : x;
   }
   push(cur);
   return out;
@@ -2527,7 +2541,7 @@ function speakToggle(btn, host, text, lang) {
       : t('Голос для чтения вслух можно скачать в меню моделей (кнопка с названием модели вверху).'));
     return;
   }
-  const chunks = speechChunks(text);
+  const chunks = speechChunks(text, lang);
   if (!chunks.length) { toast(t('Нет текста для чтения')); return; }
   speech = { btn, host, chunks, lang, audio: null, paused: false, ctl: new AbortController(), pending: new Map(), urls: [] };
   speech.stopBtn = speakStopButton(speech);
@@ -2646,7 +2660,12 @@ function showVoiceConfirm(row, v, s) {
   if (old) { const same = old.previousElementSibling === row; old.remove(); if (same) return; }
   const box = el('div', 'dl-confirm');
   box.appendChild(el('div', 'q', t('Скачать голос «{v}» ({s})?', { v: voiceLabel(v), s: fmtBytes(v.size - (v.partial || 0)) })));
-  box.appendChild(kvList([[t('Откуда:'), v.url], [t('Куда:'), s.voices_dir], [t('Файл:'), v.file]]));
+  // голос из нескольких файлов (модель, tokens.txt, espeak-ng-data) — каждый файл со своим адресом
+  const parts = (v.parts && v.parts.length) ? v.parts : [{ url: v.url, file: v.file }];
+  const rows = parts.map(p => [t('Откуда:'), p.url]);
+  rows.push([t('Куда:'), s.voices_dir]);
+  rows.push(parts.length > 1 ? [t('Файлы:'), parts.map(p => p.file).join(', ')] : [t('Файл:'), parts[0].file]);
+  box.appendChild(kvList(rows));
   if (!s.engine.present) {
     box.appendChild(el('div', 'q', t('Один раз понадобится и программа озвучки sherpa-onnx ({s}):', { s: fmtBytes(s.engine.size) })));
     box.appendChild(kvList([[t('Откуда:'), s.engine.url], [t('Куда:'), s.engine.dir], [t('Файл:'), s.engine.file]]));
@@ -4222,19 +4241,21 @@ function setModelState(kind, info = {}) {
 let quitTimer = null;
 let quitting = false;
 
-// Кнопок две — вверху справа и в «Настройках»; подтверждение общее.
+// Кнопок три — вверху справа, в «Настройках» и в окне приветствия; подтверждение общее.
 function disarmQuit() {
   clearTimeout(quitTimer); quitTimer = null;
-  $('#quitBtn').classList.remove('confirm'); $('#quit2Btn').classList.remove('confirm');
+  $('#quitBtn').classList.remove('confirm'); $('#quit2Btn').classList.remove('confirm'); $('#welcomeQuit').classList.remove('confirm');
   $('#quitLabel').textContent = t('Выход');
   $('#quit2Btn').textContent = t('Выйти из программы');
+  $('#welcomeQuit').textContent = t('Выйти');
 }
 
 async function quitApp() {
   if (!quitTimer) {
-    $('#quitBtn').classList.add('confirm'); $('#quit2Btn').classList.add('confirm');
+    $('#quitBtn').classList.add('confirm'); $('#quit2Btn').classList.add('confirm'); $('#welcomeQuit').classList.add('confirm');
     $('#quitLabel').textContent = t('Выйти?');
     $('#quit2Btn').textContent = t('Нажмите ещё раз, чтобы выйти');
+    $('#welcomeQuit').textContent = t('Выйти?');
     quitTimer = setTimeout(disarmQuit, 4000);
     return;
   }
@@ -4245,6 +4266,9 @@ async function quitApp() {
   catch (e) { quitting = false; toast(e.message); refreshState(); return; }
   if (busy) stop();
   if (askCtl) askCtl.abort();
+  // из окна приветствия: оно закрывается без «Начать работу» (модель не загружается)
+  $('#welcomeView').hidden = true;
+  try { sessionStorage.setItem('tdoc.welcome', 'done'); } catch (e) { /* без памяти окна */ }
   showScreen('byeView'); setModelState('bye');
   $('#quitBtn').hidden = true;
   try { if (OWN_WINDOW) window.ttwClose(); else window.close(); } catch (e) { /* окно закроет сам пользователь */ }
@@ -4678,8 +4702,47 @@ function maybeWelcome() {
 function openWelcome(atStart) {
   welcomeAtStart = !!atStart;
   renderWelcome();
+  setWelcomeShift(0, 0);
   $('#welcomeView').hidden = false;
   $('#welcomeStart').focus();
+}
+
+// Окно приветствия можно двигать — за заголовок или пустое место окна (не за кнопки, поля и списки). Начальное
+// место и размер — прежние, при каждом открытии окно снова на своём месте. За край окна программы оно не уходит:
+// виден заголовок и хотя бы полоса шириной WELCOME_DRAG_KEEP пикселей.
+const WELCOME_DRAG_KEEP = 80;
+let welcomeShift = { x: 0, y: 0 };
+function setWelcomeShift(x, y) {
+  welcomeShift = { x, y };
+  $('#welcomeView .panel.welcome').style.transform = (x || y) ? `translate(${x}px, ${y}px)` : '';
+}
+function initWelcomeDrag() {
+  const panel = $('#welcomeView .panel.welcome');
+  let drag = null;
+  panel.addEventListener('pointerdown', (e) => {
+    if (e.button !== 0 || e.target.closest('button, input, select, textarea, label, a, .seg')) return;
+    const r = panel.getBoundingClientRect();
+    drag = { id: e.pointerId, x: e.clientX, y: e.clientY, sx: welcomeShift.x, sy: welcomeShift.y,
+      left: r.left - welcomeShift.x, top: r.top - welcomeShift.y, w: r.width };
+    try { panel.setPointerCapture(e.pointerId); } catch (err) { /* без захвата — тоже двигается */ }
+    panel.classList.add('dragging');
+    e.preventDefault();
+  });
+  panel.addEventListener('pointermove', (e) => {
+    if (!drag || e.pointerId !== drag.id) return;
+    const vw = document.documentElement.clientWidth, vh = document.documentElement.clientHeight, keep = WELCOME_DRAG_KEEP;
+    const x = Math.min(Math.max(drag.sx + e.clientX - drag.x, keep - drag.left - drag.w), vw - keep - drag.left);
+    const y = Math.min(Math.max(drag.sy + e.clientY - drag.y, -drag.top), vh - 60 - drag.top);
+    setWelcomeShift(Math.round(x), Math.round(y));
+  });
+  const end = (e) => { if (drag && e.pointerId === drag.id) { drag = null; panel.classList.remove('dragging'); } };
+  panel.addEventListener('pointerup', end);
+  panel.addEventListener('pointercancel', end);
+  // окно программы стало меньше и окно приветствия оказалось за краем — обратно на место
+  window.addEventListener('resize', () => {
+    const r = panel.getBoundingClientRect();
+    if (r.right < WELCOME_DRAG_KEEP || r.left > document.documentElement.clientWidth - WELCOME_DRAG_KEEP || r.top < 0 || r.top > document.documentElement.clientHeight - 60) setWelcomeShift(0, 0);
+  });
 }
 
 function renderWelcome() {
@@ -5228,6 +5291,7 @@ const I18N = {
   'Откуда:': ['From:', 'Quelle:'],
   'Куда:': ['To:', 'Ordner:'],
   'Файл:': ['File:', 'Datei:'],
+  'Файлы:': ['Files:', 'Dateien:'],
   'Проверяю контрольную сумму…': ['Checking the checksum…', 'Prüfsumme wird geprüft…'],
   'Распаковываю…': ['Unpacking…', 'Wird entpackt…'],
   '{a} из {b}': ['{a} of {b}', '{a} von {b}'],
@@ -5284,6 +5348,7 @@ const I18N = {
   'Загружать выбранную модель при запуске': ['Load the chosen model at start', 'Gewähltes Modell beim Start laden'],
   'Показывать это окно при запуске': ['Show this window at start', 'Dieses Fenster beim Start zeigen'],
   'Начать работу': ['Get started', 'Loslegen'],
+  'Выйти': ['Exit', 'Beenden'],
   'При запуске': ['At start', 'Beim Start'],
   'Загружать выбранную модель': ['Load the chosen model', 'Gewähltes Modell laden'],
   'Показывать окно приветствия': ['Show the welcome window', 'Begrüßungsfenster zeigen'],
@@ -5504,6 +5569,8 @@ function init() {
   $('#welcomeShow').addEventListener('change', () => setStartOption({ show_welcome: $('#welcomeShow').checked }));
   $('#setWelcome').addEventListener('change', () => setStartOption({ show_welcome: $('#setWelcome').checked }));
   $('#welcomeStart').onclick = closeWelcome;
+  $('#welcomeQuit').onclick = quitApp;
+  initWelcomeDrag();
   $('#welcomeAbout').onclick = async () => { await closeWelcome(); showPane('about'); renderAbout(); };
   $('#openWelcomeBtn').onclick = () => openWelcome(false);
   $('#ownSave').innerHTML = ICON.save; $('#ownCopy').innerHTML = ICON.copy;

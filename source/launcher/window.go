@@ -150,6 +150,7 @@ func (a *App) startOwnWindow(u string, second, maximized bool) error {
 		errR.Close()
 		return err
 	}
+	allowForeground(cmd.Process.Pid) // Windows: the window may come to the front (not behind the folder window)
 	if !second {
 		attachChild(cmd) // Windows: the window closes together with the launcher
 	}

@@ -2,22 +2,33 @@ package main
 
 import (
 	"bytes"
+	"context"
+	"crypto/sha256"
 	"encoding/base64"
+	"encoding/hex"
 	"encoding/json"
 	"encoding/xml"
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"path"
 	"path/filepath"
 	"regexp"
 	"strings"
+	"sync"
 	"testing"
+	"time"
 )
 
 var hex64 = regexp.MustCompile(`^[0-9a-f]{64}$`)
 
-// the voices: official sherpa-onnx archives, pinned size and checksum, a known language, a licence
+// files of a voice made of parts: from the sherpa-onnx release, or from the Hugging Face page of its author, pinned
+// to a commit
+var hfPinned = regexp.MustCompile(`^https://huggingface\.co/csukuangfj/vits-piper-[A-Za-z0-9_-]+/resolve/[0-9a-f]{40}/[^/]+$`)
+
+// the voices: official sherpa-onnx archives (or parts), pinned size and checksum, a known language, a licence
 func TestVoiceCatalog(t *testing.T) {
 	langs := map[string]bool{"ru": true, "en": true, "de": true, "fr": true, "es": true, "el": true, "zh": true, "la": true, "sv": true}
 	seen := map[string]bool{}
@@ -29,8 +40,33 @@ func TestVoiceCatalog(t *testing.T) {
 		if !langs[v.Lang] || v.Name == "" || v.License == "" || (v.Gender != "female" && v.Gender != "male") {
 			t.Errorf("%s: language, name, licence or gender: %+v", v.ID, v)
 		}
-		if v.URL != voiceRelease+v.Dir+".tar.bz2" || !strings.HasPrefix(v.Dir, "vits-piper-") || !strings.HasSuffix(v.Model, ".onnx") {
-			t.Errorf("%s: archive %s, folder %s, model %s", v.ID, v.URL, v.Dir, v.Model)
+		if !strings.HasPrefix(v.Dir, "vits-piper-") || !strings.HasSuffix(v.Model, ".onnx") || !strings.Contains(v.Dir, strings.TrimSuffix(v.Model, ".onnx")) {
+			t.Errorf("%s: folder %s, model %s", v.ID, v.Dir, v.Model)
+		}
+		if len(v.Parts) == 0 && v.URL != voiceRelease+v.Dir+".tar.bz2" {
+			t.Errorf("%s: archive %s", v.ID, v.URL)
+		}
+		if len(v.Parts) > 0 {
+			var sum int64
+			files := map[string]bool{}
+			for _, p := range v.Parts {
+				sum += p.Size
+				files[p.File] = true
+				if !(strings.HasPrefix(p.URL, voiceRelease) || hfPinned.MatchString(p.URL)) || path.Base(p.URL) != p.File || p.Size <= 0 || !hex64.MatchString(p.SHA256) {
+					t.Errorf("%s: part %+v", v.ID, p)
+				}
+			}
+			if len(files) != len(v.Parts) || !files[v.Model] || !files["tokens.txt"] || !files["espeak-ng-data.tar.bz2"] || sum != v.Size || v.URL != v.Parts[0].URL {
+				t.Errorf("%s: parts %v, size %d of %d", v.ID, files, v.Size, sum)
+			}
+		}
+		if v.Lexicon != "" && (v.Lexicon != "lexicon.txt" || len(v.Rules) == 0 || len(v.Parts) > 0) {
+			t.Errorf("%s: lexicon %q, rules %v", v.ID, v.Lexicon, v.Rules)
+		}
+		for _, r := range v.Rules {
+			if !strings.HasSuffix(r, ".fst") || strings.ContainsAny(r, `/\,`) {
+				t.Errorf("%s: rule file %q", v.ID, r)
+			}
 		}
 		if v.Size < 1<<20 || !hex64.MatchString(v.SHA256) || !strings.HasPrefix(v.Page, voiceSamples+"#") {
 			t.Errorf("%s: size %d, sha %q, page %q", v.ID, v.Size, v.SHA256, v.Page)
@@ -39,7 +75,14 @@ func TestVoiceCatalog(t *testing.T) {
 			t.Errorf("%s: licence %q and nc=%v disagree", v.ID, v.License, v.NC)
 		}
 	}
-	for _, l := range []string{"ru", "en", "de", "sv"} {
+	// the voices the author asked for (0.9.3): Spanish es_ES-mls_9972-low and Chinese zh_CN-chaowen-medium
+	if v := findVoice("es-mls-9972"); v == nil || v.Lang != "es" || len(v.Parts) != 3 || !strings.HasPrefix(v.URL, "https://huggingface.co/") {
+		t.Errorf("Spanish voice: %+v", v)
+	}
+	if v := findVoice("zh-chaowen"); v == nil || v.Lang != "zh" || v.Lexicon == "" || len(v.Rules) != 3 {
+		t.Errorf("Chinese voice: %+v", v)
+	}
+	for _, l := range []string{"ru", "en", "de", "sv", "es", "zh"} {
 		free := false
 		for _, v := range voiceSpecs {
 			free = free || (v.Lang == l && !v.NC)
@@ -74,8 +117,98 @@ func TestTTSArgs(t *testing.T) {
 			}
 		}
 	}
-	if args[0] != "--vits-model=vits-piper-ru_RU-ruslan-medium/ru_RU-ruslan-medium.onnx" || !strings.Contains(strings.Join(args, " "), "--speed=1.00") {
+	if args[0] != "--vits-model=vits-piper-ru_RU-ruslan-medium/ru_RU-ruslan-medium.onnx" || !strings.Contains(strings.Join(args, " "), "--speed=1.00") ||
+		!strings.Contains(strings.Join(args, " "), "--vits-data-dir=vits-piper-ru_RU-ruslan-medium/espeak-ng-data") {
 		t.Errorf("args: %q", args)
+	}
+	// a voice with a lexicon (Chinese): lexicon and rules instead of espeak-ng-data
+	zh := findVoice("zh-chaowen")
+	if zh == nil {
+		t.Fatal("no Chinese voice")
+	}
+	all := strings.Join(ttsArgs(zh, "你好。", 1, "tts-2.wav"), " ")
+	if strings.Contains(all, "espeak-ng-data") || !strings.Contains(all, "--vits-lexicon=vits-piper-zh_CN-chaowen-medium/lexicon.txt") ||
+		!strings.Contains(all, "--tts-rule-fsts=vits-piper-zh_CN-chaowen-medium/phone.fst,vits-piper-zh_CN-chaowen-medium/date.fst,vits-piper-zh_CN-chaowen-medium/number.fst") {
+		t.Errorf("Chinese args: %s", all)
+	}
+}
+
+// a voice made of parts: downloaded one after another into <Dir>.download (a finished part is not fetched again,
+// an unfinished one resumes), then put together into the voice's folder; the progress counts all parts
+func TestVoiceParts(t *testing.T) {
+	espeak, _ := base64.StdEncoding.DecodeString("QlpoOTFBWSZTWVAFj9IAAJR/gMmAABBAAveAABAAAP7p3gAIKCAAkoSqaAMhoABpobUCqKJ6g0BiMgBoP2XLWVvEgzUiIQ4W+1ywlsWNCEJEx2eXRaoRRJDFUhgrYLF7c30x0qpZSuhwocNecHUPjtH9kosWQWKgXDGTjYkEJCugReiD+LuSKcKEgoAsfpA=")
+	model := bytes.Repeat([]byte("onnx-model "), 30000)
+	tokens := []byte("_ 0\n^ 1\n")
+	files := map[string][]byte{"es_ES-x-low.onnx": model, "tokens.txt": tokens, "espeak-ng-data.tar.bz2": espeak}
+	var mu sync.Mutex
+	requests := map[string][]string{} // file → Range headers
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		name := path.Base(r.URL.Path)
+		mu.Lock()
+		requests[name] = append(requests[name], r.Header.Get("Range"))
+		mu.Unlock()
+		b, ok := files[name]
+		if !ok {
+			http.NotFound(w, r)
+			return
+		}
+		http.ServeContent(w, r, name, time.Time{}, bytes.NewReader(b))
+	}))
+	defer srv.Close()
+	part := func(name string) VoicePart {
+		sum := sha256.Sum256(files[name])
+		return VoicePart{URL: srv.URL + "/" + name, File: name, Size: int64(len(files[name])), SHA256: hex.EncodeToString(sum[:])}
+	}
+	v := partsVoice("es-x", "es", "X", "female", "CC0", false, "es_ES-x-low", part("es_ES-x-low.onnx"), part("tokens.txt"), part("espeak-ng-data.tar.bz2"))
+	if v.Size != int64(len(model)+len(tokens)+len(espeak)) || v.URL != srv.URL+"/es_ES-x-low.onnx" || v.Dir != "vits-piper-es_ES-x-low" {
+		t.Fatalf("spec: %+v", v)
+	}
+	a := testApp(t)
+	a.modelsDir = t.TempDir()
+	stage := filepath.Join(a.voicesDir(), v.Dir+".download")
+	_ = os.MkdirAll(stage, 0o755)
+	// tokens.txt finished earlier, the model half way
+	_ = os.WriteFile(filepath.Join(stage, "tokens.txt"), tokens, 0o644)
+	_ = os.WriteFile(filepath.Join(stage, "es_ES-x-low.onnx.part"), model[:len(model)/2], 0o644)
+	if got, want := a.voicePartial(&v), int64(len(tokens)+len(model)/2); got != want {
+		t.Errorf("partial: %d, want %d", got, want)
+	}
+	var maxDone int64
+	a.vdl = DownloadState{}
+	if err := a.downloadVoice(context.Background(), &v); err != nil {
+		t.Fatal(err)
+	}
+	if !a.voicePresent(&v) {
+		t.Fatal("voice not put together")
+	}
+	maxDone = a.vdl.Done
+	if b, _ := os.ReadFile(filepath.Join(a.voiceDir(&v), "espeak-ng-data", "phontab")); string(b) != "phon" {
+		t.Errorf("espeak-ng-data not unpacked into the voice folder: %q", b)
+	}
+	if b, _ := os.ReadFile(filepath.Join(a.voiceDir(&v), "es_ES-x-low.onnx")); !bytes.Equal(b, model) {
+		t.Error("model differs")
+	}
+	if _, err := os.Stat(stage); err == nil {
+		t.Error("the download folder is left")
+	}
+	mu.Lock()
+	if len(requests["tokens.txt"]) != 0 || len(requests["es_ES-x-low.onnx"]) != 1 || requests["es_ES-x-low.onnx"][0] != fmt.Sprintf("bytes=%d-", len(model)/2) {
+		t.Errorf("requests: %v", requests)
+	}
+	mu.Unlock()
+	if maxDone != v.Size || a.vdl.Total != v.Size {
+		t.Errorf("progress: done %d, total %d, size %d", maxDone, a.vdl.Total, v.Size)
+	}
+	// a broken part: the voice is not there, the error names the file
+	files["tokens.txt"] = []byte("_ 0\n^ 2\n")
+	_ = os.RemoveAll(a.voiceDir(&v))
+	err := a.downloadVoice(context.Background(), &v)
+	if err == nil || !strings.Contains(err.Error(), "tokens.txt") || a.voicePresent(&v) {
+		t.Errorf("broken part: %v", err)
+	}
+	a.removeVoiceDownloads(&v)
+	if _, err := os.Stat(stage); err == nil {
+		t.Error("removeVoiceDownloads left the download folder")
 	}
 }
 

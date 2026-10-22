@@ -69,21 +69,33 @@ func ttsExeName() string {
 }
 
 // VoiceSpec is a Piper voice packed by sherpa-onnx: the archive holds one folder (Dir) with the model, tokens.txt
-// and espeak-ng-data.
+// and espeak-ng-data — or, for Chinese, a pronunciation lexicon and text rules instead of espeak-ng-data. A voice
+// that sherpa-onnx has not packed into an archive is made of separate files (Parts) put into that folder.
 type VoiceSpec struct {
-	ID      string `json:"id"`
-	Lang    string `json:"lang"`    // language code of the interface lists (ru, en, de, …)
-	Name    string `json:"name"`    // name of the voice
-	Gender  string `json:"gender"`  // "female" or "male"
-	License string `json:"license"` // licence of the voice (of its training data)
-	NC      bool   `json:"nc"`      // the licence allows only non-commercial use
-	Dir     string `json:"dir"`
-	Model   string `json:"model"`
-	SID     int    `json:"sid"` // speaker of a voice with several speakers
-	URL     string `json:"url"`
-	Page    string `json:"page"` // samples to listen to
-	Size    int64  `json:"size"`
-	SHA256  string `json:"sha256"`
+	ID      string      `json:"id"`
+	Lang    string      `json:"lang"`    // language code of the interface lists (ru, en, de, …)
+	Name    string      `json:"name"`    // name of the voice
+	Gender  string      `json:"gender"`  // "female" or "male"
+	License string      `json:"license"` // licence of the voice (of its training data)
+	NC      bool        `json:"nc"`      // the licence allows only non-commercial use
+	Dir     string      `json:"dir"`
+	Model   string      `json:"model"`
+	SID     int         `json:"sid"`  // speaker of a voice with several speakers
+	URL     string      `json:"url"`  // the archive, or the first of the parts
+	Page    string      `json:"page"` // samples to listen to
+	Size    int64       `json:"size"` // of the archive, or of all the parts
+	SHA256  string      `json:"sha256"`
+	Lexicon string      `json:"lexicon,omitempty"` // a voice without espeak-ng (Chinese): its lexicon file…
+	Rules   []string    `json:"rules,omitempty"`   // …and the rules that spell out numbers, dates and phone numbers
+	Parts   []VoicePart `json:"parts,omitempty"`   // a voice made of separate files instead of one archive
+}
+
+// VoicePart is one file of a voice made of parts; an archive (.tar.bz2) is unpacked into the voice's folder.
+type VoicePart struct {
+	URL    string `json:"url"`
+	File   string `json:"file"`
+	Size   int64  `json:"size"`
+	SHA256 string `json:"sha256"`
 }
 
 func piperVoice(id, lang, name, gender, license string, nc bool, voice string, size int64, sha string) VoiceSpec {
@@ -92,8 +104,32 @@ func piperVoice(id, lang, name, gender, license string, nc bool, voice string, s
 		URL: voiceRelease + dir + ".tar.bz2", Page: voiceSamples + "#" + voice, Size: size, SHA256: sha}
 }
 
-// The voices chosen by the author (21.10.2026) and, for Russian and English, a voice with a free licence.
-// Licences are those of the voices' training data (MODEL_CARD in each archive).
+// lexiconVoice: a voice that reads with a lexicon and text rules (files in its archive) instead of espeak-ng.
+func lexiconVoice(v VoiceSpec, lexicon string, rules ...string) VoiceSpec {
+	v.Lexicon, v.Rules = lexicon, rules
+	return v
+}
+
+// partsVoice: a voice made of separate files — the model and tokens.txt, and espeak-ng-data from its archive.
+func partsVoice(id, lang, name, gender, license string, nc bool, voice string, parts ...VoicePart) VoiceSpec {
+	v := VoiceSpec{ID: id, Lang: lang, Name: name, Gender: gender, License: license, NC: nc, Dir: "vits-piper-" + voice,
+		Model: voice + ".onnx", URL: parts[0].URL, Page: voiceSamples + "#" + voice, SHA256: parts[0].SHA256, Parts: parts}
+	for _, p := range parts {
+		v.Size += p.Size
+	}
+	return v
+}
+
+// espeak-ng-data of sherpa-onnx: the same files as in every Piper archive of its release
+var espeakPart = VoicePart{URL: voiceRelease + "espeak-ng-data.tar.bz2", File: "espeak-ng-data.tar.bz2", Size: 7252012,
+	SHA256: "4135ccf82e1f40613491c0874d4945ae9e9c7840933d8e25a6f9e003d9ebf533"}
+
+// es_ES-mls_9972-low is not among the archives of the sherpa-onnx release; its author keeps the converted model
+// (with the metadata sherpa-onnx reads) on Hugging Face. Pinned to a commit; size and SHA-256 as for every download.
+const hfMLS9972 = "https://huggingface.co/csukuangfj/vits-piper-es_ES-mls_9972-low/resolve/5440d32fb5870a035eea1e03b833f29724803378/"
+
+// The voices chosen by the author (21.10.2026, Spanish and Chinese 22.10.2026) and, for Russian and English, a
+// voice with a free licence. Licences are those of the voices' training data (MODEL_CARD of each voice).
 var voiceSpecs = []VoiceSpec{
 	piperVoice("ru-ruslan", "ru", "Ruslan", "male", "CC BY-NC-SA 4.0", true, "ru_RU-ruslan-medium", 67210684,
 		"0690b1cad01f86e8db9ba988af24898bdc1af774e23cb2e46b9c730269b6fd83"),
@@ -107,6 +143,14 @@ var voiceSpecs = []VoiceSpec{
 		"4bfe121d5f690a3b87acecd7ae1e70b48f4589ce6ae9f45a1809e6eb19fad97b"),
 	piperVoice("sv-alma", "sv", "Alma", "female", "CC BY 4.0", false, "sv_SE-alma-medium", 67154700,
 		"4ab8212595575e52595bc95c37d0b4f79450c0f00b63496346cdc5941d913edc"),
+	partsVoice("es-mls-9972", "es", "MLS 9972", "female", "CC BY 4.0", false, "es_ES-mls_9972-low",
+		VoicePart{URL: hfMLS9972 + "es_ES-mls_9972-low.onnx", File: "es_ES-mls_9972-low.onnx", Size: 63104654,
+			SHA256: "29cd34f8c8c7f176efd2e438e563847e8e7f37c33de994e0746fe839de432cc8"},
+		VoicePart{URL: hfMLS9972 + "tokens.txt", File: "tokens.txt", Size: 763,
+			SHA256: "42d1a69ed2b91a51928a711aa228ed9f3dc021c6d359a3e9c4f37eb1d20f80bd"},
+		espeakPart),
+	lexiconVoice(piperVoice("zh-chaowen", "zh", "Chaowen", "male", "CC0", false, "zh_CN-chaowen-medium", 60443846,
+		"1b69bdcf10bb6331c7f8a7591940febeb175c6bb86caa3802d96531f8e4ad211"), "lexicon.txt", "phone.fst", "date.fst", "number.fst"),
 }
 
 // Test hooks, used only when the environment variables are set: TDOC_TTS_URL replaces the sherpa-onnx archive
@@ -137,17 +181,62 @@ func findVoice(id string) *VoiceSpec {
 
 func (a *App) voicesDir() string            { return filepath.Join(a.modelsDir, "voices") }
 func (a *App) voiceDir(v *VoiceSpec) string { return filepath.Join(a.voicesDir(), v.Dir) }
-func (a *App) voiceArchive(v *VoiceSpec) string {
-	return filepath.Join(a.voicesDir(), path.Base(v.URL))
+
+// voiceParts are the downloads of a voice: its archive, or its separate files.
+func voiceParts(v *VoiceSpec) []VoicePart {
+	if len(v.Parts) > 0 {
+		return v.Parts
+	}
+	return []VoicePart{{URL: v.URL, File: path.Base(v.URL), Size: v.Size, SHA256: v.SHA256}}
+}
+
+// partPath is where a download of a voice is kept until it is unpacked or moved: an archive in the voices folder
+// (as before 0.9.3), the separate files in a folder of their own (<Dir>.download), so that tokens.txt of two voices
+// never meet.
+func (a *App) partPath(v *VoiceSpec, p VoicePart) string {
+	if len(v.Parts) == 0 {
+		return filepath.Join(a.voicesDir(), p.File)
+	}
+	return filepath.Join(a.voicesDir(), v.Dir+".download", p.File)
+}
+
+// voicePartial is how much of a voice has been downloaded so far (finished parts and the unfinished one).
+func (a *App) voicePartial(v *VoiceSpec) int64 {
+	var n int64
+	for _, p := range voiceParts(v) {
+		dest := a.partPath(v, p)
+		if st, err := os.Stat(dest); err == nil && len(v.Parts) > 0 && st.Size() == p.Size {
+			n += p.Size
+		} else if st, err := os.Stat(dest + ".part"); err == nil {
+			n += st.Size()
+		}
+	}
+	return n
+}
+
+// removeVoiceDownloads deletes unfinished downloads of a voice.
+func (a *App) removeVoiceDownloads(v *VoiceSpec) {
+	if len(v.Parts) > 0 {
+		_ = os.RemoveAll(filepath.Join(a.voicesDir(), v.Dir+".download"))
+		return
+	}
+	_ = os.Remove(a.partPath(v, voiceParts(v)[0]) + ".part")
 }
 
 func (a *App) voicePresent(v *VoiceSpec) bool {
 	d := a.voiceDir(v)
-	for _, f := range []string{v.Model, "tokens.txt"} {
+	need := []string{v.Model, "tokens.txt"}
+	if v.Lexicon != "" {
+		need = append(append(need, v.Lexicon), v.Rules...)
+	}
+	for _, f := range need {
 		st, err := os.Stat(filepath.Join(d, f))
 		if err != nil || st.IsDir() || st.Size() == 0 {
 			return false
 		}
+	}
+	if v.Lexicon != "" {
+		return true
 	}
 	st, err := os.Stat(filepath.Join(d, "espeak-ng-data"))
 	return err == nil && st.IsDir()
@@ -212,13 +301,15 @@ func (a *App) ttsStateJSON() map[string]any {
 		present := a.voicePresent(v)
 		var partial int64
 		if !present {
-			if st, err := os.Stat(a.voiceArchive(v) + ".part"); err == nil {
-				partial = st.Size()
-			}
+			partial = a.voicePartial(v)
+		}
+		parts := []map[string]any{}
+		for _, p := range voiceParts(v) {
+			parts = append(parts, map[string]any{"url": p.URL, "file": p.File, "size": p.Size})
 		}
 		voices = append(voices, map[string]any{
 			"id": v.ID, "lang": v.Lang, "name": v.Name, "gender": v.Gender, "license": v.License, "nc": v.NC,
-			"url": v.URL, "page": v.Page, "file": path.Base(v.URL), "size": v.Size,
+			"url": v.URL, "page": v.Page, "file": path.Base(v.URL), "size": v.Size, "parts": parts,
 			"present": present, "active": present && a.activeVoiceID(v.Lang) == v.ID, "partial": partial,
 		})
 	}
@@ -343,19 +434,65 @@ func (a *App) downloadVoice(ctx context.Context, v *VoiceSpec) error {
 	a.setVDL(func(d *DownloadState) {
 		*d = DownloadState{Active: true, Item: "voice", Name: v.ID, Phase: "download", Total: v.Size}
 	})
-	archive := a.voiceArchive(v)
-	if err := a.fetchTo(ctx, v.URL, archive, v.Size, v.SHA256, a.setVDL); err != nil {
-		return fmt.Errorf(tr("голос: %w"), err)
+	// the parts one after another; the progress counts all of them together
+	var before int64
+	for _, p := range voiceParts(v) {
+		dest := a.partPath(v, p)
+		if err := os.MkdirAll(filepath.Dir(dest), 0o755); err != nil {
+			return err
+		}
+		// a part finished earlier (fetchTo keeps a file only after checking its size and SHA-256)
+		if st, err := os.Stat(dest); err == nil && len(v.Parts) > 0 && st.Size() == p.Size {
+			before += p.Size
+			continue
+		}
+		var cur DownloadState
+		base := before
+		progress := func(f func(d *DownloadState)) {
+			f(&cur)
+			a.setVDL(func(d *DownloadState) {
+				d.Phase, d.Speed, d.Done, d.Total = cur.Phase, cur.Speed, base+cur.Done, v.Size
+			})
+		}
+		if err := a.fetchTo(ctx, p.URL, dest, p.Size, p.SHA256, progress); err != nil {
+			if len(v.Parts) > 0 {
+				return fmt.Errorf(tr("голос (%s): %w"), p.File, err)
+			}
+			return fmt.Errorf(tr("голос: %w"), err)
+		}
+		before += p.Size
 	}
 	a.setVDL(func(d *DownloadState) { d.Phase = "extract" })
-	_ = os.RemoveAll(a.voiceDir(v))
-	if err := untarbz2(archive, dir); err != nil {
-		return fmt.Errorf(tr("распаковка голоса: %w"), err)
+	vd := a.voiceDir(v)
+	_ = os.RemoveAll(vd)
+	if len(v.Parts) == 0 {
+		if err := untarbz2(a.partPath(v, voiceParts(v)[0]), dir); err != nil {
+			return fmt.Errorf(tr("распаковка голоса: %w"), err)
+		}
+	} else {
+		if err := os.MkdirAll(vd, 0o755); err != nil {
+			return err
+		}
+		for _, p := range v.Parts {
+			src := a.partPath(v, p)
+			var err error
+			if strings.HasSuffix(p.File, ".tar.bz2") {
+				err = untarbz2(src, vd)
+			} else {
+				err = os.Rename(src, filepath.Join(vd, p.File))
+			}
+			if err != nil {
+				return fmt.Errorf(tr("распаковка голоса: %w"), err)
+			}
+		}
 	}
 	if !a.voicePresent(v) {
 		return fmt.Errorf(tr("в архиве нет файла %s"), v.Dir+"/"+v.Model)
 	}
-	_ = os.Remove(archive)
+	a.removeVoiceDownloads(v)
+	if len(v.Parts) == 0 {
+		_ = os.Remove(a.partPath(v, voiceParts(v)[0]))
+	}
 	logger.Printf("voice installed: %s", v.Dir)
 	return nil
 }
@@ -391,16 +528,29 @@ func ttsThreads() int {
 // command line in the system code page, and the folder of the program may have any letters in its name.
 // "--" ends the options, so a text that starts with "--" is still text.
 func ttsArgs(v *VoiceSpec, text string, speed float64, out string) []string {
-	return []string{
+	args := []string{
 		"--vits-model=" + v.Dir + "/" + v.Model,
 		"--vits-tokens=" + v.Dir + "/tokens.txt",
-		"--vits-data-dir=" + v.Dir + "/espeak-ng-data",
-		"--num-threads=" + strconv.Itoa(ttsThreads()),
-		"--sid=" + strconv.Itoa(v.SID),
-		"--speed=" + strconv.FormatFloat(speed, 'f', 2, 64),
-		"--output-filename=" + out,
-		"--", text,
 	}
+	if v.Lexicon != "" {
+		args = append(args, "--vits-lexicon="+v.Dir+"/"+v.Lexicon)
+		if len(v.Rules) > 0 {
+			rules := make([]string, len(v.Rules))
+			for i, r := range v.Rules {
+				rules[i] = v.Dir + "/" + r
+			}
+			args = append(args, "--tts-rule-fsts="+strings.Join(rules, ","))
+		}
+	} else {
+		args = append(args, "--vits-data-dir="+v.Dir+"/espeak-ng-data")
+	}
+	return append(args,
+		"--num-threads="+strconv.Itoa(ttsThreads()),
+		"--sid="+strconv.Itoa(v.SID),
+		"--speed="+strconv.FormatFloat(speed, 'f', 2, 64),
+		"--output-filename="+out,
+		"--", text,
+	)
 }
 
 // synthesize speaks one phrase and returns the WAV file.
@@ -597,7 +747,7 @@ func (a *App) ttsRoutes(mux *http.ServeMux) {
 			jsonError(w, 500, tr("не удалось удалить файл: ")+err.Error())
 			return
 		}
-		_ = os.Remove(a.voiceArchive(v) + ".part")
+		a.removeVoiceDownloads(v)
 		a.mu.Lock()
 		if a.cfg.Voices[v.Lang] == v.ID {
 			delete(a.cfg.Voices, v.Lang)

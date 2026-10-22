@@ -11,7 +11,7 @@ Edge/Chrome и показывает причину в «Настройках». 
 | Файл | Что |
 |---|---|
 | `ttranslator-window.cc` | вся программа (C++14) |
-| `ttranslator-window.rc`, `.manifest` | Windows: значок (тот же, что у Ttranslator.exe), сведения о версии, манифест |
+| `ttranslator-window.rc`, `.manifest` | Windows: значок (тот же, что у Ttranslator.exe), сведения о версии (программа окна 1.1; правообладатели — Allasoneteam and Ttranslator authors), манифест |
 | `build.sh` | сборка: `sh build.sh` (обе), `sh build.sh linux`, `sh build.sh windows`; `OUT=папка` — куда класть |
 | `webview/webview.h` | библиотека [webview](https://github.com/webview/webview) **0.12.0** (MIT, `webview/LICENSE`), с одной правкой — см. ниже |
 | `webview2/WebView2.h` | заголовок Microsoft WebView2 SDK **1.0.1150.38** (лицензия — `webview2/LICENSE.txt`), из [webview_go](https://github.com/webview/webview_go) |
@@ -43,6 +43,7 @@ Edge/Chrome и показывает причину в «Настройках». 
 
 - URL — только адрес программы запуска (`http://127.0.0.1:ПОРТ/…` или `http://localhost:ПОРТ/…`).
 - `--maximized` — окно на весь экран (Windows: `ShowWindow(SW_MAXIMIZE)`, Linux: `gtk_window_maximize`); размер `--size` — тот, что после «Восстановить». Программа запуска передаёт его, если `start_maximized` (по умолчанию).
+- При запуске окно выходит на передний план (`bring_to_front`, с 0.9.3). Windows не даёт программе, которую запустила фоновая программа, вывести окно вперёд — без этого окно открывалось за окном папки, из которой запущен Ttranslator.exe. Программа запуска (её запустил Проводник) отдаёт своё право (`AllowSetForegroundWindow(pid)`), и окно вызывает `SetForegroundWindow`; если Windows всё же отказала, а впереди окно Проводника (`explorer.exe`: папка или рабочий стол), ввод двух потоков на мгновение объединяется (`AttachThreadInput`) — обычный обход. Поверх другой программы, в которую пользователь перешёл, пока окно открывалось, окно не встаёт. Linux: `gtk_window_present`. `_WIN32_WINNT` = Windows 10: старые заголовки MinGW (Ubuntu 22.04) иначе прячут `QueryFullProcessImageNameW`.
 - Когда окно создано, программа пишет `ready` в stdout. Коды выхода: 0 — окно закрыли, 2 — неверные аргументы,
   3 — нет веб-движка системы (в Windows — нет WebView2 Runtime; в Linux — нет экрана или WebKitGTK).
 - Окно показывает только страницы программы запуска: переходы на другие сайты и ссылки, открывающие новое окно,

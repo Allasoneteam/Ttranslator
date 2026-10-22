@@ -1,8 +1,9 @@
-# v0.9.1–0.9.2: the app window (launch_mode "window") with the real program ttranslator-window-linux on WebKitGTK.
+# v0.9.1–0.9.3: the app window (launch_mode "window") with the real program ttranslator-window-linux on WebKitGTK.
 # Runs under a virtual screen (xvfb-run); the launcher is started without --no-window, as on a real computer.
 #   - the window program starts, its page connects with ttw=1 (it has the functions of the own window);
 #   - 0.9.2: the window starts maximized (start_maximized, the default) or not — checked with a window manager
 #     (openbox), if there is one; "launch_mode": "app" of older versions is the app window too;
+#   - 0.9.3: the window comes to the front of the window that was active (with a window manager);
 #   - closing the window (the program ends) lets the launcher exit after a few seconds;
 #   - «Выход» in the program closes the window;
 #   - without the window program: an Edge/Chrome window instead, and the reason in the state for the settings.
@@ -71,10 +72,21 @@ wm = None
 if shutil.which('openbox') and shutil.which('xdotool'):
     wm = subprocess.Popen(['openbox'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL); time.sleep(1)
 
-# ================= the own window opens and its page connects
+# ================= the own window opens (in front of the window that was active: 0.9.3) and its page connects
 root = os.path.join(W, 'rwin')
+other = None
+if wm and shutil.which('xmessage'):   # a window in front, like the folder window Ttranslator.exe was started from
+    other = subprocess.Popen(['xmessage', '-name', 'folder', '-geometry', '400x200+40+40', 'folder window'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    time.sleep(1.0)
+    wid = subprocess.run(['xdotool', 'search', '--class', 'xmessage'], capture_output=True, text=True).stdout.split()
+    if wid: subprocess.run(['xdotool', 'windowactivate', '--sync', wid[-1]], capture_output=True, timeout=10)
 p = start(root, True)
 ok(wait(lambda: get('/api/state')['window']['pages'] == 1, 40), 'the page connected inside the own window (ttw=1): %s' % get('/api/state').get('window'))
+if other:
+    time.sleep(1.0)
+    active = subprocess.run(['xdotool', 'getactivewindow', 'getwindowname'], capture_output=True, text=True).stdout.strip()
+    ok(active == 'Ttranslator', 'the app window is in front of the window that was active before: %r' % active)
+    other.terminate()
 st = get('/api/state')['window']
 ok(st['available'] is True and st['error'] == '' and len(helpers()) == 1, 'state: available, no error, one window program: %s' % st)
 logtext = open(os.path.join(root, 'data', 'logs', 'launcher.log'), encoding='utf-8').read()

@@ -24,7 +24,7 @@ jobs:
       - name: System packages (app window, virtual screen with a window manager, Windows cross-build)
         run: |
           sudo apt-get update
-          sudo apt-get install -y g++ pkg-config libgtk-3-dev libwebkit2gtk-4.1-dev xvfb xdotool imagemagick openbox g++-mingw-w64-x86-64
+          sudo apt-get install -y g++ pkg-config libgtk-3-dev libwebkit2gtk-4.1-dev xvfb xdotool imagemagick openbox x11-utils g++-mingw-w64-x86-64
       - name: Python packages
         run: |
           pip install playwright numpy gguf pefile pillow

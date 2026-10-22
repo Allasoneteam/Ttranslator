@@ -95,6 +95,9 @@ func windowArgs(data string) []string {
 // windowChildAttrs: the window has its own session, like a browser window (not stopped by the terminal's Ctrl+C).
 func windowChildAttrs(cmd *exec.Cmd) { cmd.SysProcAttr = &syscall.SysProcAttr{Setsid: true} }
 
+// allowForeground: nothing to do on Linux (the window program presents its window itself).
+func allowForeground(pid int) {}
+
 func fatal(msg string) {
 	if logger != nil {
 		logger.Print(msg)
