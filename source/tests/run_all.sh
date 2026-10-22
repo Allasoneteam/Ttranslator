@@ -4,7 +4,7 @@
 #   bash source/tests/run_all.sh [work-dir]
 #
 # Needs: Go 1.24+, Python 3 with playwright + its Chromium, numpy and gguf (pip install playwright numpy gguf),
-# internet access to github.com once (the official llama.cpp engine archive, sherpa-onnx, three Piper voices and
+# internet access to github.com once (the official llama.cpp engine archive, sherpa-onnx, four Piper voices and
 # espeak-ng-data for reading aloud are cached in the work dir). The app window (source/window) is built and tested if these are there
 # (Ubuntu/Debian): g++ pkg-config libgtk-3-dev libwebkit2gtk-4.1-dev xvfb xdotool imagemagick openbox x11-utils, and for the Windows
 # build g++-mingw-w64-x86-64; without them those suites are skipped.
@@ -26,7 +26,7 @@ SUMMARY=""; FAILED=0; PIDS=""
 
 say() { printf '\n=== %s\n' "$*"; }
 cleanup() {
-  for p in 18771 18772 18773 18774 18775 18776 18777 18778 18780 18781 18782 18783 18785; do curl -s -m 1 -o /dev/null -X POST -H "Origin: http://127.0.0.1:$p" "http://127.0.0.1:$p/api/quit"; done
+  for p in 18771 18772 18773 18774 18775 18776 18777 18778 18780 18781 18782 18783 18785 18786; do curl -s -m 1 -o /dev/null -X POST -H "Origin: http://127.0.0.1:$p" "http://127.0.0.1:$p/api/quit"; done
   [ -n "$PIDS" ] && kill $PIDS 2>/dev/null
 }
 trap cleanup EXIT
@@ -75,7 +75,7 @@ if ! echo "$ENGINE_SHA  $W/mirror/$ENGINE" | sha256sum -c --status 2>/dev/null; 
   curl -fsSL -o "$W/mirror/$ENGINE" "https://github.com/ggml-org/llama.cpp/releases/download/b11435/$ENGINE" \
     && echo "$ENGINE_SHA  $W/mirror/$ENGINE" | sha256sum -c --status || { echo "ERROR: engine archive"; exit 1; }
 fi
-# reading aloud: the official sherpa-onnx program for Linux, three real Piper voices and espeak-ng-data (cached)
+# reading aloud: the official sherpa-onnx program for Linux, four real Piper voices and espeak-ng-data (cached)
 fetch_cached() {     # file sha256 url
   if ! echo "$2  $W/mirror/$1" | sha256sum -c --status 2>/dev/null; then
     curl -fsSL -o "$W/mirror/$1" "$3" && echo "$2  $W/mirror/$1" | sha256sum -c --status || { echo "ERROR: $1"; exit 1; }
@@ -91,8 +91,13 @@ fetch_cached vits-piper-zh_CN-chaowen-medium.tar.bz2 1b69bdcf10bb6331c7f8a759194
   https://github.com/k2-fsa/sherpa-onnx/releases/download/tts-models/vits-piper-zh_CN-chaowen-medium.tar.bz2
 fetch_cached espeak-ng-data.tar.bz2 4135ccf82e1f40613491c0874d4945ae9e9c7840933d8e25a6f9e003d9ebf533 \
   https://github.com/k2-fsa/sherpa-onnx/releases/download/tts-models/espeak-ng-data.tar.bz2
-# the parts of a test voice: the model and tokens.txt of the LJSpeech archive as separate files (as the Spanish
-# es_ES-mls_9972-low comes from Hugging Face)
+# v0.9.4: the Spanish voice of the catalogue (speaker F of a two-speaker model); its entry is taken from tts.go
+fetch_cached vits-piper-es_ES-sharvard-medium.tar.bz2 b30a7a83df0518f0ee1c7039506648cade99f1f9b498fc49ed2ced2e2536bb5a \
+  https://github.com/k2-fsa/sherpa-onnx/releases/download/tts-models/vits-piper-es_ES-sharvard-medium.tar.bz2
+(cd "$SRC/launcher" && TDOC_DUMP_VOICES="$W/catalogue.json" go test -count=1 -run '^TestDumpVoiceCatalog$' . > /dev/null) \
+  || { echo "ERROR: voice catalogue (TestDumpVoiceCatalog)"; exit 1; }
+# the parts of a test voice: the model and tokens.txt of the LJSpeech archive as separate files (a voice made of parts,
+# as es_ES-mls_9972-low came from Hugging Face in 0.9.3)
 if [ ! -s "$W/mirror/es-test-model.onnx" ] || [ ! -s "$W/mirror/es-test-tokens.txt" ]; then
   rm -rf "$W/parts-tmp"; mkdir -p "$W/parts-tmp"
   tar -xjf "$W/mirror/vits-piper-en_US-ljspeech-medium.tar.bz2" -C "$W/parts-tmp" \
@@ -129,11 +134,15 @@ def part(f, name):
 parts = [part('es-test-model.onnx', 'es_ES-test-low.onnx'), part('es-test-tokens.txt', 'tokens.txt'), part('espeak-ng-data.tar.bz2', 'espeak-ng-data.tar.bz2')]
 es = {'id': 'es-parts', 'lang': 'es', 'name': 'Parts', 'gender': 'female', 'license': 'CC BY 4.0', 'nc': False,
       'dir': 'vits-piper-es_ES-test-low', 'model': 'es_ES-test-low.onnx', 'sid': 0, 'url': parts[0]['url'],
-      'page': 'https://rhasspy.github.io/piper-samples/#es_ES-mls_9972-low', 'size': sum(p['size'] for p in parts),
+      'page': 'https://rhasspy.github.io/piper-samples/#es_ES-test-low', 'size': sum(p['size'] for p in parts),
       'sha256': parts[0]['sha256'], 'parts': parts}
 zh = voice('zh-cw', 'zh', 'Chaowen', 'male', 'CC0', False, 'zh_CN-chaowen-medium')
 zh.update({'lexicon': 'lexicon.txt', 'rules': ['phone.fst', 'date.fst', 'number.fst']})
 json.dump([es, zh], open(os.path.join(w, 'voices093.json'), 'w'), ensure_ascii=False, indent=1)
+# v0.9.4: the Spanish voice exactly as in the catalogue of tts.go, from the mirror
+cat = json.load(open(os.path.join(w, 'catalogue.json'), encoding='utf-8'))
+sp = [dict(v, url='http://127.0.0.1:18080/' + os.path.basename(v['url'])) for v in cat['voices'] if v['id'] == 'es-sharvard-f']
+json.dump(sp, open(os.path.join(w, 'voices094.json'), 'w'), ensure_ascii=False, indent=1)
 PY
 python3 "$T/mirror_server.py" "$W/mirror" $MIRROR 8000000 > "$W/mirror.log" 2>&1 &
 PIDS="$PIDS $!"
@@ -227,6 +236,12 @@ run "e2e v0.9: reading aloud (sherpa-onnx, Piper voices)" python3 "$T/e2e_v09.py
 XENV="TDOC_TTS_URL=http://127.0.0.1:$MIRROR/$TTS TDOC_TEST_VOICES=$W/voices093.json" start_launcher "$W/r13" 18785
 make_ready 18785
 run "e2e v0.9.3: voices of parts and with a lexicon (Spanish, Chinese), welcome window: move, Exit" python3 "$T/e2e_v093.py" "$W" http://127.0.0.1:18785/ "$W/r13"
+
+# v0.9.4: the Spanish voice of the catalogue — speaker F (sid 1) of es_ES-sharvard-medium: download, female pitch,
+# normal length (the MLS 9972 voice of 0.9.3 read short phrases as invented words, 2–5 times too long), 🔊, delete
+XENV="TDOC_TTS_URL=http://127.0.0.1:$MIRROR/$TTS TDOC_TEST_VOICES=$W/voices094.json" start_launcher "$W/r14" 18786
+make_ready 18786
+run "e2e v0.9.4: the Spanish voice Sharvard (speaker F): download, pitch, length, 🔊, delete" python3 "$T/e2e_v094.py" "$W" http://127.0.0.1:18786/ "$W/r14"
 
 # v0.9.1–0.9.3: the app window (ttranslator-window, source/window): the Windows program builds and needs only system
 # DLLs; the Linux program on WebKitGTK under a virtual screen (with openbox, if there is one: the maximized start) —

@@ -13,12 +13,12 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 60
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
         with:
           go-version: '1.24'
           cache: false
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with:
           python-version: '3.12'
       - name: System packages (app window, virtual screen with a window manager, Windows cross-build)
@@ -48,7 +48,7 @@ jobs:
           }
       - name: Screenshots of the tests
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: test-screenshots
           path: ${{ runner.temp }}/tdoc-tests/shots
@@ -58,8 +58,8 @@ jobs:
     # Ubuntu 22.04: the Linux window program then runs on Ubuntu 22.04, Debian 12 and newer (glibc 2.35+)
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
         with:
           go-version: '1.24'
           cache: false
@@ -76,7 +76,7 @@ jobs:
           }
       - name: Checksums
         run: sha256sum Ttranslator.exe ttranslator-linux ttranslator-window.exe ttranslator-window-linux | tee SHA256SUMS.txt
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: ttranslator-programs
           path: |

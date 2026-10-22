@@ -1,6 +1,6 @@
 # End-to-end test for v0.9.3 (the real sherpa-onnx program, voices served by the local mirror, the UI in Chromium):
 #   - a voice made of parts — the model and tokens.txt as separate files and espeak-ng-data from its own archive, as
-#     the Spanish es_ES-mls_9972-low comes from Hugging Face: the question lists every address and the file names,
+#     the Spanish es_ES-mls_9972-low came from Hugging Face in 0.9.3: the question lists every address and the files,
 #     the progress counts all parts, a cancelled download keeps what has come and resumes, the parts are put
 #     together into one folder, the voice reads; deleting it removes the folder;
 #   - a voice with a lexicon (the real Chinese zh_CN-chaowen-medium): no espeak-ng-data, reads Chinese text; Chinese

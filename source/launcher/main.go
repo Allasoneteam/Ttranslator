@@ -47,7 +47,7 @@ import (
 
 const (
 	appID      = "tdoc-translator"
-	appVersion = "0.9.3"
+	appVersion = "0.9.4"
 
 	// model selected on first start and when the configured one is gone
 	defaultModelID = "g4-e2b"

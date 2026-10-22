@@ -82,7 +82,7 @@ Third-party components:
 - Gemma 4 models (Google, Apache 2.0) — downloaded after confirmation; your own `.gguf` files work too.
 - [sherpa-onnx](https://github.com/k2-fsa/sherpa-onnx) (Apache 2.0, with espeak-ng inside, GPL-3.0) and Piper voices
   (the licence of each voice is shown in the program; some are for non-commercial use) — downloaded on demand from the
-  sherpa-onnx releases (the Spanish voice from the Hugging Face page of the sherpa-onnx author).
+  sherpa-onnx releases.
 - [webview](https://github.com/webview/webview) 0.12.0 (MIT) — compiled into the app window program.
 - Microsoft Edge WebView2 SDK header (BSD-style licence, `source/window/webview2/LICENSE.txt`) — for the Windows
   build of the app window; the WebView2 Runtime itself is part of Windows.

@@ -645,7 +645,7 @@ const UI_LANGS = { ru: 'Русский', en: 'English', de: 'Deutsch' };
 const LOCALES = { ru: 'ru-RU', en: 'en-GB', de: 'de-DE' };
 const UI_LANG = UI_LANGS[document.documentElement.lang] ? document.documentElement.lang : 'ru';
 const LOCALE = LOCALES[UI_LANG];
-const APP_VERSION = '0.9.3';   // версия интерфейса — та же, что appVersion в source/launcher/main.go
+const APP_VERSION = '0.9.4';   // версия интерфейса — та же, что appVersion в source/launcher/main.go
 
 const I18N_COL = { en: 0, de: 1 };   // столбец перевода в I18N
 
@@ -1088,21 +1088,18 @@ const ABOUT = {
 
 // «Что нового» в окне приветствия — главное в этой версии, на трёх языках.
 const WHATS_NEW = {
-  version: '0.9.3',
+  version: '0.9.4',
   ru: [
-    'Новые голоса для чтения вслух: испанский (MLS 9972) и китайский (Chaowen) — в меню моделей. Китайский текст читается по предложениям.',
-    'Окно приветствия: окно программы при запуске открывается поверх других окон (а не за окном папки), окно приветствия можно передвинуть за заголовок, и в нём есть кнопка «Выйти».',
-    'Лицензия MIT: правообладатели — Allasoneteam and Ttranslator authors.',
+    'Испанский голос для чтения вслух — теперь Sharvard (женский, Испания, CC BY 3.0), в меню моделей. Прежний голос MLS 9972 читал короткие фразы неверно: выдуманными словами и слишком долго.',
+    'Все голоса каталога проверены программой распознавания речи: читают по тексту и в обычном темпе.',
   ],
   en: [
-    'New voices for reading aloud: Spanish (MLS 9972) and Chinese (Chaowen) — in the model menu. Chinese text is read sentence by sentence.',
-    'Welcome window: at start the program window opens on top of other windows (not behind the folder window), the welcome window can be moved by its title, and it has an “Exit” button.',
-    'MIT licence: the copyright holders are Allasoneteam and Ttranslator authors.',
+    'The Spanish voice for reading aloud is now Sharvard (female, Spain, CC BY 3.0), in the model menu. The previous voice MLS 9972 read short phrases wrongly: with invented words and far too long.',
+    'All voices of the catalogue were checked with speech recognition: they read the text as written and at a normal pace.',
   ],
   de: [
-    'Neue Stimmen zum Vorlesen: Spanisch (MLS 9972) und Chinesisch (Chaowen) – im Modellmenü. Chinesischer Text wird Satz für Satz vorgelesen.',
-    'Begrüßungsfenster: Beim Start öffnet sich das Programmfenster über anderen Fenstern (nicht hinter dem Ordnerfenster), das Begrüßungsfenster lässt sich an der Überschrift verschieben und hat eine Schaltfläche „Beenden“.',
-    'MIT-Lizenz: Rechteinhaber sind Allasoneteam and Ttranslator authors.',
+    'Die spanische Stimme zum Vorlesen ist jetzt Sharvard (weiblich, Spanien, CC BY 3.0), im Modellmenü. Die bisherige Stimme MLS 9972 las kurze Sätze falsch: mit erfundenen Wörtern und viel zu lang.',
+    'Alle Stimmen des Katalogs wurden mit Spracherkennung geprüft: Sie lesen den Text wie geschrieben und in normalem Tempo.',
   ],
 };
 
@@ -1135,7 +1132,7 @@ const HELP = {
       'Кнопка 🔊 у поля текста, у каждого варианта, у «Своего варианта» и у ответов модели читает текст вслух. Пока текст звучит, кнопка и текст подсвечены зелёным; второе нажатие — пауза (подсветка текста снимается), третье — продолжить. Кнопка ■ рядом, Esc или другая кнопка 🔊 останавливают чтение; правка текста — тоже. Формулы LaTeX не читаются.',
       '- Голоса скачиваются в меню моделей (кнопка с названием модели вверху), по голосу на язык. Вместе с первым голосом один раз скачивается программа озвучки sherpa-onnx. Голос не занимает память постоянно: он запускается на секунду-две для каждой фразы.',
       '- Если для языка скачано два голоса, читает тот, что отмечен ✓; другой выбирается щелчком. Без голоса для языка текста кнопка 🔊 бледная.',
-      '- Голоса есть для русского, английского, немецкого, испанского, китайского и шведского. Испанский голос состоит из трёх файлов (с Hugging Face и GitHub) — перед скачиванием видны все адреса.',
+      '- Голоса есть для русского, английского, немецкого, испанского, китайского и шведского.',
       '- Лицензии голосов разные (видны в меню моделей); Ruslan и HFC female — только для некоммерческого использования.'],
     ['Модели',
       'Кнопка с названием модели вверху открывает список. Перед скачиванием модели программа показывает, откуда, в какую папку и под каким именем скачивается файл; ненужную модель можно удалить; свой файл .gguf можно положить в папку models. Кнопка ⏏ выгружает модель из памяти: окно остаётся, а для перевода модель нужно загрузить снова. Если закрыть окно программы, через несколько секунд модель выгрузится из памяти и программа завершится.'],
@@ -1177,7 +1174,7 @@ const HELP = {
       'The 🔊 button at the text field, at every variant, at “Your version” and at the model’s answers reads the text aloud. While the text is read, the button and the text are highlighted in green; a second click pauses (the text is no longer highlighted), a third continues. The ■ button next to it, Esc or another 🔊 button stops reading, and so does editing the text. LaTeX formulas are not read.',
       '- Voices are downloaded in the model menu (the button with the model name at the top), one voice per language. With the first voice, the speech program sherpa-onnx is downloaded once. A voice does not stay in memory: it starts for a second or two for every phrase.',
       '- If two voices are downloaded for a language, the one marked ✓ reads; click the other one to choose it. Without a voice for the language of the text, the 🔊 button is pale.',
-      '- There are voices for Russian, English, German, Spanish, Chinese and Swedish. The Spanish voice consists of three files (from Hugging Face and GitHub) — all addresses are shown before the download.',
+      '- There are voices for Russian, English, German, Spanish, Chinese and Swedish.',
       '- The voices have different licences (shown in the model menu); Ruslan and HFC female are for non-commercial use only.'],
     ['Models',
       'The button with the model name at the top opens the list. Before downloading a model, the program shows where the file comes from, the folder it goes to and its name; a model you do not need can be deleted; your own .gguf file can be put into the models folder. The ⏏ button unloads the model from memory: the window stays, but to translate you need to load the model again. If you close the program window, the model is unloaded from memory within a few seconds and the program exits.'],
@@ -1219,7 +1216,7 @@ const HELP = {
       'Die Schaltfläche 🔊 beim Textfeld, bei jeder Variante, bei „Ihre Fassung“ und bei den Antworten des Modells liest den Text vor. Während der Text vorgelesen wird, sind Schaltfläche und Text grün hervorgehoben; ein zweiter Klick pausiert (der Text ist dann nicht mehr hervorgehoben), ein dritter setzt fort. Die Schaltfläche ■ daneben, Esc oder eine andere Schaltfläche 🔊 beendet das Vorlesen, ebenso das Bearbeiten des Textes. LaTeX-Formeln werden nicht vorgelesen.',
       '- Stimmen werden im Modellmenü heruntergeladen (die Schaltfläche mit dem Modellnamen oben), eine Stimme pro Sprache. Mit der ersten Stimme wird einmalig das Sprachausgabe-Programm sherpa-onnx heruntergeladen. Eine Stimme belegt keinen Arbeitsspeicher auf Dauer: Sie startet für jede Phrase für ein bis zwei Sekunden.',
       '- Sind für eine Sprache zwei Stimmen heruntergeladen, liest die mit ✓ markierte; die andere wählen Sie per Klick. Ohne Stimme für die Sprache des Textes ist die Schaltfläche 🔊 blass.',
-      '- Stimmen gibt es für Russisch, Englisch, Deutsch, Spanisch, Chinesisch und Schwedisch. Die spanische Stimme besteht aus drei Dateien (von Hugging Face und GitHub) – vor dem Herunterladen sind alle Adressen zu sehen.',
+      '- Stimmen gibt es für Russisch, Englisch, Deutsch, Spanisch, Chinesisch und Schwedisch.',
       '- Die Stimmen haben verschiedene Lizenzen (im Modellmenü sichtbar); Ruslan und HFC female nur für nicht-kommerzielle Nutzung.'],
     ['Modelle',
       'Die Schaltfläche mit dem Modellnamen oben öffnet die Liste. Vor dem Herunterladen eines Modells zeigt das Programm Quelle, Zielordner und Dateinamen; ein nicht benötigtes Modell lässt sich löschen; eine eigene .gguf-Datei können Sie in den Ordner models legen. Die Schaltfläche ⏏ entlädt das Modell aus dem Arbeitsspeicher: Das Fenster bleibt, zum Übersetzen muss das Modell aber wieder geladen werden. Wenn Sie das Programmfenster schließen, wird das Modell nach wenigen Sekunden aus dem Arbeitsspeicher entladen und das Programm beendet.'],

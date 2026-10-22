@@ -110,7 +110,15 @@ func lexiconVoice(v VoiceSpec, lexicon string, rules ...string) VoiceSpec {
 	return v
 }
 
+// speaker: one speaker of a voice with several (its number in speaker_id_map of the voice's .onnx.json).
+func speaker(v VoiceSpec, sid int) VoiceSpec {
+	v.SID = sid
+	return v
+}
+
 // partsVoice: a voice made of separate files — the model and tokens.txt, and espeak-ng-data from its archive.
+// No voice of the catalogue needs it now (the Spanish MLS 9972 did until 0.9.4); it stays for a voice that
+// sherpa-onnx keeps only as separate files.
 func partsVoice(id, lang, name, gender, license string, nc bool, voice string, parts ...VoicePart) VoiceSpec {
 	v := VoiceSpec{ID: id, Lang: lang, Name: name, Gender: gender, License: license, NC: nc, Dir: "vits-piper-" + voice,
 		Model: voice + ".onnx", URL: parts[0].URL, Page: voiceSamples + "#" + voice, SHA256: parts[0].SHA256, Parts: parts}
@@ -120,16 +128,19 @@ func partsVoice(id, lang, name, gender, license string, nc bool, voice string, p
 	return v
 }
 
-// espeak-ng-data of sherpa-onnx: the same files as in every Piper archive of its release
+// espeak-ng-data of sherpa-onnx: the same files as in every Piper archive of its release (the third part of a
+// voice made of parts)
 var espeakPart = VoicePart{URL: voiceRelease + "espeak-ng-data.tar.bz2", File: "espeak-ng-data.tar.bz2", Size: 7252012,
 	SHA256: "4135ccf82e1f40613491c0874d4945ae9e9c7840933d8e25a6f9e003d9ebf533"}
 
-// es_ES-mls_9972-low is not among the archives of the sherpa-onnx release; its author keeps the converted model
-// (with the metadata sherpa-onnx reads) on Hugging Face. Pinned to a commit; size and SHA-256 as for every download.
-const hfMLS9972 = "https://huggingface.co/csukuangfj/vits-piper-es_ES-mls_9972-low/resolve/5440d32fb5870a035eea1e03b833f29724803378/"
-
-// The voices chosen by the author (21.10.2026, Spanish and Chinese 22.10.2026) and, for Russian and English, a
-// voice with a free licence. Licences are those of the voices' training data (MODEL_CARD of each voice).
+// The voices chosen by the author (21.10.2026; Chinese 22.10.2026, Spanish 22.10.2026 — see below) and, for
+// Russian and English, a voice with a free licence. Licences are those of the voices' training data (MODEL_CARD
+// of each voice). Before a voice goes into the catalogue: source/tests/voice_check.py (does it read the text?).
+//
+// Spanish: es_ES-mls_9972-low (0.9.3) read short phrases as invented words, two to five times too long — a flaw of
+// the model itself (the same with the original Piper file; trained on long audiobook passages), which is probably
+// why sherpa-onnx leaves the MLS voices out of its release. The author chose instead the female speaker (F, sid 1)
+// of the two-speaker es_ES-sharvard-medium.
 var voiceSpecs = []VoiceSpec{
 	piperVoice("ru-ruslan", "ru", "Ruslan", "male", "CC BY-NC-SA 4.0", true, "ru_RU-ruslan-medium", 67210684,
 		"0690b1cad01f86e8db9ba988af24898bdc1af774e23cb2e46b9c730269b6fd83"),
@@ -143,12 +154,8 @@ var voiceSpecs = []VoiceSpec{
 		"4bfe121d5f690a3b87acecd7ae1e70b48f4589ce6ae9f45a1809e6eb19fad97b"),
 	piperVoice("sv-alma", "sv", "Alma", "female", "CC BY 4.0", false, "sv_SE-alma-medium", 67154700,
 		"4ab8212595575e52595bc95c37d0b4f79450c0f00b63496346cdc5941d913edc"),
-	partsVoice("es-mls-9972", "es", "MLS 9972", "female", "CC BY 4.0", false, "es_ES-mls_9972-low",
-		VoicePart{URL: hfMLS9972 + "es_ES-mls_9972-low.onnx", File: "es_ES-mls_9972-low.onnx", Size: 63104654,
-			SHA256: "29cd34f8c8c7f176efd2e438e563847e8e7f37c33de994e0746fe839de432cc8"},
-		VoicePart{URL: hfMLS9972 + "tokens.txt", File: "tokens.txt", Size: 763,
-			SHA256: "42d1a69ed2b91a51928a711aa228ed9f3dc021c6d359a3e9c4f37eb1d20f80bd"},
-		espeakPart),
+	speaker(piperVoice("es-sharvard-f", "es", "Sharvard", "female", "CC BY 3.0", false, "es_ES-sharvard-medium", 80318184,
+		"b30a7a83df0518f0ee1c7039506648cade99f1f9b498fc49ed2ced2e2536bb5a"), 1),
 	lexiconVoice(piperVoice("zh-chaowen", "zh", "Chaowen", "male", "CC0", false, "zh_CN-chaowen-medium", 60443846,
 		"1b69bdcf10bb6331c7f8a7591940febeb175c6bb86caa3802d96531f8e4ad211"), "lexicon.txt", "phone.fst", "date.fst", "number.fst"),
 }

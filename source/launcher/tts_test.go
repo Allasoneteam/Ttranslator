@@ -75,12 +75,25 @@ func TestVoiceCatalog(t *testing.T) {
 			t.Errorf("%s: licence %q and nc=%v disagree", v.ID, v.License, v.NC)
 		}
 	}
-	// the voices the author asked for (0.9.3): Spanish es_ES-mls_9972-low and Chinese zh_CN-chaowen-medium
-	if v := findVoice("es-mls-9972"); v == nil || v.Lang != "es" || len(v.Parts) != 3 || !strings.HasPrefix(v.URL, "https://huggingface.co/") {
+	// the voices the author asked for: Chinese zh_CN-chaowen-medium (0.9.3) and Spanish — the female speaker (sid 1)
+	// of es_ES-sharvard-medium (0.9.4)
+	if v := findVoice("es-sharvard-f"); v == nil || v.Lang != "es" || v.SID != 1 || len(v.Parts) != 0 || v.Gender != "female" ||
+		v.URL != voiceRelease+"vits-piper-es_ES-sharvard-medium.tar.bz2" {
 		t.Errorf("Spanish voice: %+v", v)
 	}
 	if v := findVoice("zh-chaowen"); v == nil || v.Lang != "zh" || v.Lexicon == "" || len(v.Rules) != 3 {
 		t.Errorf("Chinese voice: %+v", v)
+	}
+	// the MLS voices of Piper (es_ES-mls_9972-low, es_ES-mls_10246-low, …) read short phrases as invented words,
+	// several times too long (0.9.3) — not again
+	for _, v := range voiceSpecs {
+		if strings.Contains(v.Dir, "-mls_") {
+			t.Errorf("%s: an MLS voice is back in the catalogue", v.ID)
+		}
+	}
+	// the espeak-ng-data part of a voice made of parts: the archive of the sherpa-onnx release
+	if espeakPart.URL != voiceRelease+espeakPart.File || espeakPart.Size < 1<<20 || !hex64.MatchString(espeakPart.SHA256) {
+		t.Errorf("espeak-ng-data part: %+v", espeakPart)
 	}
 	for _, l := range []string{"ru", "en", "de", "sv", "es", "zh"} {
 		free := false
@@ -130,6 +143,34 @@ func TestTTSArgs(t *testing.T) {
 	if strings.Contains(all, "espeak-ng-data") || !strings.Contains(all, "--vits-lexicon=vits-piper-zh_CN-chaowen-medium/lexicon.txt") ||
 		!strings.Contains(all, "--tts-rule-fsts=vits-piper-zh_CN-chaowen-medium/phone.fst,vits-piper-zh_CN-chaowen-medium/date.fst,vits-piper-zh_CN-chaowen-medium/number.fst") {
 		t.Errorf("Chinese args: %s", all)
+	}
+	// one speaker of a voice with two: the Spanish voice is speaker 1 (F) of es_ES-sharvard-medium
+	es := findVoice("es-sharvard-f")
+	if es == nil {
+		t.Fatal("no Spanish voice")
+	}
+	all = strings.Join(ttsArgs(es, "Hola.", 1, "tts-3.wav"), " ")
+	if !strings.Contains(all, "--sid=1 ") || !strings.Contains(all, "--vits-model=vits-piper-es_ES-sharvard-medium/es_ES-sharvard-medium.onnx") ||
+		!strings.Contains(all, "--vits-data-dir=vits-piper-es_ES-sharvard-medium/espeak-ng-data") {
+		t.Errorf("Spanish args: %s", all)
+	}
+}
+
+// TDOC_DUMP_VOICES=<file>: writes the voice catalogue and the sherpa-onnx package of this platform as JSON — for
+// source/tests/voice_check.py, which checks with speech recognition that every voice reads what it is given.
+func TestDumpVoiceCatalog(t *testing.T) {
+	p := os.Getenv("TDOC_DUMP_VOICES")
+	if p == "" {
+		t.Skip("TDOC_DUMP_VOICES is not set")
+	}
+	pkg, _ := currentTTSPackage()
+	b, err := json.MarshalIndent(map[string]any{"tts": map[string]any{"asset": pkg.Asset, "size": pkg.Size, "sha256": pkg.SHA256,
+		"url": ttsRelease + pkg.Asset}, "voices": voiceSpecs}, "", "  ")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(p, b, 0o644); err != nil {
+		t.Fatal(err)
 	}
 }
 
@@ -340,6 +381,11 @@ func TestVoicesAPI(t *testing.T) {
 	a.cfg.Voices = map[string]string{"ru": "en-c"}
 	if id := a.activeVoiceID("ru"); id != "ru-a" {
 		t.Errorf("a voice of another language chosen: %q", id)
+	}
+	// a voice chosen in an older version and no longer in the catalogue (es-mls-9972 of 0.9.3)
+	a.cfg.Voices = map[string]string{"ru": "ru-gone"}
+	if id := a.activeVoiceID("ru"); id != "ru-a" {
+		t.Errorf("a chosen voice that is not in the catalogue: %q", id)
 	}
 
 	mux := http.NewServeMux()
