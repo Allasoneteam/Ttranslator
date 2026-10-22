@@ -90,6 +90,6 @@ ok(all(isinstance(news.get(l), list) and len(news[l]) == len(news['ru']) > 0 for
 go = open(PATH.replace('/ui/index.html', '/source/launcher/main.go'), encoding='utf-8').read() if '/ui/index.html' in PATH else ''
 m = re.search(r'appVersion\s*=\s*"([^"]+)"', go)
 v = re.search(r"const APP_VERSION = '([^']+)'", js_code)
-ok(bool(m and v and m.group(1) == v.group(1)), 'APP_VERSION in index.html equals appVersion in main.go: %s / %s' % (v and v.group(1), m and m.group(1)))
+ok(bool(m and v and m.group(1) == v.group(1)), 'APP_VERSION in index.html equals appVersion of the launcher (%s / %s)' % (v and v.group(1), m and m.group(1)))   # no "main.go: …": the Go problem matcher of CI would take it for an error
 print('\n'.join(res))
 print('FAILS:', sum(1 for x in res if x.startswith('FAIL')), 'of', len(res))
