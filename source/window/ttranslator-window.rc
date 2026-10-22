@@ -1,0 +1,36 @@
+// Resources of ttranslator-window.exe: the icon (the same as of Ttranslator.exe; the webview library takes the
+// window icon with the id IDI_APPLICATION = 32512 from the program), the manifest (Windows 10/11, sharp text on
+// high-DPI screens, modern dialogs) and the version information.
+#include <windows.h>
+
+32512 ICON "../launcher/Ttranslator.ico"
+1 24 "ttranslator-window.manifest"
+
+1 VERSIONINFO
+FILEVERSION 1,0,0,0
+PRODUCTVERSION 1,0,0,0
+FILEFLAGSMASK 0x3fL
+FILEFLAGS 0x0L
+FILEOS VOS_NT_WINDOWS32
+FILETYPE VFT_APP
+FILESUBTYPE 0x0L
+BEGIN
+  BLOCK "StringFileInfo"
+  BEGIN
+    BLOCK "040904b0"
+    BEGIN
+      VALUE "CompanyName", "Ttranslator authors"
+      VALUE "FileDescription", "Ttranslator window"
+      VALUE "FileVersion", "1.0.0.0"
+      VALUE "InternalName", "ttranslator-window"
+      VALUE "LegalCopyright", "MIT License"
+      VALUE "OriginalFilename", "ttranslator-window.exe"
+      VALUE "ProductName", "Ttranslator"
+      VALUE "ProductVersion", "1.0.0.0"
+    END
+  END
+  BLOCK "VarFileInfo"
+  BEGIN
+    VALUE "Translation", 0x409, 1200
+  END
+END

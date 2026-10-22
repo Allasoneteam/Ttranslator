@@ -1,0 +1,15 @@
+# The user's data and downloads: never in the repository
+/config.json
+/data/
+/models/
+/engine/
+
+# Built programs (made by source/build.sh and by the CI; attached to releases)
+/Ttranslator.exe
+/ttranslator-linux
+/ttranslator-window.exe
+/ttranslator-window-linux
+
+# Build and test leftovers
+/source/launcher/ui_fallback/
+*.part
