@@ -219,7 +219,13 @@ type enginePackage struct {
 
 // Sizes and checksums of the official llama.cpp b11435 release files.
 func currentEnginePackage() (enginePackage, error) {
-	switch runtime.GOOS + "/" + runtime.GOARCH {
+	return enginePackageFor(runtime.GOOS, runtime.GOARCH)
+}
+
+// enginePackageFor: the engine archive of a platform (also for source/release.sh, which puts the engine of Windows
+// and of Linux into the release archives — TestDumpReleaseInfo).
+func enginePackageFor(goos, goarch string) (enginePackage, error) {
+	switch goos + "/" + goarch {
 	case "windows/amd64":
 		return enginePackage{"llama-" + engineVersion + "-bin-win-cpu-x64.zip", "Windows x64, процессор", "llama-server.exe",
 			19399527, "3ed50261147e260d80f5cdc7bdccfa13a94882be560a4438e7a69fa519c93fb7"}, nil
@@ -227,7 +233,7 @@ func currentEnginePackage() (enginePackage, error) {
 		return enginePackage{"llama-" + engineVersion + "-bin-ubuntu-x64.tar.gz", "Linux x64, процессор", "llama-server",
 			17692966, "ee617d7af304985e268fbc33bdd8fe44110f1dc2f599ecb27bdf08890e6e6e4c"}, nil
 	}
-	return enginePackage{}, fmt.Errorf(tr("платформа %s/%s пока не поддерживается"), runtime.GOOS, runtime.GOARCH)
+	return enginePackage{}, fmt.Errorf(tr("платформа %s/%s пока не поддерживается"), goos, goarch)
 }
 
 // ---------------------------------------------------------------- config

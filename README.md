@@ -25,14 +25,17 @@ follows your own glossary, answers questions about a translation and can read te
 
 - Windows 10/11 or Linux, x86-64; a processor is enough (no graphics card needed); 8 GB of memory.
 - About 4–9 GB of disk space for a model.
-- Internet only once, to download the engine and a model (and voices, if you want them).
+- Internet only once, to download a model (and voices, if you want them); the release archives already contain the
+  engine.
 
 ## Getting started
 
-1. Unpack the release archive into any folder (nothing is installed into the system; the folder is portable).
+1. Unpack the release archive (`Ttranslator-<version>-windows-x64.zip` or `…-linux-x64.tar.gz`) into any folder:
+   nothing is installed into the system, the folder `Ttranslator` is portable. The
+   [llama.cpp](https://github.com/ggml-org/llama.cpp) engine is already inside.
 2. Start `Ttranslator.exe` (Windows) or `ttranslator-linux` (Linux).
-3. On the first start the program shows what it will download, from where and to which folder: the
-   [llama.cpp](https://github.com/ggml-org/llama.cpp) engine and a Gemma 4 model. After that it works offline.
+3. On the first start the program shows what it will download, from where and to which folder: a Gemma 4 model (and
+   the engine too, if the folder has none — when built from source). After that it works offline.
 
 The app window is the program's own window (maximized at start) on the web engine of the system — Microsoft Edge
 WebView2 on Windows, WebKitGTK 4.1 on Linux; if it cannot open, an Edge/Chrome window without tabs opens instead.
@@ -53,6 +56,10 @@ The interface can also run in a tab of your browser.
   same script when its tools are installed (Ubuntu/Debian):
   `g++ pkg-config libgtk-3-dev libwebkit2gtk-4.1-dev g++-mingw-w64-x86-64`.
 - The interface is a single file, `ui/index.html`, without external resources.
+
+Release archives: `sh source/release.sh [out-dir]` after the build — the programs, the interface, the guides, the
+sources, the licences (`THIRD-PARTY.txt`) and the engine unpacked; SHA-256 in `SHA256SUMS.txt`. GitHub Actions makes
+them on every change as test builds (artifacts of the run).
 
 ## Tests
 

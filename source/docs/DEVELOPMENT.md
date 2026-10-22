@@ -7,7 +7,8 @@
 - `go vet ./...` и `GOOS=windows go vet ./...` в `source/launcher` — проверка обеих версий.
 - Значок Ttranslator.exe — файл `source/launcher/rsrc_windows_amd64.syso`, `go build` для Windows вставляет его сам. После изменения рисунка (`LOGO` в `index.html`): `cd source/launcher && go run make_icon.go` (пишет и `Ttranslator.ico` — значок программы окна, и `Ttranslator.png` — значок окна в Linux).
 - Окно приложения (`source/window`, C++): `sh source/window/build.sh` — `ttranslator-window.exe` (MinGW-w64, статически) и `ttranslator-window-linux` в папку программы; `source/build.sh` собирает их сам, если инструменты есть. Нужно (Ubuntu/Debian): `g++ pkg-config libgtk-3-dev libwebkit2gtk-4.1-dev g++-mingw-w64-x86-64`. Подробно — `source/window/README.md`.
-- GitHub: `.github/workflows/ci.yml` — при каждом изменении все тесты (Ubuntu 24.04) и сборка всех программ (Ubuntu 22.04: программа окна для Linux тогда работает и на старых системах) с контрольными суммами; собранное — в артефактах запуска. Выпусков CI не делает: публикация — только после «да» автора.
+- Архивы выпуска: `sh source/release.sh [папка]` после сборки (по умолчанию — `dist/` в папке программы; `BIN_DIR` — где собранные программы, `ENGINE_CACHE` — где держать архивы движка): `Ttranslator-<версия>-windows-x64.zip`, `Ttranslator-<версия>-linux-x64.tar.gz` и `SHA256SUMS.txt`; в каждом — папка `Ttranslator/`, готовая к запуску, с движком внутри (устройство — `ARCHITECTURE.md`, «Папка программы»). Нужны `go`, `python3`, `curl`, `zip`, `unzip`, `tar`.
+- GitHub: `.github/workflows/ci.yml` — при каждом изменении все тесты (Ubuntu 24.04) и сборка всех программ (Ubuntu 22.04: программа окна для Linux тогда работает и на старых системах) с контрольными суммами, а из них — архивы выпуска; собранное и архивы (каждый архив — отдельным артефактом, без второй упаковки в zip) — в артефактах запуска, 14 дней. Выпусков CI не делает: публикация — только после «да» автора.
 
 ## Тесты
 
@@ -26,8 +27,9 @@
 3. `README.txt`: раздел «Что нового», описание новых функций; `source/docs/CHANGELOG.md`; при изменении устройства — `ARCHITECTURE.md`; выполненное — убрать из `ROADMAP.md`. Новые файлы `.go` и тесты — в списки ниже и в `source/tests/README.md`.
 4. `run_all.sh` — все наборы проверок проходят.
 5. Сборка обеих версий.
-6. Доставка в папку программы: только файлы программы — `Ttranslator.exe`, `ttranslator-linux`, `ttranslator-window.exe`, `ttranslator-window-linux`, `ui/index.html`, `README.txt`, `README.md`, `LICENSE.txt`, `start.bat`, `start.sh`, `.gitignore`, `.gitattributes`, `source/...` (без `source/launcher/ui_fallback`). Папка `.github` (настройки GitHub Actions) — только в репозитории: на компьютер пользователя инструменты Claude её не записывают. Не трогать `config.json`, `data/`, `models/`, `engine/`, `ui/tests.txt`.
-7. Проверка: SHA-256 доставленных файлов совпадают с собранными. Исключение — картинки PNG (`source/launcher/Ttranslator.png`): при передаче на компьютер пользователя они перекодируются (картинка та же, байты другие), их сверять по пикселям.
+6. Архивы: `sh source/release.sh` (проверяет `release_check.py` в `run_all.sh`; в GitHub Actions они собираются сами — для проверки на другом компьютере их можно скачать со страницы запуска).
+7. Доставка в папку программы: только файлы программы — `Ttranslator.exe`, `ttranslator-linux`, `ttranslator-window.exe`, `ttranslator-window-linux`, `ui/index.html`, `README.txt`, `README.md`, `LICENSE.txt`, `start.bat`, `start.sh`, `.gitignore`, `.gitattributes`, `source/...` (без `source/launcher/ui_fallback`). Папка `.github` (настройки GitHub Actions) — только в репозитории: на компьютер пользователя инструменты Claude её не записывают. Не трогать `config.json`, `data/`, `models/`, `engine/`, `ui/tests.txt`.
+8. Проверка: SHA-256 доставленных файлов совпадают с собранными. Исключение — картинки PNG (`source/launcher/Ttranslator.png`): при передаче на компьютер пользователя они перекодируются (картинка та же, байты другие), их сверять по пикселям.
 
 ## Мелочи, о которые легко споткнуться
 

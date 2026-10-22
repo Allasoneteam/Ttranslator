@@ -10,6 +10,8 @@
 /ttranslator-window.exe
 /ttranslator-window-linux
 
-# Build and test leftovers
+# Build and test leftovers (dist/: archives of source/release.sh)
 /source/launcher/ui_fallback/
+/dist/
+__pycache__/
 *.part

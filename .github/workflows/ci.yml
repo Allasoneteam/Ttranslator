@@ -1,5 +1,6 @@
-# Tests and builds on every change. Builds go to the run's artifacts; releases are made separately, only after the
-# author's "yes". On a failure the last lines of the output are also shown as annotations of the run.
+# Tests and builds on every change. Builds and the ready-to-run archives for Windows and Linux (the engine inside;
+# source/release.sh) go to the run's artifacts — test builds; releases are made separately, only after the author's
+# "yes". On a failure the last lines of the output are also shown as annotations of the run.
 name: CI
 on:
   push:
@@ -85,4 +86,29 @@ jobs:
             ttranslator-window.exe
             ttranslator-window-linux
             SHA256SUMS.txt
+          retention-days: 14
+      - name: Archives for Windows and Linux (test builds)
+        run: |
+          set -o pipefail
+          sh source/release.sh "$RUNNER_TEMP/dist" 2>&1 | tee "$RUNNER_TEMP/release.log" || {
+            tail -20 "$RUNNER_TEMP/release.log" | while IFS= read -r l; do echo "::error::$l"; done
+            exit 1
+          }
+          cd "$RUNNER_TEMP/dist" && echo "WINZIP=$(ls Ttranslator-*-windows-x64.zip)" >> "$GITHUB_ENV" \
+            && echo "LINTGZ=$(ls Ttranslator-*-linux-x64.tar.gz)" >> "$GITHUB_ENV"
+      # one artifact per archive, not zipped again: the download is the archive itself
+      - uses: actions/upload-artifact@v7
+        with:
+          path: ${{ runner.temp }}/dist/${{ env.WINZIP }}
+          archive: false
+          retention-days: 14
+      - uses: actions/upload-artifact@v7
+        with:
+          path: ${{ runner.temp }}/dist/${{ env.LINTGZ }}
+          archive: false
+          retention-days: 14
+      - uses: actions/upload-artifact@v7
+        with:
+          name: archives-SHA256SUMS
+          path: ${{ runner.temp }}/dist/SHA256SUMS.txt
           retention-days: 14

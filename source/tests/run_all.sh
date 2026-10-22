@@ -26,7 +26,7 @@ SUMMARY=""; FAILED=0; PIDS=""
 
 say() { printf '\n=== %s\n' "$*"; }
 cleanup() {
-  for p in 18771 18772 18773 18774 18775 18776 18777 18778 18780 18781 18782 18783 18785 18786; do curl -s -m 1 -o /dev/null -X POST -H "Origin: http://127.0.0.1:$p" "http://127.0.0.1:$p/api/quit"; done
+  for p in 18771 18772 18773 18774 18775 18776 18777 18778 18780 18781 18782 18783 18785 18786 18787; do curl -s -m 1 -o /dev/null -X POST -H "Origin: http://127.0.0.1:$p" "http://127.0.0.1:$p/api/quit"; done
   [ -n "$PIDS" ] && kill $PIDS 2>/dev/null
 }
 trap cleanup EXIT
@@ -263,6 +263,18 @@ if pkg-config --exists gtk+-3.0 webkit2gtk-4.1 2>/dev/null && command -v xvfb-ru
     else SUMMARY="$SUMMARY\n  skip  window program functions (no xdotool)"; fi
   else echo "ERROR: window build"; tail -20 "$W/window-build.log"; FAILED=$((FAILED + 1)); SUMMARY="$SUMMARY\n  FAIL  window program for Linux: build"; fi
 else SUMMARY="$SUMMARY\n  skip  app window (no libwebkit2gtk-4.1-dev or xvfb-run)"; fi
+
+# release archives (source/release.sh) from the programs built here: what is inside, and the Linux archive starts
+# without downloading the engine (its address is a dead one). The window programs come from the suites above.
+if [ -s "$W/ttranslator-window-linux" ] && [ -s "$W/ttranslator-window.exe" ] && command -v zip >/dev/null && command -v unzip >/dev/null; then
+  B="$W/release-bin"; rm -rf "$B" "$W/dist"; mkdir -p "$B"
+  cp "$W/ttranslator.exe" "$B/Ttranslator.exe"; cp "$W/ttranslator" "$B/ttranslator-linux"
+  cp "$W/ttranslator-window.exe" "$W/ttranslator-window-linux" "$B/"
+  if BIN_DIR="$B" ENGINE_CACHE="$W/mirror" sh "$SRC/release.sh" "$W/dist" > "$W/release.log" 2>&1; then
+    run "release archives: contents, licences; the Linux archive starts without downloading the engine" \
+      python3 "$T/release_check.py" "$W" "$W/dist" "$B" "$W/models.json" 18787
+  else echo "ERROR: release.sh"; tail -20 "$W/release.log"; FAILED=$((FAILED + 1)); SUMMARY="$SUMMARY\n  FAIL  release archives: release.sh"; fi
+else SUMMARY="$SUMMARY\n  skip  release archives (no window programs, zip or unzip)"; fi
 
 # fallback start without the launcher
 R4=$W/r4; rm -rf "$R4"; mkdir -p "$R4/ui" "$R4/models"
