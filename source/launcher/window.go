@@ -29,6 +29,7 @@ const (
 func (a *App) windowHelper() string {
 	p := filepath.Join(a.root, windowHelperName)
 	if st, err := os.Stat(p); err == nil && !st.IsDir() {
+		ensureExecutable(p, st)
 		return p
 	}
 	return ""
@@ -128,6 +129,7 @@ func (a *App) startOwnWindow(u string, second, maximized bool) error {
 	}
 	cmd := exec.Command(exe, args...)
 	cmd.Dir = a.root
+	cmd.Env = windowEnv()
 	windowChildAttrs(cmd)
 	// own pipes (not buffers): the web engine's helper processes may keep stderr open after the window is gone,
 	// and cmd.Wait must not wait for them

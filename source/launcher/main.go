@@ -47,7 +47,7 @@ import (
 
 const (
 	appID      = "tdoc-translator"
-	appVersion = "0.9.4"
+	appVersion = "0.9.5"
 
 	// model selected on first start and when the configured one is gone
 	defaultModelID = "g4-e2b"
@@ -257,6 +257,10 @@ type Config struct {
 	LoadModelAtStart bool   `json:"load_model_at_start"` // load the chosen model when the program starts
 	// read aloud: the voice chosen for each language (language code → voice id, tts.go)
 	Voices map[string]string `json:"voices,omitempty"`
+	// «Пропустить» on the first-start screen (0.9.5): until the first model is downloaded or chosen, the program
+	// opens its main window without a model (phase "nomodel") instead of the first-start screen; the model is
+	// chosen in the model menu
+	SetupSkipped bool `json:"setup_skipped,omitempty"`
 }
 
 var (
@@ -383,6 +387,7 @@ var logger *log.Logger
 func main() {
 	noWindow := flag.Bool("no-window", false, "do not open the app window")
 	portFlag := flag.Int("port", 0, "UI port (default from config.json)")
+	shortcut := flag.Bool("shortcut", false, "Linux: put Ttranslator into the menu of applications and exit")
 	flag.Parse()
 
 	exe, err := os.Executable()
@@ -424,6 +429,14 @@ func main() {
 
 	a.cfg = a.loadConfig()
 	setUILang(a.cfg.UILanguage)
+	if *shortcut {
+		p, err := makeShortcut(exe, root)
+		if err != nil {
+			fatal(tr("Не удалось сделать ярлык: ") + err.Error())
+		}
+		fmt.Printf(tr("Ярлык Ttranslator добавлен в меню приложений: %s\nЕсли перенести папку программы, сделайте ярлык снова (./ttranslator-linux --shortcut).")+"\n", p)
+		return
+	}
 	uiPort := a.cfg.UIPort // the --port flag (tests) is not written to config.json
 	if *portFlag > 0 {
 		uiPort = *portFlag
@@ -576,6 +589,7 @@ func (a *App) serverPath() string {
 		if json.Unmarshal(b, &m) == nil && m.Server != "" {
 			p := filepath.Join(a.engineDir, filepath.FromSlash(m.Server))
 			if st, err := os.Stat(p); err == nil && !st.IsDir() {
+				ensureExecutable(p, st)
 				return p
 			}
 		}
@@ -601,6 +615,17 @@ func (a *App) serverPath() string {
 		}
 	}
 	return found
+}
+
+// ensureExecutable gives a program back its execute permission when it was copied without it (some cloud folders
+// and network shares lose it), so that it starts (Linux, macOS; nothing to do in Windows).
+func ensureExecutable(p string, st fs.FileInfo) {
+	if runtime.GOOS == "windows" || st.Mode().Perm()&0o111 != 0 {
+		return
+	}
+	if err := os.Chmod(p, st.Mode().Perm()|0o755); err == nil && logger != nil {
+		logger.Printf("execute permission restored: %s", p)
+	}
 }
 
 func (a *App) modelPath(m *ModelSpec) string { return filepath.Join(a.modelsDir, m.File) }
@@ -630,6 +655,8 @@ func (a *App) stateJSON() map[string]any {
 	switch {
 	case a.dl.Active:
 		phase = "downloading"
+	case a.cfg.SetupSkipped && !activePresent:
+		phase = "nomodel" // «Пропустить»: the main window without a model, the model is chosen in the menu
 	case server == "" || !activePresent:
 		phase = "setup"
 	case a.unloaded:
@@ -980,10 +1007,25 @@ func (a *App) startDownloads() error {
 		}
 		a.mu.Unlock()
 		if err == nil {
+			a.clearSetupSkipped()
 			a.maybeStartEngine()
 		}
 	}()
 	return nil
+}
+
+// clearSetupSkipped: there is a model now — the first-start screen («Пропустить») is behind; later a missing model
+// is shown as before (the screen «Нужно скачать модель»).
+func (a *App) clearSetupSkipped() {
+	a.mu.Lock()
+	if !a.cfg.SetupSkipped {
+		a.mu.Unlock()
+		return
+	}
+	a.cfg.SetupSkipped = false
+	cfg := a.cfg
+	a.mu.Unlock()
+	a.saveConfig(cfg)
 }
 
 func (a *App) setDL(f func(d *DownloadState)) {
@@ -1424,6 +1466,17 @@ func (a *App) routes() http.Handler {
 		}
 		writeJSON(w, 200, map[string]any{"ok": true})
 	}))
+	// «Пропустить» on the first-start screen: the main window without a model from now on, until there is one
+	mux.HandleFunc("/api/skip-setup", a.post(func(w http.ResponseWriter, r *http.Request) {
+		a.mu.Lock()
+		a.cfg.SetupSkipped = true
+		a.dl.Error = ""
+		cfg := a.cfg
+		a.mu.Unlock()
+		a.saveConfig(cfg)
+		logger.Printf("first-start downloads skipped: the model is chosen in the model menu")
+		writeJSON(w, 200, map[string]any{"ok": true})
+	}))
 	mux.HandleFunc("/api/cancel", a.post(func(w http.ResponseWriter, r *http.Request) {
 		a.mu.Lock()
 		if a.dlCancel != nil {
@@ -1503,6 +1556,7 @@ func (a *App) routes() http.Handler {
 		a.mu.Unlock()
 		a.saveConfig(cfg)
 		if present {
+			a.clearSetupSkipped()
 			a.maybeStartEngine()
 		} else if err := a.startDownloads(); err != nil {
 			jsonError(w, 400, err.Error())

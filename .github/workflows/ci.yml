@@ -27,7 +27,7 @@ jobs:
         run: |
           # apt on the runner sometimes hangs (a mirror, or the package lock held by automatic updates): time limits,
           # three attempts, and an annotation that says which command failed
-          pkgs="g++ pkg-config libgtk-3-dev libwebkit2gtk-4.1-dev xvfb xdotool imagemagick openbox x11-utils g++-mingw-w64-x86-64"
+          pkgs="g++ pkg-config libgtk-3-dev libwebkit2gtk-4.1-dev xvfb xdotool imagemagick openbox x11-utils g++-mingw-w64-x86-64 desktop-file-utils"
           for attempt in 1 2 3; do
             if ! sudo timeout 300 apt-get -o Acquire::Retries=3 update; then
               echo "::warning::apt-get update failed or took too long (attempt $attempt)"; sleep 20; continue

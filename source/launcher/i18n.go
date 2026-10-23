@@ -116,6 +116,10 @@ var msgEN = map[string]string{
 	"нет веб-движка системы: в Windows нужен Microsoft Edge WebView2 Runtime, в Linux — WebKitGTK 4.1": "the web engine of the system is missing: Windows needs the Microsoft Edge WebView2 Runtime, Linux needs WebKitGTK 4.1",
 	"не хватает системных библиотек (нужен WebKitGTK 4.1)":                                             "system libraries are missing (WebKitGTK 4.1 is needed)",
 	"программа окна завершилась с кодом %d":                                                            "the window program exited with code %d",
+	// menu shortcut (--shortcut, Linux)
+	"Не удалось сделать ярлык: ": "Could not make the shortcut: ",
+	"Ярлык Ttranslator добавлен в меню приложений: %s\nЕсли перенести папку программы, сделайте ярлык снова (./ttranslator-linux --shortcut).": "Ttranslator is now in the menu of applications: %s\nIf you move the program folder, make the shortcut again (./ttranslator-linux --shortcut).",
+	"В Windows ярлык делается так: правый щелчок по Ttranslator.exe → «Отправить» → «Рабочий стол (создать ярлык)».":                           "In Windows, make a shortcut like this: right-click Ttranslator.exe → “Send to” → “Desktop (create shortcut)”.",
 }
 
 var msgDE = map[string]string{
@@ -201,4 +205,8 @@ var msgDE = map[string]string{
 	"нет веб-движка системы: в Windows нужен Microsoft Edge WebView2 Runtime, в Linux — WebKitGTK 4.1": "die Web-Engine des Systems fehlt: Windows braucht die Microsoft Edge WebView2 Runtime, Linux braucht WebKitGTK 4.1",
 	"не хватает системных библиотек (нужен WebKitGTK 4.1)":                                             "Systembibliotheken fehlen (WebKitGTK 4.1 wird benötigt)",
 	"программа окна завершилась с кодом %d":                                                            "das Fensterprogramm wurde mit Code %d beendet",
+	// Verknüpfung im Menü (--shortcut, Linux)
+	"Не удалось сделать ярлык: ": "Die Verknüpfung konnte nicht angelegt werden: ",
+	"Ярлык Ttranslator добавлен в меню приложений: %s\nЕсли перенести папку программы, сделайте ярлык снова (./ttranslator-linux --shortcut).": "Ttranslator steht jetzt im Anwendungsmenü: %s\nWenn Sie den Programmordner verschieben, legen Sie die Verknüpfung erneut an (./ttranslator-linux --shortcut).",
+	"В Windows ярлык делается так: правый щелчок по Ttranslator.exe → «Отправить» → «Рабочий стол (создать ярлык)».":                           "Unter Windows legen Sie eine Verknüpfung so an: Rechtsklick auf Ttranslator.exe → „Senden an“ → „Desktop (Verknüpfung erstellen)“.",
 }

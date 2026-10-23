@@ -35,11 +35,59 @@ follows your own glossary, answers questions about a translation and can read te
    [llama.cpp](https://github.com/ggml-org/llama.cpp) engine is already inside.
 2. Start `Ttranslator.exe` (Windows) or `ttranslator-linux` (Linux).
 3. On the first start the program shows what it will download, from where and to which folder: a Gemma 4 model (and
-   the engine too, if the folder has none — when built from source). After that it works offline.
+   the engine too, if the folder has none — when built from source). After that it works offline. Or press **Skip**:
+   the window opens at once without a model, and you choose and download one later in the model menu.
 
 The app window is the program's own window (maximized at start) on the web engine of the system — Microsoft Edge
 WebView2 on Windows, WebKitGTK 4.1 on Linux; if it cannot open, an Edge/Chrome window without tabs opens instead.
 The interface can also run in a tab of your browser.
+
+### Linux
+
+Any 64-bit x86 Linux from about 2022 on works: CachyOS, Arch, Manjaro, EndeavourOS, Ubuntu 22.04+, Debian 12+,
+Linux Mint 21+, Fedora 36+, openSUSE Tumbleweed and Leap 16, and systems based on them (the engine needs glibc 2.34
+and libstdc++ of GCC 12 or newer).
+
+1. Packages for the app window and its sound (once; most systems have some of them already):
+
+   | System | Command |
+   |---|---|
+   | CachyOS, Arch, Manjaro, EndeavourOS | `sudo pacman -S --needed webkit2gtk-4.1 gst-plugins-base gst-plugins-good` |
+   | Ubuntu, Debian, Linux Mint, Pop!_OS, Zorin OS, elementary OS, MX Linux | `sudo apt install libwebkit2gtk-4.1-0 gstreamer1.0-plugins-good libgomp1` |
+   | Fedora | `sudo dnf install webkit2gtk4.1 gstreamer1-plugins-good libgomp` |
+   | openSUSE Tumbleweed, Leap 16 | `sudo zypper install libwebkit2gtk-4_1-0 gstreamer-plugins-good libgomp1` |
+
+   Without them the program still works, in a Chrome/Chromium window or a tab of the default browser.
+2. Unpack and start (in a folder you can write to):
+
+   ```sh
+   cd ~
+   tar -xzf ~/Downloads/Ttranslator-<version>-linux-x64.tar.gz
+   cd ~/Ttranslator
+   ./ttranslator-linux
+   ```
+
+   Closing the terminal closes the program too — the menu shortcut avoids the terminal:
+3. `./ttranslator-linux --shortcut` puts Ttranslator into the menu of applications (KDE Plasma, GNOME, Xfce…) with
+   its icon; run it again after moving the folder. To uninstall, delete the folder and, if you made the shortcut,
+   `~/.local/share/applications/ttranslator.desktop` and `~/.local/share/icons/hicolor/256x256/apps/ttranslator.png`.
+
+If something goes wrong: an empty (white) app window happens with NVIDIA graphics — the program switches WebKitGTK to
+its older renderer there by itself; if it is still empty, start with `env WEBKIT_DISABLE_COMPOSITING_MODE=1
+./ttranslator-linux` or choose “Browser tab” in the settings. No sound in the app window: install the GStreamer
+plugins from the table. GLIBC/GLIBCXX errors of the engine: the system is older (Ubuntu 20.04, Debian 11,
+openSUSE Leap 15, RHEL/AlmaLinux/Rocky 9) — build llama.cpp yourself and set `engine_path` in `config.json`.
+NixOS needs `programs.nix-ld`. ARM and 32-bit Linux are not supported yet.
+
+### Updating and moving to another computer
+
+Everything the program downloads and remembers is in its folder: `models` (with the voices in `models/voices`),
+`engine` (llama.cpp and sherpa-onnx, one folder per system), `data` (saved translations, glossaries, test reports,
+logs) and `config.json`. To update, unpack the new archive where the `Ttranslator` folder is, replacing files — none
+of these are in the archive (only `ui/tests.txt` is replaced). To move to another computer with the same system, copy
+the whole folder; to another system, unpack that system's archive and copy `models`, `data` and `config.json` into it.
+Voices copied without the speech program work too: the model menu then offers to download only sherpa-onnx (20–30
+MB), and a sherpa-onnx folder copied into `engine/<system>` by hand is found by itself.
 
 ## Privacy
 

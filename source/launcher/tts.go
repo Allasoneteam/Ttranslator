@@ -270,21 +270,59 @@ type ttsMeta struct {
 	Exe     string `json:"exe"`
 }
 
-// ttsExe returns the installed sherpa-onnx program (engine/<os>-<arch>/tts.json), or "".
+// ttsExe returns the installed sherpa-onnx program (engine/<os>-<arch>/tts.json), or "". A program copied from
+// another computer or unpacked by hand without tts.json (0.9.5: the folder sherpa-onnx-… copied into
+// engine/<os>-<arch>) is found and remembered in tts.json, as the engine is (serverPath). Caller holds a.mu.
 func (a *App) ttsExe() string {
-	b, err := os.ReadFile(filepath.Join(a.engineDir, "tts.json"))
-	if err != nil {
+	if b, err := os.ReadFile(filepath.Join(a.engineDir, "tts.json")); err == nil {
+		var m ttsMeta
+		if json.Unmarshal(b, &m) == nil && m.Exe != "" {
+			p := filepath.Join(a.engineDir, filepath.FromSlash(m.Exe))
+			if st, err := os.Stat(p); err == nil && !st.IsDir() {
+				ensureExecutable(p, st)
+				return p
+			}
+		}
+	}
+	if a.vdl.Active && a.vdl.Item == "tts" {
+		return "" // being downloaded or unpacked right now
+	}
+	found := ""
+	_ = filepath.WalkDir(a.engineDir, func(p string, d fs.DirEntry, err error) error {
+		if err == nil && !d.IsDir() && d.Name() == ttsExeName() && found == "" && ttsComplete(p) {
+			found = p
+		}
+		return nil
+	})
+	if found == "" {
 		return ""
 	}
-	var m ttsMeta
-	if json.Unmarshal(b, &m) != nil || m.Exe == "" {
-		return ""
+	if runtime.GOOS != "windows" {
+		_ = os.Chmod(found, 0o755)
 	}
-	p := filepath.Join(a.engineDir, filepath.FromSlash(m.Exe))
-	if st, err := os.Stat(p); err != nil || st.IsDir() {
-		return ""
+	if rel, err := filepath.Rel(a.engineDir, found); err == nil {
+		meta, _ := json.MarshalIndent(ttsMeta{Version: "manual", Exe: filepath.ToSlash(rel)}, "", "  ")
+		if os.WriteFile(filepath.Join(a.engineDir, "tts.json"), meta, 0o644) == nil {
+			logger.Printf("sherpa-onnx found (copied or unpacked by hand): %s", found)
+		}
 	}
-	return p
+	return found
+}
+
+// ttsComplete: next to the program found by hand there is its runtime library (onnxruntime) — not a folder whose
+// unpacking was cut off half way.
+func ttsComplete(exe string) bool {
+	dir := filepath.Dir(exe)
+	for _, p := range []string{
+		filepath.Join(dir, "onnxruntime.dll"),                   // Windows: bin/
+		filepath.Join(dir, "..", "lib", "libonnxruntime.so"),    // Linux: lib/ next to bin/
+		filepath.Join(dir, "..", "lib", "libonnxruntime.dylib"), // macOS
+	} {
+		if st, err := os.Stat(p); err == nil && st.Size() > 0 {
+			return true
+		}
+	}
+	return false
 }
 
 func (a *App) ttsURL(pkg ttsPackage) string {
@@ -340,7 +378,8 @@ func (a *App) setVDL(f func(d *DownloadState)) {
 }
 
 // startVoiceDownload downloads a voice (and, the first time, the sherpa-onnx program) in the background. The
-// download has its own state: the model, the translation and the window keep working meanwhile.
+// download has its own state: the model, the translation and the window keep working meanwhile. v == nil: only the
+// sherpa-onnx program (voices copied from another computer are there, the program is not — 0.9.5).
 func (a *App) startVoiceDownload(v *VoiceSpec) error {
 	pkg, supported := currentTTSPackage()
 	a.mu.Lock()
@@ -353,18 +392,25 @@ func (a *App) startVoiceDownload(v *VoiceSpec) error {
 		a.mu.Unlock()
 		return fmt.Errorf(tr("платформа %s/%s пока не поддерживается"), runtime.GOOS, runtime.GOARCH)
 	}
+	name := ""
+	if v != nil {
+		name = v.ID
+	}
 	ctx, cancel := context.WithCancel(context.Background())
 	a.vdlCancel = cancel
-	a.vdl = DownloadState{Active: true, Item: "voice", Name: v.ID}
+	a.vdl = DownloadState{Active: true, Item: "voice", Name: name}
+	if v == nil {
+		a.vdl.Item = "tts"
+	}
 	a.mu.Unlock()
 
 	go func() {
 		defer cancel()
 		var err error
 		if needTTS {
-			err = a.downloadTTS(ctx, pkg, v.ID)
+			err = a.downloadTTS(ctx, pkg, name)
 		}
-		if err == nil && !a.voicePresent(v) {
+		if err == nil && v != nil && !a.voicePresent(v) {
 			err = a.downloadVoice(ctx, v)
 		}
 		a.mu.Lock()
@@ -376,7 +422,7 @@ func (a *App) startVoiceDownload(v *VoiceSpec) error {
 				a.vdl.Error = err.Error()
 			}
 			logger.Printf("voice download failed: %v", err)
-		} else {
+		} else if v != nil {
 			a.vdl.Error = ""
 			// the voice just downloaded is the one the user wants to hear
 			if a.cfg.Voices == nil {
@@ -384,6 +430,8 @@ func (a *App) startVoiceDownload(v *VoiceSpec) error {
 			}
 			a.cfg.Voices[v.Lang] = v.ID
 			a.saveConfig(a.cfg)
+		} else {
+			a.vdl.Error = ""
 		}
 		a.mu.Unlock()
 	}()
@@ -716,6 +764,19 @@ func (a *App) ttsRoutes(mux *http.ServeMux) {
 		a.mu.Unlock()
 		if !present {
 			if err := a.startVoiceDownload(v); err != nil {
+				jsonError(w, 409, err.Error())
+				return
+			}
+		}
+		writeJSON(w, 200, map[string]any{"ok": true})
+	}))
+	// only the sherpa-onnx program: for voices that are in models/voices already (copied from another computer)
+	mux.HandleFunc("/api/tts-program", a.post(func(w http.ResponseWriter, r *http.Request) {
+		a.mu.Lock()
+		present := a.ttsExe() != ""
+		a.mu.Unlock()
+		if !present {
+			if err := a.startVoiceDownload(nil); err != nil {
 				jsonError(w, 409, err.Error())
 				return
 			}

@@ -168,6 +168,14 @@ func windowArgs(data string) []string { return nil }
 // windowChildAttrs: a window program, started as it is (the hidden-window flags of setChildAttrs would hide it).
 func windowChildAttrs(cmd *exec.Cmd) {}
 
+// windowEnv: the window program gets the launcher's environment.
+func windowEnv() []string { return nil }
+
+// makeShortcut: a menu entry is a Linux thing (--shortcut); in Windows a shortcut is made by hand.
+func makeShortcut(exe, root string) (string, error) {
+	return "", fmt.Errorf("%s", tr("В Windows ярлык делается так: правый щелчок по Ttranslator.exe → «Отправить» → «Рабочий стол (создать ярлык)»."))
+}
+
 func fatal(msg string) {
 	if logger != nil {
 		logger.Print(msg)

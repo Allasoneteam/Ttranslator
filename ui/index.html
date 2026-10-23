@@ -396,6 +396,10 @@ footer.status {
     <button id="loadBtn" class="primary">Загрузить</button>
     <button id="unloadedModelBtn">Выбрать другую модель</button>
   </div>
+  <div id="bnNoModel" class="banner-part" hidden>
+    <div class="banner-text"><b>Модель не выбрана.</b> <span id="noModelText"></span></div>
+    <button id="noModelBtn" class="primary">Выбрать модель</button>
+  </div>
   <div id="bnError" class="banner-part" hidden>
     <div class="banner-text"><b id="errorTitle">Движок не запустился.</b> <span id="errorText"></span></div>
     <button id="retryBtn" class="primary">Повторить</button>
@@ -603,6 +607,7 @@ footer.status {
     <div id="setupError" class="error" role="alert"></div>
     <div class="row" style="margin-top:12px">
       <button id="dlBtn" class="primary">Скачать</button>
+      <button id="setupSkipBtn" title="Открыть программу без модели: модель можно выбрать и скачать потом в меню моделей (кнопка вверху)" hidden>Пропустить</button>
       <button id="dlCancelBtn" hidden>Отменить</button>
       <button id="setupBackBtn" hidden>Вернуться к прежней модели</button>
     </div>
@@ -645,7 +650,7 @@ const UI_LANGS = { ru: 'Русский', en: 'English', de: 'Deutsch' };
 const LOCALES = { ru: 'ru-RU', en: 'en-GB', de: 'de-DE' };
 const UI_LANG = UI_LANGS[document.documentElement.lang] ? document.documentElement.lang : 'ru';
 const LOCALE = LOCALES[UI_LANG];
-const APP_VERSION = '0.9.4';   // версия интерфейса — та же, что appVersion в source/launcher/main.go
+const APP_VERSION = '0.9.5';   // версия интерфейса — та же, что appVersion в source/launcher/main.go
 
 const I18N_COL = { en: 0, de: 1 };   // столбец перевода в I18N
 
@@ -1088,18 +1093,21 @@ const ABOUT = {
 
 // «Что нового» в окне приветствия — главное в этой версии, на трёх языках.
 const WHATS_NEW = {
-  version: '0.9.4',
+  version: '0.9.5',
   ru: [
-    'Испанский голос для чтения вслух — теперь Sharvard (женский, Испания, CC BY 3.0), в меню моделей. Прежний голос MLS 9972 читал короткие фразы неверно: выдуманными словами и слишком долго.',
-    'Все голоса каталога проверены программой распознавания речи: читают по тексту и в обычном темпе.',
+    'На экране первого запуска — кнопка «Пропустить»: окно программы открывается сразу, без модели, а модель Вы выбираете и скачиваете в меню моделей (кнопка «Выбрать модель» вверху).',
+    'Голоса, скопированные с другого компьютера в папку models\\voices, теперь работают: если нет программы озвучки, меню моделей предложит скачать только её — голоса заново не скачиваются. Скопированную папку программы озвучки программа находит сама.',
+    'Linux: подробная инструкция по установке для CachyOS, Arch, Ubuntu, Debian, Fedora, openSUSE и других систем — в README.txt; команда ./ttranslator-linux --shortcut добавляет программу в меню приложений.',
   ],
   en: [
-    'The Spanish voice for reading aloud is now Sharvard (female, Spain, CC BY 3.0), in the model menu. The previous voice MLS 9972 read short phrases wrongly: with invented words and far too long.',
-    'All voices of the catalogue were checked with speech recognition: they read the text as written and at a normal pace.',
+    'The first-start screen has a “Skip” button: the program window opens at once, without a model, and you choose and download a model in the model menu (the “Choose a model” button at the top).',
+    'Voices copied from another computer into the folder models\\voices now work: if the speech program is missing, the model menu offers to download only the program — the voices are not downloaded again. A copied folder of the speech program is found by itself.',
+    'Linux: detailed installation instructions for CachyOS, Arch, Ubuntu, Debian, Fedora, openSUSE and other systems in README.md; the command ./ttranslator-linux --shortcut puts the program into the menu of applications.',
   ],
   de: [
-    'Die spanische Stimme zum Vorlesen ist jetzt Sharvard (weiblich, Spanien, CC BY 3.0), im Modellmenü. Die bisherige Stimme MLS 9972 las kurze Sätze falsch: mit erfundenen Wörtern und viel zu lang.',
-    'Alle Stimmen des Katalogs wurden mit Spracherkennung geprüft: Sie lesen den Text wie geschrieben und in normalem Tempo.',
+    'Auf dem Bildschirm des ersten Starts gibt es die Schaltfläche „Überspringen“: Das Programmfenster öffnet sich sofort, ohne Modell, und Sie wählen und laden ein Modell im Modellmenü herunter (die Schaltfläche „Modell wählen“ oben).',
+    'Stimmen, die von einem anderen Computer in den Ordner models\\voices kopiert wurden, funktionieren jetzt: Fehlt das Sprachausgabe-Programm, bietet das Modellmenü an, nur das Programm herunterzuladen – die Stimmen werden nicht erneut heruntergeladen. Einen kopierten Ordner des Sprachausgabe-Programms findet das Programm selbst.',
+    'Linux: eine ausführliche Installationsanleitung für CachyOS, Arch, Ubuntu, Debian, Fedora, openSUSE und andere Systeme in README.md (auf Englisch); der Befehl ./ttranslator-linux --shortcut legt das Programm ins Anwendungsmenü.',
   ],
 };
 
@@ -1131,11 +1139,13 @@ const HELP = {
     ['Чтение вслух',
       'Кнопка 🔊 у поля текста, у каждого варианта, у «Своего варианта» и у ответов модели читает текст вслух. Пока текст звучит, кнопка и текст подсвечены зелёным; второе нажатие — пауза (подсветка текста снимается), третье — продолжить. Кнопка ■ рядом, Esc или другая кнопка 🔊 останавливают чтение; правка текста — тоже. Формулы LaTeX не читаются.',
       '- Голоса скачиваются в меню моделей (кнопка с названием модели вверху), по голосу на язык. Вместе с первым голосом один раз скачивается программа озвучки sherpa-onnx. Голос не занимает память постоянно: он запускается на секунду-две для каждой фразы.',
+      '- Голоса можно перенести с другого компьютера: скопируйте папку models\\voices. Если программы озвучки в папке engine ещё нет, в меню моделей появится строка «Программа озвучки sherpa-onnx» — скачается только она (20–30 МБ), голоса заново не скачиваются. Без интернета можно скопировать и всю папку engine с другого компьютера с той же системой (Windows или Linux).',
       '- Если для языка скачано два голоса, читает тот, что отмечен ✓; другой выбирается щелчком. Без голоса для языка текста кнопка 🔊 бледная.',
       '- Голоса есть для русского, английского, немецкого, испанского, китайского и шведского.',
       '- Лицензии голосов разные (видны в меню моделей); Ruslan и HFC female — только для некоммерческого использования.'],
     ['Модели',
-      'Кнопка с названием модели вверху открывает список. Перед скачиванием модели программа показывает, откуда, в какую папку и под каким именем скачивается файл; ненужную модель можно удалить; свой файл .gguf можно положить в папку models. Кнопка ⏏ выгружает модель из памяти: окно остаётся, а для перевода модель нужно загрузить снова. Если закрыть окно программы, через несколько секунд модель выгрузится из памяти и программа завершится.'],
+      'Кнопка с названием модели вверху открывает список. Перед скачиванием модели программа показывает, откуда, в какую папку и под каким именем скачивается файл; ненужную модель можно удалить; свой файл .gguf можно положить в папку models. Кнопка ⏏ выгружает модель из памяти: окно остаётся, а для перевода модель нужно загрузить снова. Если закрыть окно программы, через несколько секунд модель выгрузится из памяти и программа завершится.',
+      'На экране первого запуска можно нажать «Пропустить»: окно откроется без модели (вверху — «Выбрать модель»), а модель Вы выберете и скачаете в этом списке.'],
     ['Тест',
       'Кнопка «Тест» переводит фразы из файла ui\\tests.txt и сохраняет отчёт со временем и оценкой в папку data\\reports — так удобно сравнивать модели.'],
     ['Настройки',
@@ -1173,11 +1183,13 @@ const HELP = {
     ['Reading aloud',
       'The 🔊 button at the text field, at every variant, at “Your version” and at the model’s answers reads the text aloud. While the text is read, the button and the text are highlighted in green; a second click pauses (the text is no longer highlighted), a third continues. The ■ button next to it, Esc or another 🔊 button stops reading, and so does editing the text. LaTeX formulas are not read.',
       '- Voices are downloaded in the model menu (the button with the model name at the top), one voice per language. With the first voice, the speech program sherpa-onnx is downloaded once. A voice does not stay in memory: it starts for a second or two for every phrase.',
+      '- Voices can be moved from another computer: copy the folder models\\voices. If the speech program is not in the engine folder yet, the model menu shows the row “The speech program sherpa-onnx” — only the program is downloaded (20–30 MB), not the voices. Without the internet, you can also copy the whole engine folder from another computer with the same system (Windows or Linux).',
       '- If two voices are downloaded for a language, the one marked ✓ reads; click the other one to choose it. Without a voice for the language of the text, the 🔊 button is pale.',
       '- There are voices for Russian, English, German, Spanish, Chinese and Swedish.',
       '- The voices have different licences (shown in the model menu); Ruslan and HFC female are for non-commercial use only.'],
     ['Models',
-      'The button with the model name at the top opens the list. Before downloading a model, the program shows where the file comes from, the folder it goes to and its name; a model you do not need can be deleted; your own .gguf file can be put into the models folder. The ⏏ button unloads the model from memory: the window stays, but to translate you need to load the model again. If you close the program window, the model is unloaded from memory within a few seconds and the program exits.'],
+      'The button with the model name at the top opens the list. Before downloading a model, the program shows where the file comes from, the folder it goes to and its name; a model you do not need can be deleted; your own .gguf file can be put into the models folder. The ⏏ button unloads the model from memory: the window stays, but to translate you need to load the model again. If you close the program window, the model is unloaded from memory within a few seconds and the program exits.',
+      'On the first-start screen you can press “Skip”: the window opens without a model (“Choose a model” at the top), and you choose and download a model in this list.'],
     ['Test',
       'The “Test” button translates the phrases from ui\\tests.txt and saves a report with timings and scores to data\\reports — handy for comparing models.'],
     ['Settings',
@@ -1215,11 +1227,13 @@ const HELP = {
     ['Vorlesen',
       'Die Schaltfläche 🔊 beim Textfeld, bei jeder Variante, bei „Ihre Fassung“ und bei den Antworten des Modells liest den Text vor. Während der Text vorgelesen wird, sind Schaltfläche und Text grün hervorgehoben; ein zweiter Klick pausiert (der Text ist dann nicht mehr hervorgehoben), ein dritter setzt fort. Die Schaltfläche ■ daneben, Esc oder eine andere Schaltfläche 🔊 beendet das Vorlesen, ebenso das Bearbeiten des Textes. LaTeX-Formeln werden nicht vorgelesen.',
       '- Stimmen werden im Modellmenü heruntergeladen (die Schaltfläche mit dem Modellnamen oben), eine Stimme pro Sprache. Mit der ersten Stimme wird einmalig das Sprachausgabe-Programm sherpa-onnx heruntergeladen. Eine Stimme belegt keinen Arbeitsspeicher auf Dauer: Sie startet für jede Phrase für ein bis zwei Sekunden.',
+      '- Stimmen lassen sich von einem anderen Computer übernehmen: Kopieren Sie den Ordner models\\voices. Ist das Sprachausgabe-Programm noch nicht im Ordner engine, zeigt das Modellmenü die Zeile „Das Sprachausgabe-Programm sherpa-onnx“ – heruntergeladen wird nur das Programm (20–30 MB), nicht die Stimmen. Ohne Internet können Sie auch den ganzen Ordner engine von einem anderen Computer mit demselben System (Windows oder Linux) kopieren.',
       '- Sind für eine Sprache zwei Stimmen heruntergeladen, liest die mit ✓ markierte; die andere wählen Sie per Klick. Ohne Stimme für die Sprache des Textes ist die Schaltfläche 🔊 blass.',
       '- Stimmen gibt es für Russisch, Englisch, Deutsch, Spanisch, Chinesisch und Schwedisch.',
       '- Die Stimmen haben verschiedene Lizenzen (im Modellmenü sichtbar); Ruslan und HFC female nur für nicht-kommerzielle Nutzung.'],
     ['Modelle',
-      'Die Schaltfläche mit dem Modellnamen oben öffnet die Liste. Vor dem Herunterladen eines Modells zeigt das Programm Quelle, Zielordner und Dateinamen; ein nicht benötigtes Modell lässt sich löschen; eine eigene .gguf-Datei können Sie in den Ordner models legen. Die Schaltfläche ⏏ entlädt das Modell aus dem Arbeitsspeicher: Das Fenster bleibt, zum Übersetzen muss das Modell aber wieder geladen werden. Wenn Sie das Programmfenster schließen, wird das Modell nach wenigen Sekunden aus dem Arbeitsspeicher entladen und das Programm beendet.'],
+      'Die Schaltfläche mit dem Modellnamen oben öffnet die Liste. Vor dem Herunterladen eines Modells zeigt das Programm Quelle, Zielordner und Dateinamen; ein nicht benötigtes Modell lässt sich löschen; eine eigene .gguf-Datei können Sie in den Ordner models legen. Die Schaltfläche ⏏ entlädt das Modell aus dem Arbeitsspeicher: Das Fenster bleibt, zum Übersetzen muss das Modell aber wieder geladen werden. Wenn Sie das Programmfenster schließen, wird das Modell nach wenigen Sekunden aus dem Arbeitsspeicher entladen und das Programm beendet.',
+      'Auf dem Bildschirm des ersten Starts können Sie „Überspringen“ wählen: Das Fenster öffnet sich ohne Modell (oben „Modell wählen“), und Sie wählen und laden ein Modell in dieser Liste herunter.'],
     ['Test',
       'Die Schaltfläche „Test“ übersetzt die Sätze aus ui\\tests.txt und speichert einen Bericht mit Zeiten und Bewertungen in data\\reports – praktisch, um Modelle zu vergleichen.'],
     ['Einstellungen',
@@ -2448,6 +2462,12 @@ function voiceFor(lang) {
   if (!s || !s.engine.present || !lang) return null;
   return (s.voices || []).find(v => v.lang === lang && v.active && v.present) || null;
 }
+// Голос языка есть в папке, а программы озвучки нет (голоса скопированы с другого компьютера).
+function voiceWithoutProgram(lang) {
+  const s = ttsState();
+  if (!s || s.engine.present || !lang) return null;
+  return (s.voices || []).find(v => v.lang === lang && v.active && v.present) || null;
+}
 const voiceLabel = (v) => (LANGS[v.lang] ? langName(v.lang) + ' · ' : '') + v.name;
 const voiceLicense = (v) => v.license === 'public domain' ? t('общественное достояние') : v.license;
 
@@ -2505,7 +2525,7 @@ function updateSpeakBtn(b) {
   if (b.classList.contains('speaking') || b.classList.contains('paused')) return;
   const v = voiceFor(b.dataset.lang);
   b.classList.toggle('no-voice', !v);
-  b.title = v ? t('Прочитать вслух ({v})', { v: voiceLabel(v) }) : t('Прочитать вслух');
+  b.title = v ? t('Прочитать вслух ({v})', { v: voiceLabel(v) }) : voiceWithoutProgram(b.dataset.lang) ? t('Нужна программа озвучки (меню моделей)') : t('Прочитать вслух');
   b.setAttribute('aria-label', b.title);
 }
 function updateSpeakButtons() {
@@ -2534,7 +2554,9 @@ function speakToggle(btn, host, text, lang) {
   if (MODE !== 'launcher') return;
   const v = voiceFor(lang);
   if (!v) {
-    toast(LANGS[lang] ? t('Для языка «{l}» нет голоса. Скачайте его в меню моделей (кнопка с названием модели вверху).', { l: langLower(lang) })
+    const w = voiceWithoutProgram(lang);
+    toast(w ? t('Голос «{v}» есть, но нет программы озвучки sherpa-onnx. Скачайте её в меню моделей (кнопка с названием модели вверху) — один раз, голоса скачивать заново не нужно.', { v: voiceLabel(w) })
+      : LANGS[lang] ? t('Для языка «{l}» нет голоса. Скачайте его в меню моделей (кнопка с названием модели вверху).', { l: langLower(lang) })
       : t('Голос для чтения вслух можно скачать в меню моделей (кнопка с названием модели вверху).'));
     return;
   }
@@ -2603,17 +2625,42 @@ function renderVoiceMenu(menu) {
   if (!s || !(s.voices || []).length) return;
   menu.appendChild(el('div', 'group', t('Голоса для чтения вслух (Piper, программа sherpa-onnx)')));
   const dl = s.download || {};
+  // Голоса уже есть (например, скопированы с другого компьютера), а программы озвучки нет: скачать нужно только её.
+  const noProgram = !s.engine.present && s.voices.some(v => v.present);
+  if (noProgram) {
+    const busyProg = dl.active && dl.item === 'tts' && !dl.name;
+    const row = el('div', 'mitem tts-program');
+    const pick = el('button', 'pick');
+    pick.appendChild(el('span', 'title', t('Программа озвучки sherpa-onnx')));
+    pick.appendChild(el('span', 'sub', busyProg ? voiceDlText(dl) : `${fmtBytes(s.engine.size)} · ${t('нужна, чтобы голоса, которые уже есть в папке, читали текст; нажмите, чтобы скачать (один раз)')}`));
+    pick.onclick = () => {
+      if (busyProg) return;
+      if (dl.active) { toast(t('Идёт скачивание голоса, дождитесь окончания')); return; }
+      showTTSProgramConfirm(row, s);
+    };
+    row.appendChild(pick);
+    if (busyProg) {
+      const c = el('button', 'icon'); c.innerHTML = ICON.stop; c.title = t('Отменить скачивание'); c.setAttribute('aria-label', c.title);
+      c.onclick = async (e) => { e.stopPropagation(); try { await post('/api/voice-cancel'); refreshState(); } catch (err) { toast(err.message); } };
+      row.appendChild(c);
+    }
+    menu.appendChild(row);
+  }
   for (const v of s.voices) {
     const busyThis = dl.active && dl.name === v.id;
     const row = el('div', 'mitem' + (v.active ? ' active' : ''));
     const pick = el('button', 'pick');
     pick.appendChild(el('span', 'title', (v.active ? '✓ ' : '') + voiceLabel(v)));
-    const status = busyThis ? voiceDlText(dl) : v.active ? t('читает этот язык') : v.present ? t('скачан; нажмите, чтобы выбрать') : (v.partial ? t('скачано {p} %', { p: Math.round(100 * v.partial / v.size) }) : t('нужно скачать'));
+    const status = busyThis ? voiceDlText(dl) : (v.present && !s.engine.present) ? t('есть в папке; нужна программа озвучки') : v.active ? t('читает этот язык') : v.present ? t('скачан; нажмите, чтобы выбрать') : (v.partial ? t('скачано {p} %', { p: Math.round(100 * v.partial / v.size) }) : t('нужно скачать'));
     const lic = t('лицензия: {l}', { l: voiceLicense(v) }) + (v.nc ? ' — ' + t('только некоммерческое использование') : '');
     const sub = el('span', 'sub', `${fmtBytes(v.size)} · ${status} · ${v.gender === 'male' ? t('мужской голос') : t('женский голос')} · ${lic}`);
     pick.appendChild(sub);
     pick.onclick = async () => {
       if (busyThis) return;
+      if (v.present && !s.engine.present) {   // голос есть — нужна только программа озвучки
+        if (dl.active) { toast(t('Идёт скачивание голоса, дождитесь окончания')); return; }
+        showTTSProgramConfirm(row, s); return;
+      }
       if (v.active) { toast(t('Этот голос уже выбран')); return; }
       if (dl.active) { toast(t('Идёт скачивание голоса, дождитесь окончания')); return; }
       if (!v.present || !s.engine.present) { showVoiceConfirm(row, v, s); return; }
@@ -2681,6 +2728,27 @@ function showVoiceConfirm(row, v, s) {
   row.after(box);
 }
 
+// Голоса есть, программы озвучки нет: скачать только её (откуда, куда, файл) — или скопировать её папку с другого
+// компьютера.
+function showTTSProgramConfirm(row, s) {
+  const old = $('#modelMenu .dl-confirm');
+  if (old) { const same = old.previousElementSibling === row; old.remove(); if (same) return; }
+  const box = el('div', 'dl-confirm');
+  box.appendChild(el('div', 'q', t('Скачать программу озвучки sherpa-onnx ({s})? Голоса уже есть в папке — их скачивать не нужно.', { s: fmtBytes(s.engine.size) })));
+  box.appendChild(kvList([[t('Откуда:'), s.engine.url], [t('Куда:'), s.engine.dir], [t('Файл:'), s.engine.file]]));
+  box.appendChild(el('div', 'note', t('Без интернета: скопируйте с другого компьютера папку {f} в папку {d} — программа найдёт её сама.', { f: String(s.engine.file || '').replace(/\.tar\.bz2$/, ''), d: s.engine.dir })));
+  const btns = el('div', 'row');
+  const yes = el('button', 'primary', t('Скачать'));
+  yes.onclick = async (e) => {
+    e.stopPropagation();
+    try { await post('/api/tts-program'); voiceDlWas = true; await refreshState(); renderModelMenu(); } catch (err) { toast(err.message); }
+  };
+  const no = el('button', '', t('Отмена'));
+  no.onclick = (e) => { e.stopPropagation(); box.remove(); };
+  btns.appendChild(yes); btns.appendChild(no); box.appendChild(btns);
+  row.after(box);
+}
+
 // Состояние голосов после каждого опроса программы: кнопки 🔊, строка внизу окна, сообщение об окончании скачивания.
 let voiceDlWas = null;
 function renderTTSState() {
@@ -2688,10 +2756,11 @@ function renderTTSState() {
   const s = ttsState();
   const dl = (s && s.download) || {};
   const v = s && (s.voices || []).find(x => x.id === dl.name);
-  $('#ttsInfo').textContent = dl.active && v ? voiceLabel(v) + ': ' + voiceDlText(dl) : '';
+  $('#ttsInfo').textContent = dl.active && v ? voiceLabel(v) + ': ' + voiceDlText(dl) : dl.active && dl.item === 'tts' ? voiceDlText(dl) : '';
   if (voiceDlWas && !dl.active) {
     if (dl.error) toast(t('Голос не скачался: {e}', { e: dl.error }));
     else if (v && v.present) toast(t('Голос «{v}» скачан. Кнопка 🔊 читает текст вслух.', { v: voiceLabel(v) }));
+    else if (!dl.name && s && s.engine.present) toast(t('Программа озвучки скачана. Кнопка 🔊 читает текст вслух.'));
     const menu = $('#modelMenu');
     if (!menu.hidden && !menu.querySelector('.dl-confirm')) renderModelMenu();
   } else if (dl.active) {
@@ -4169,7 +4238,7 @@ function formError(msg) { $('#formError').textContent = msg || ''; }
 
 function isReady() { return MODE === 'basic' ? basicReady : (STATE && STATE.phase === 'ready'); }
 
-// Состояние модели: 'ready' | 'starting' | 'unloaded' | 'error' | 'setup' | 'bye'. Оно же — в атрибуте body[data-model].
+// Состояние модели: 'ready' | 'starting' | 'unloaded' | 'error' | 'setup' | 'nomodel' (после «Пропустить», модели ещё нет) | 'bye'. Оно же — в атрибуте body[data-model].
 let modelState = 'none';
 
 // Нужна модель, а она выгружена или не запущена (пока она загружается — другое сообщение).
@@ -4203,12 +4272,18 @@ function setModelState(kind, info = {}) {
   modelState = kind;
   document.body.dataset.model = kind;
   const bn = $('#modelBanner');
-  bn.hidden = !['starting', 'unloaded', 'error'].includes(kind);
+  bn.hidden = !['starting', 'unloaded', 'error', 'nomodel'].includes(kind);
   bn.className = 'banner' + (kind === 'starting' ? ' info' : kind === 'error' ? ' error' : '');
   $('#bnStarting').hidden = kind !== 'starting';
   $('#bnUnloaded').hidden = kind !== 'unloaded';
+  $('#bnNoModel').hidden = kind !== 'nomodel';
   $('#bnError').hidden = kind !== 'error';
-  if (kind === 'starting') {
+  if (kind === 'nomodel') {
+    // после «Пропустить» на экране первого запуска: модели ещё нет, её выбирают в меню моделей
+    const err = STATE && STATE.download && STATE.download.error;
+    $('#noModelText').textContent = (err ? t('Не получилось скачать: {e}.', { e: String(err).replace(/[.\s]+$/, '') }) + ' ' : '')
+      + t('Выберите модель в меню моделей — она скачается один раз. Можно и положить свой файл .gguf в папку models.');
+  } else if (kind === 'starting') {
     $('#startText').textContent = info.text || '';
   } else if (kind === 'unloaded') {
     const am = activeModel() || {};
@@ -4280,7 +4355,7 @@ function renderModelBtn() {
   if (MODE !== 'launcher' || !STATE) { $('#modelName').textContent = t('Модель'); b.hidden = MODE === 'basic'; u.hidden = true; return; }
   b.hidden = false;
   const am = activeModel();
-  $('#modelName').textContent = am ? am.name : t('Модель');
+  $('#modelName').textContent = STATE.phase === 'nomodel' ? t('Выбрать модель') : am ? am.name : t('Модель');
   // кнопка рядом с названием: выгрузить модель из памяти / загрузить снова
   const unloaded = STATE.phase === 'unloaded';
   u.hidden = !['ready', 'starting', 'unloaded'].includes(STATE.phase);
@@ -4289,6 +4364,7 @@ function renderModelBtn() {
   u.setAttribute('aria-label', u.title);
   u.classList.toggle('on', unloaded);
   if (unloaded) { $('#engineInfo').textContent = STATE.no_model_at_start ? t('модель не загружена') : t('модель выгружена из памяти'); return; }
+  if (STATE.phase === 'nomodel') { $('#engineInfo').textContent = t('модель не выбрана'); return; }
   const ei = STATE.engine_info || {};
   const parts = [];
   if (ei.build) parts.push('llama.cpp ' + ei.build);
@@ -4348,6 +4424,7 @@ function renderSetup(s) {
     ? (need.length === 2 ? t('Нужно один раз скачать два файла. После этого программа работает без интернета.') : t('Нужно один раз скачать файл. После этого программа работает без интернета.'))
     : t('Всё скачано.');
   $('#dlBtn').hidden = !!dl.active || !need.length;
+  $('#setupSkipBtn').hidden = !!dl.active || !need.length || !!s.had_model;
   $('#dlCancelBtn').hidden = !dl.active;
   const back = prevModel && prevModel !== s.active_model && (s.models || []).some(m => m.id === prevModel && m.present);
   $('#setupBackBtn').hidden = !!dl.active || !switching || !back;
@@ -4366,6 +4443,7 @@ function renderSetup(s) {
 
 let basicReady = false;
 let pollTimer = null;
+let menuAfterSkip = false;   // «Пропустить» нажата: открыть меню моделей, как только откроется рабочее окно
 let eventsStarted = false;
 // Номер этого окна для программы запуска. При закрытии или перезагрузке окно сообщает его (/api/closing): если новое
 // окно не открылось за несколько секунд, программа выгружает модель и завершается.
@@ -4417,13 +4495,16 @@ async function refreshState() {
     setModelState('starting', { text: (am.name ? am.name + '. ' : '') + t('Обычно это занимает несколько секунд; большие модели — до минуты. Пока можно вводить и править текст.') });
   } else if (s.phase === 'unloaded') {
     showMain(); setModelState('unloaded');
+  } else if (s.phase === 'nomodel') {
+    showMain(); setModelState('nomodel');
+    if (menuAfterSkip) { menuAfterSkip = false; openModelMenu(); }   // сразу после «Пропустить» — список моделей
   } else if (s.phase === 'error') {
     showMain(); setModelState('error', { title: t('Движок не запустился.'), text: s.error || t('Неизвестная ошибка'), log: s.engine_log });
   }
   maybeWelcome();
   renderTTSState();
   const voiceDl = s.tts && s.tts.download && s.tts.download.active;
-  pollTimer = setTimeout(refreshState, voiceDl ? 700 : s.phase === 'ready' ? 5000 : s.phase === 'error' ? 4000 : s.phase === 'unloaded' ? 3000 : 700);
+  pollTimer = setTimeout(refreshState, voiceDl ? 700 : s.phase === 'ready' ? 5000 : s.phase === 'error' ? 4000 : ['unloaded', 'nomodel'].includes(s.phase) ? 3000 : 700);
 }
 
 async function refreshBasic() {
@@ -4508,7 +4589,7 @@ function renderModelMenu() {
   let group = null;
   for (const m of (STATE.models || [])) {
     if (m.group !== group) { group = m.group; menu.appendChild(el('div', 'group', group)); }
-    const active = m.id === STATE.active_model;
+    const active = STATE.phase !== 'nomodel' && m.id === STATE.active_model;
     const unloaded = active && STATE.phase === 'unloaded';
     const row = el('div', 'mitem' + (active ? ' active' : ''));
     const pick = el('button', 'pick');
@@ -4752,7 +4833,7 @@ function renderWelcome() {
   renderModeSeg($('#welcomeModeSeg'));
   $('#welcomeLoad').checked = SETTINGS.load_model_at_start !== false;
   const am = activeModel();
-  $('#welcomeModel').textContent = am ? '(' + am.name + ')' : '';
+  $('#welcomeModel').textContent = am && STATE.phase !== 'nomodel' ? '(' + am.name + ')' : '';
   $('#welcomeShow').checked = SETTINGS.show_welcome !== false;
   // «О программе» — панель рабочего окна; на экране первого запуска её нет
   $('#welcomeAbout').hidden = !STATE || ['setup', 'downloading'].includes(STATE.phase);
@@ -4869,6 +4950,21 @@ const I18N = {
   'При запуске модель не загружается — так выбрано в окне приветствия или в настройках. Для перевода загрузите модель.': ['The model is not loaded at start — as chosen in the welcome window or in the settings. Load the model to translate.', 'Das Modell wird beim Start nicht geladen – so gewählt im Begrüßungsfenster oder in den Einstellungen. Laden Sie das Modell zum Übersetzen.'],
   'Загрузить': ['Load', 'Laden'],
   'Выбрать другую модель': ['Choose another model', 'Anderes Modell wählen'],
+  // 0.9.5: «Пропустить» на экране первого запуска, рабочее окно без модели
+  'Пропустить': ['Skip', 'Überspringen'],
+  'Программа озвучки sherpa-onnx': ['The speech program sherpa-onnx', 'Das Sprachausgabe-Programm sherpa-onnx'],
+  'нужна, чтобы голоса, которые уже есть в папке, читали текст; нажмите, чтобы скачать (один раз)': ['needed so that the voices already in the folder can read; click to download it (once)', 'nötig, damit die Stimmen, die schon im Ordner sind, vorlesen können; zum Herunterladen klicken (einmalig)'],
+  'есть в папке; нужна программа озвучки': ['in the folder; the speech program is needed', 'im Ordner; das Sprachausgabe-Programm wird benötigt'],
+  'Скачать программу озвучки sherpa-onnx ({s})? Голоса уже есть в папке — их скачивать не нужно.': ['Download the speech program sherpa-onnx ({s})? The voices are in the folder already — they need not be downloaded.', 'Das Sprachausgabe-Programm sherpa-onnx ({s}) herunterladen? Die Stimmen sind schon im Ordner – sie müssen nicht heruntergeladen werden.'],
+  'Без интернета: скопируйте с другого компьютера папку {f} в папку {d} — программа найдёт её сама.': ['Without internet: copy the folder {f} from another computer into the folder {d} — the program finds it by itself.', 'Ohne Internet: Kopieren Sie den Ordner {f} von einem anderen Computer in den Ordner {d} – das Programm findet ihn selbst.'],
+  'Программа озвучки скачана. Кнопка 🔊 читает текст вслух.': ['The speech program is downloaded. The 🔊 button reads text aloud.', 'Das Sprachausgabe-Programm ist heruntergeladen. Die Schaltfläche 🔊 liest Text vor.'],
+  'Нужна программа озвучки (меню моделей)': ['The speech program is needed (model menu)', 'Das Sprachausgabe-Programm wird benötigt (Modellmenü)'],
+  'Голос «{v}» есть, но нет программы озвучки sherpa-onnx. Скачайте её в меню моделей (кнопка с названием модели вверху) — один раз, голоса скачивать заново не нужно.': ['The voice “{v}” is there, but the speech program sherpa-onnx is not. Download it in the model menu (the button with the model name at the top) — once; the voices need not be downloaded again.', 'Die Stimme „{v}“ ist da, aber das Sprachausgabe-Programm sherpa-onnx fehlt. Laden Sie es im Modellmenü herunter (die Schaltfläche mit dem Modellnamen oben) – einmalig; die Stimmen müssen nicht erneut heruntergeladen werden.'],
+  'Открыть программу без модели: модель можно выбрать и скачать потом в меню моделей (кнопка вверху)': ['Open the program without a model: you can choose and download one later in the model menu (the button at the top)', 'Das Programm ohne Modell öffnen: Ein Modell können Sie später im Modellmenü wählen und herunterladen (die Schaltfläche oben)'],
+  'Модель не выбрана.': ['No model chosen.', 'Kein Modell gewählt.'],
+  'модель не выбрана': ['no model chosen', 'kein Modell gewählt'],
+  'Не получилось скачать: {e}.': ['The download did not work: {e}.', 'Das Herunterladen hat nicht geklappt: {e}.'],
+  'Выберите модель в меню моделей — она скачается один раз. Можно и положить свой файл .gguf в папку models.': ['Choose a model in the model menu — it is downloaded once. You can also put your own .gguf file into the models folder.', 'Wählen Sie ein Modell im Modellmenü – es wird einmal heruntergeladen. Sie können auch eine eigene .gguf-Datei in den Ordner models legen.'],
   'Движок не запустился.': ['The engine did not start.', 'Die Engine ist nicht gestartet.'],
   'Повторить': ['Retry', 'Wiederholen'],
   'Подробности': ['Details', 'Details'],
@@ -5588,6 +5684,8 @@ function init() {
   $('#errorOpenBtn').onclick = () => post('/api/open', { what: 'logs' }).catch(e => toast(e.message));
   $('#errorLogBtn').onclick = () => { errorLogOpen = !errorLogOpen; refreshState(); };
   $('#dlBtn').onclick = async () => { try { await post('/api/setup'); refreshState(); } catch (e) { $('#setupError').textContent = e.message; } };
+  $('#setupSkipBtn').onclick = async () => { try { await post('/api/skip-setup'); menuAfterSkip = true; refreshState(); } catch (e) { $('#setupError').textContent = e.message; } };
+  $('#noModelBtn').onclick = (e) => { e.stopPropagation(); openModelMenu(); };
   $('#dlCancelBtn').onclick = async () => { try { await post('/api/cancel'); refreshState(); } catch (e) { toast(e.message); } };
   $('#setupBackBtn').onclick = () => { if (prevModel) selectModel(prevModel); };
   $('#retryBtn').onclick = async () => { if (MODE === 'launcher') { try { await post('/api/restart'); } catch (e) { toast(e.message); } } refreshState(); };

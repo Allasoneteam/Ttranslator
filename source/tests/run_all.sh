@@ -26,7 +26,7 @@ SUMMARY=""; FAILED=0; PIDS=""
 
 say() { printf '\n=== %s\n' "$*"; }
 cleanup() {
-  for p in 18771 18772 18773 18774 18775 18776 18777 18778 18780 18781 18782 18783 18785 18786 18787; do curl -s -m 1 -o /dev/null -X POST -H "Origin: http://127.0.0.1:$p" "http://127.0.0.1:$p/api/quit"; done
+  for p in 18771 18772 18773 18774 18775 18776 18777 18778 18780 18781 18782 18783 18785 18786 18787 18788; do curl -s -m 1 -o /dev/null -X POST -H "Origin: http://127.0.0.1:$p" "http://127.0.0.1:$p/api/quit"; done
   [ -n "$PIDS" ] && kill $PIDS 2>/dev/null
 }
 trap cleanup EXIT
@@ -242,6 +242,13 @@ run "e2e v0.9.3: voices of parts and with a lexicon (Spanish, Chinese), welcome 
 XENV="TDOC_TTS_URL=http://127.0.0.1:$MIRROR/$TTS TDOC_TEST_VOICES=$W/voices094.json" start_launcher "$W/r14" 18786
 make_ready 18786
 run "e2e v0.9.4: the Spanish voice Sharvard (speaker F): download, pitch, length, 🔊, delete" python3 "$T/e2e_v094.py" "$W" http://127.0.0.1:18786/ "$W/r14"
+
+# v0.9.5: «Пропустить» on the first-start screen (the main window without a model, the model is chosen in the menu),
+# voices copied from another computer without the speech program, sherpa-onnx copied by hand. A fresh folder (no
+# make_ready): the suite restarts the launcher itself and closes it at the end
+XENV="TDOC_TTS_URL=http://127.0.0.1:$MIRROR/$TTS TDOC_TEST_VOICES=$W/voices.json" start_launcher "$W/r15" 18788
+run "e2e v0.9.5: «Пропустить» — no model yet; voices copied without the speech program; sherpa-onnx copied by hand" \
+  python3 "$T/e2e_v095.py" "$W" http://127.0.0.1:18788/ "$W/r15" "http://127.0.0.1:$MIRROR/$ENGINE" "$W/models.json" "http://127.0.0.1:$MIRROR/$TTS" "$W/voices.json"
 
 # v0.9.1–0.9.3: the app window (ttranslator-window, source/window): the Windows program builds and needs only system
 # DLLs; the Linux program on WebKitGTK under a virtual screen (with openbox, if there is one: the maximized start) —

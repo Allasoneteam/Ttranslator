@@ -16,6 +16,7 @@ import (
 	"path"
 	"path/filepath"
 	"regexp"
+	"runtime"
 	"strings"
 	"sync"
 	"testing"
@@ -420,5 +421,108 @@ func TestVoicesAPI(t *testing.T) {
 	vs := st["voices"].([]map[string]any)
 	if len(vs) != 3 || vs[0]["present"] != false || vs[2]["file"] != "vits-piper-en_US-c-medium.tar.bz2" {
 		t.Errorf("state: %v", vs)
+	}
+}
+
+// 0.9.5: the sherpa-onnx program copied from another computer (or unpacked by hand) without tts.json is found and
+// remembered; a folder without its runtime library is not taken; while it is being downloaded nothing is looked for
+func TestTTSProgramFoundByHand(t *testing.T) {
+	a := testApp(t)
+	a.engineDir = t.TempDir()
+	if a.ttsExe() != "" {
+		t.Fatal("empty folder: a program found")
+	}
+	exe := filepath.Join(a.engineDir, "sherpa-onnx-v1.13.7-copied", "bin", ttsExeName())
+	_ = os.MkdirAll(filepath.Dir(exe), 0o755)
+	_ = os.WriteFile(exe, []byte("exe"), 0o644)
+	if a.ttsExe() != "" {
+		t.Error("a program without onnxruntime was taken")
+	}
+	lib := filepath.Join(filepath.Dir(exe), "..", "lib", "libonnxruntime.so")
+	if runtime.GOOS == "windows" {
+		lib = filepath.Join(filepath.Dir(exe), "onnxruntime.dll")
+	}
+	_ = os.MkdirAll(filepath.Dir(lib), 0o755)
+	_ = os.WriteFile(lib, []byte("lib"), 0o644)
+	a.vdl = DownloadState{Active: true, Item: "tts"}
+	if a.ttsExe() != "" {
+		t.Error("looked for the program while it is being downloaded")
+	}
+	a.vdl = DownloadState{}
+	if got := a.ttsExe(); got != exe {
+		t.Fatalf("copied program: %q, want %q", got, exe)
+	}
+	b, _ := os.ReadFile(filepath.Join(a.engineDir, "tts.json"))
+	var m ttsMeta
+	if json.Unmarshal(b, &m) != nil || m.Version != "manual" || m.Exe != "sherpa-onnx-v1.13.7-copied/bin/"+ttsExeName() {
+		t.Errorf("tts.json: %s", b)
+	}
+	if st, _ := os.Stat(exe); runtime.GOOS != "windows" && st.Mode()&0o100 == 0 {
+		t.Errorf("not executable: %v", st.Mode())
+	}
+	if got := a.ttsExe(); got != exe {
+		t.Errorf("from tts.json: %q", got)
+	}
+}
+
+// 0.9.5: /api/tts-program downloads only the speech program (voices copied from another computer are there): no
+// voice, no change of the chosen voices; with the program there it downloads nothing
+func TestTTSProgramOnly(t *testing.T) {
+	archive, _ := base64.StdEncoding.DecodeString("QlpoOTFBWSZTWWaOrI0AAQZ/gcuQBABoA/+goAIAEH9n3kAAEAiYMADWtglKaJiYmTTTCaZGTTTI09AEooepqADQH6kaPUHqDQAFUlBpP1TDFMI0ZAZpGYpj9G3t0qBlBUvtROAjQRBEHgaLQdxcIDstdR4zJRCEg0WYYfOj0/73BGyJyu3Siy09yk15pgQyAoCHOUqWBB6TUosYrXQ0FJECcmuLuHVcmhhtSE/xQLE6h/xBijF2qgWYehHgctFliJb/KH0YCpQuViZepMrPcTy9EcjWjUqKI639e2zbMrKhSVsxg5pVOxjeEm8g7i7kinChIM0dWRo=")
+	var hits sync.Map
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		hits.Store(path.Base(r.URL.Path), true)
+		http.ServeContent(w, r, "sherpa-test.tar.bz2", time.Time{}, bytes.NewReader(archive))
+	}))
+	defer srv.Close()
+	saved, savedURL := voiceSpecs, ttsURLOverride
+	defer func() { voiceSpecs, ttsURLOverride = saved, savedURL }()
+	ttsURLOverride = srv.URL + "/sherpa-test.tar.bz2"
+	voiceSpecs = []VoiceSpec{piperVoice("ru-a", "ru", "A", "male", "CC0", false, "ru_RU-a-medium", 1<<21, strings.Repeat("a", 64))}
+	a := testApp(t)
+	a.root, a.modelsDir, a.engineDir = t.TempDir(), t.TempDir(), t.TempDir()
+	a.cfg = defaultConfig()
+	fakeVoice(t, a, &voiceSpecs[0]) // the voice copied from another computer
+	mux := http.NewServeMux()
+	a.ttsRoutes(mux)
+	post := func(p string) int {
+		rec := httptest.NewRecorder()
+		mux.ServeHTTP(rec, httptest.NewRequest("POST", p, nil))
+		return rec.Code
+	}
+	if a.ttsExe() != "" || !a.voicePresent(&voiceSpecs[0]) {
+		t.Fatal("setup: the voice is there, the program is not")
+	}
+	if code := post("/api/tts-program"); code != 200 {
+		t.Fatalf("/api/tts-program: %d", code)
+	}
+	for i := 0; i < 100; i++ {
+		a.mu.Lock()
+		active := a.vdl.Active
+		a.mu.Unlock()
+		if !active {
+			break
+		}
+		time.Sleep(50 * time.Millisecond)
+	}
+	a.mu.Lock()
+	exe, dl, voices := a.ttsExe(), a.vdl, a.cfg.Voices
+	a.mu.Unlock()
+	if exe == "" || dl.Error != "" || dl.Name != "" || dl.Item != "tts" {
+		t.Fatalf("program: %q, download %+v", exe, dl)
+	}
+	if len(voices) != 0 {
+		t.Errorf("the chosen voices changed: %v", voices)
+	}
+	if _, ok := hits.Load("vits-piper-ru_RU-a-medium.tar.bz2"); ok {
+		t.Error("the voice was downloaded again")
+	}
+	hits.Delete("sherpa-test.tar.bz2")
+	if code := post("/api/tts-program"); code != 200 {
+		t.Errorf("program there: %d", code)
+	}
+	time.Sleep(100 * time.Millisecond)
+	if _, ok := hits.Load("sherpa-test.tar.bz2"); ok {
+		t.Error("the program was downloaded again")
 	}
 }
