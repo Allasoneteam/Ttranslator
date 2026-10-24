@@ -1,11 +1,32 @@
-# Тестовые фразы для кнопки «Тест».
-# Формат: строка «EN: …», за ней строка «RU: …»; пары разделяются пустой строкой.
-# Строки, начинающиеся с #, пропускаются. Можно дописывать свои пары.
-# Каждая пара переводится в обе стороны, в нейтральном и разговорном стиле, и исправляется на своём языке.
-# Фразы с формулами LaTeX — в разделе «Настройки» файла index.html (MATH_TESTS).
+# Phrases for the “Test” button · Фразы для кнопки «Тест».
+# A pair is two lines in a row, “XX: …” in two different languages, where XX is the code of the language:
+# EN, RU, DE, FR, ES, EL, ZH, LA, SV. Pairs are separated by an empty line; lines starting with # are skipped.
+# You can add your own pairs. Each pair is translated both ways in the neutral and the casual style, and each
+# phrase is also corrected in its own language. Phrases with LaTeX formulas are in the “Settings” section of
+# ui/index.html (MATH_TESTS).
+# Пара — две строки подряд «XX: …» на двух разных языках (XX — код языка: EN, RU, DE, FR, ES, EL, ZH, LA, SV);
+# пары разделяются пустой строкой, строки с # в начале пропускаются. Можно дописывать свои пары. Каждая пара
+# переводится в обе стороны в нейтральном и разговорном стиле, и каждая фраза исправляется на своём языке.
 
 EN: Honestly, setting up the new virtual machine was a piece of cake: it took me less than ten minutes.
 RU: Честно говоря, настроить новую виртуальную машину было проще простого: у меня ушло меньше десяти минут.
 
 EN: Over the past decade, astronomers have discovered thousands of planets orbiting other stars.
 RU: За последнее десятилетие астрономы открыли тысячи планет, вращающихся вокруг других звёзд.
+
+# Latin sayings · Латинские крылатые выражения
+# Virgil, Aeneid X.284 · Вергилий, «Энеида», X.284
+LA: Audentes fortuna iuvat.
+EN: Fortune favors the bold.
+
+# Descartes, Principia philosophiae I.7 · Декарт, «Первоначала философии», I.7
+LA: Ego cogito, ergo sum.
+EN: I think, therefore I am.
+
+# Tacitus, Annals III.27 · Тацит, «Анналы», III.27
+LA: Corruptissima re publica plurimae leges.
+EN: The more corrupt the state, the more numerous the laws.
+
+# a legal term · юридический термин
+LA: Ex aequo et bono.
+EN: From equity and good conscience.

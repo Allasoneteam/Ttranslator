@@ -2,7 +2,8 @@
 # Archives of Ttranslator for Windows and Linux, ready to run: unpack anywhere and start Ttranslator.exe
 # (ttranslator-linux). Test builds for now: a release on GitHub only after the author's "yes".
 #   Ttranslator-<version>-windows-x64.zip, Ttranslator-<version>-linux-x64.tar.gz, SHA256SUMS.txt
-# Each holds one folder, Ttranslator/: the programs, ui/, README.txt (Russian), README.md (English), LICENSE.txt,
+# Each holds one folder, Ttranslator/: the programs, ui/, README.txt (installation in English, Russian, German,
+# Spanish and Chinese, then the full guide in Russian), README.md (English), LICENSE.txt,
 # THIRD-PARTY.txt (the licences of what is compiled in or shipped), start.bat or start.sh, source/ (as in the program
 # folder; README.txt describes it) and the llama.cpp engine already unpacked (engine/<os>-amd64/<version>/ with
 # engine.json, as the program itself puts it) — so the first start downloads only a model. sherpa-onnx and the voices

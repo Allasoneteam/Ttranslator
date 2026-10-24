@@ -88,6 +88,8 @@ type VoiceSpec struct {
 	Lexicon string      `json:"lexicon,omitempty"` // a voice without espeak-ng (Chinese): its lexicon file…
 	Rules   []string    `json:"rules,omitempty"`   // …and the rules that spell out numbers, dates and phone numbers
 	Parts   []VoicePart `json:"parts,omitempty"`   // a voice made of separate files instead of one archive
+	Via     string      `json:"via,omitempty"`     // the voice's own language when it reads another one (Latin: "it")
+	Respell string      `json:"respell,omitempty"` // the text is respelled first: "la-church" — Latin in Italian spelling (latin.go)
 }
 
 // VoicePart is one file of a voice made of parts; an archive (.tar.bz2) is unpacked into the voice's folder.
@@ -114,6 +116,21 @@ func lexiconVoice(v VoiceSpec, lexicon string, rules ...string) VoiceSpec {
 func speaker(v VoiceSpec, sid int) VoiceSpec {
 	v.SID = sid
 	return v
+}
+
+// otherLanguage: a voice of another language (via) that reads this one, the text respelled first (respell): the
+// Italian voice that reads Latin with the church pronunciation.
+func otherLanguage(v VoiceSpec, via, respell string) VoiceSpec {
+	v.Via, v.Respell = via, respell
+	return v
+}
+
+// respellFor prepares the text for the voice (Latin for an Italian voice: latin.go).
+func respellFor(v *VoiceSpec, text string) string {
+	if v.Respell == "la-church" {
+		return respellLatinChurch(text)
+	}
+	return text
 }
 
 // partsVoice: a voice made of separate files — the model and tokens.txt, and espeak-ng-data from its archive.
@@ -158,6 +175,11 @@ var voiceSpecs = []VoiceSpec{
 		"b30a7a83df0518f0ee1c7039506648cade99f1f9b498fc49ed2ced2e2536bb5a"), 1),
 	lexiconVoice(piperVoice("zh-chaowen", "zh", "Chaowen", "male", "CC0", false, "zh_CN-chaowen-medium", 60443846,
 		"1b69bdcf10bb6331c7f8a7591940febeb175c6bb86caa3802d96531f8e4ad211"), "lexicon.txt", "phone.fst", "date.fst", "number.fst"),
+	// Latin (author's choice by samples, 24.10.2026): no Piper voice reads Latin, so the Italian voice Paola does,
+	// with the church pronunciation (latin.go). Its data set (huggingface.co/datasets/paolapersico1/Voice-Dataset-Italian)
+	// is CC0.
+	otherLanguage(piperVoice("la-paola", "la", "Paola", "female", "CC0", false, "it_IT-paola-medium", 67221173,
+		"7541f75778afa164e44e34baaef63befad7698595df26a95ca944b63ef1a16b4"), "it", "la-church"),
 }
 
 // Test hooks, used only when the environment variables are set: TDOC_TTS_URL replaces the sherpa-onnx archive
@@ -354,7 +376,7 @@ func (a *App) ttsStateJSON() map[string]any {
 		}
 		voices = append(voices, map[string]any{
 			"id": v.ID, "lang": v.Lang, "name": v.Name, "gender": v.Gender, "license": v.License, "nc": v.NC,
-			"url": v.URL, "page": v.Page, "file": path.Base(v.URL), "size": v.Size, "parts": parts,
+			"url": v.URL, "page": v.Page, "file": path.Base(v.URL), "size": v.Size, "parts": parts, "via": v.Via,
 			"present": present, "active": present && a.activeVoiceID(v.Lang) == v.ID, "partial": partial,
 		})
 	}
@@ -857,7 +879,7 @@ func (a *App) ttsRoutes(mux *http.ServeMux) {
 			jsonError(w, 409, tr("для этого языка нет скачанного голоса"))
 			return
 		}
-		wav, err := a.synthesize(r.Context(), exe, v, text, speed)
+		wav, err := a.synthesize(r.Context(), exe, v, respellFor(v, text), speed)
 		if err != nil {
 			if r.Context().Err() != nil {
 				return // the window does not need it any more

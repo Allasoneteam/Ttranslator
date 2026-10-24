@@ -4,8 +4,10 @@ A free, open-source **offline translator** that runs a local language model on y
 account, no telemetry. It shows several translation variants in different styles, edits text in the same language,
 follows your own glossary, answers questions about a translation and can read texts aloud.
 
-> **Status:** pre-release (0.9.x). The repository is private until version 1.0. The user guide is in Russian
-> ([README.txt](README.txt)); the interface is available in Russian, English and German.
+> **Version 1.0** for Windows and Linux (macOS is planned for 1.1). The interface is in English, Russian, German,
+> Spanish and Chinese; the program has its full guide (Help) in each of them. [README.txt](README.txt) has the
+> installation in these five languages and the full guide in Russian; the installation is also
+> [below](#installation-in-other-languages) in Russian, German, Spanish and Chinese.
 
 ## Features
 
@@ -17,9 +19,12 @@ follows your own glossary, answers questions about a translation and can read te
 - **LaTeX formulas** (`$…$`, `$$…$$`) are never translated or damaged.
 - **Ask the model:** a chat about translations, terms and grammar; mini lessons and exercises with checking.
 - **Reading aloud:** Piper voices for Russian, English, German, Spanish, Chinese and Swedish through the sherpa-onnx
-  program, downloaded on demand.
+  program, downloaded on demand; Latin is read by the Italian voice Paola with the church pronunciation (the program
+  writes Latin in Italian spelling and marks the stress by the rules of Latin).
 - **Saved translations** in plain files, import and export (TSV, TXT).
-- A built-in **test** (“Тест”) that checks a model on your computer and writes a report.
+- A built-in **test** that checks a model on your computer with phrase pairs in any two of the nine languages (the
+  set includes Latin sayings such as *Audentes fortuna iuvat*) and writes a report.
+- **Interface in five languages:** English (on the first start), Russian, German, Spanish and Chinese.
 
 ## Requirements
 
@@ -33,10 +38,14 @@ follows your own glossary, answers questions about a translation and can read te
 1. Unpack the release archive (`Ttranslator-<version>-windows-x64.zip` or `…-linux-x64.tar.gz`) into any folder:
    nothing is installed into the system, the folder `Ttranslator` is portable. The
    [llama.cpp](https://github.com/ggml-org/llama.cpp) engine is already inside.
-2. Start `Ttranslator.exe` (Windows) or `ttranslator-linux` (Linux).
+2. Start `Ttranslator.exe` (Windows) or `ttranslator-linux` (Linux). The welcome window lets you choose the interface
+   language (English at first), the window type and whether to load the model at start.
 3. On the first start the program shows what it will download, from where and to which folder: a Gemma 4 model (and
    the engine too, if the folder has none — when built from source). After that it works offline. Or press **Skip**:
    the window opens at once without a model, and you choose and download one later in the model menu.
+
+Windows may show “Windows protected your PC”, because the program is not signed: click **More info** → **Run
+anyway**. Unpack the archive into a folder you can write to (the desktop, Documents — not Program Files).
 
 The app window is the program's own window (maximized at start) on the web engine of the system — Microsoft Edge
 WebView2 on Windows, WebKitGTK 4.1 on Linux; if it cannot open, an Edge/Chrome window without tabs opens instead.
@@ -89,6 +98,12 @@ the whole folder; to another system, unpack that system's archive and copy `mode
 Voices copied without the speech program work too: the model menu then offers to download only sherpa-onnx (20–30
 MB), and a sherpa-onnx folder copied into `engine/<system>` by hand is found by itself.
 
+## Translations
+
+The interface texts are in `ui/index.html` (`I18N`, `HELP`, `ABOUT` and others: the key is the Russian text) and
+the launcher's messages in `source/launcher/i18n.go`. The Spanish and Chinese translations are new in 1.0 and have
+not yet been reviewed by native speakers — corrections are welcome.
+
 ## Privacy
 
 - No telemetry, no accounts, no analytics.
@@ -119,12 +134,12 @@ a tiny stand-in model, the app window under a virtual screen). See [source/tests
 | Path | What |
 |---|---|
 | `ui/index.html` | the whole interface (settings for prompts, languages and styles are at its top) |
-| `ui/tests.txt` | phrases for the built-in test |
+| `ui/tests.txt` | phrase pairs for the built-in test (`EN:` / `RU:` / `LA:` … lines) |
 | `source/launcher` | the launcher: downloads and runs the engine, serves the interface, files of the user |
 | `source/window` | the app window program (webview) |
 | `source/tests` | automated tests |
 | `source/docs` | architecture, development, roadmap and changelog (in Russian) |
-| `README.txt` | the user guide (in Russian) |
+| `README.txt` | installation in five languages and the full user guide in Russian |
 
 ## License
 
@@ -141,3 +156,69 @@ Third-party components:
 - [webview](https://github.com/webview/webview) 0.12.0 (MIT) — compiled into the app window program.
 - Microsoft Edge WebView2 SDK header (BSD-style licence, `source/window/webview2/LICENSE.txt`) — for the Windows
   build of the app window; the WebView2 Runtime itself is part of Windows.
+
+## Installation in other languages
+
+<details>
+<summary>Русский</summary>
+
+1. Распакуйте архив `Ttranslator-<версия>-windows-x64.zip` (Windows) или `…-linux-x64.tar.gz` (Linux) в любую папку,
+   куда можно писать (не в Program Files): получится переносная папка `Ttranslator`, в систему ничего не
+   устанавливается. Движок llama.cpp уже внутри.
+2. Запустите `Ttranslator.exe` (Windows) или `./ttranslator-linux` (Linux). При первом запуске интерфейс английский:
+   выберите «Русский» в списке «Interface language» в окне приветствия.
+3. Нажмите «Скачать»: программа покажет, что, откуда и в какую папку скачает (модель Gemma 4, 3,35 ГБ), и дальше
+   работает без интернета. Или «Пропустить» — модель можно выбрать потом в меню моделей.
+
+Windows может показать «Система Windows защитила ваш компьютер» (программа не подписана): «Подробнее» → «Выполнить в
+любом случае». Linux: пакеты для окна и звука — в таблице раздела [Linux](#linux) выше; `./ttranslator-linux
+--shortcut` добавляет программу в меню приложений. Подробная инструкция — в [README.txt](README.txt).
+</details>
+
+<details>
+<summary>Deutsch</summary>
+
+1. Entpacken Sie das Archiv `Ttranslator-<Version>-windows-x64.zip` (Windows) oder `…-linux-x64.tar.gz` (Linux) in
+   einen Ordner, in den Sie schreiben dürfen (nicht nach „Programme“): Es entsteht der portable Ordner `Ttranslator`,
+   im System wird nichts installiert. Die Engine llama.cpp ist schon enthalten.
+2. Starten Sie `Ttranslator.exe` (Windows) oder `./ttranslator-linux` (Linux). Beim ersten Start ist die Oberfläche
+   englisch: Wählen Sie im Begrüßungsfenster in der Liste „Interface language“ „Deutsch“.
+3. Klicken Sie auf „Herunterladen“: Das Programm zeigt, was es woher in welchen Ordner lädt (ein Gemma-4-Modell,
+   3,35 GB), und arbeitet danach ohne Internet. Oder „Überspringen“ — das Modell wählen Sie später im Modellmenü.
+
+Windows zeigt eventuell „Der Computer wurde durch Windows geschützt“ (das Programm ist nicht signiert): „Weitere
+Informationen“ → „Trotzdem ausführen“. Linux: die Pakete für Fenster und Ton stehen in der Tabelle im Abschnitt
+[Linux](#linux) oben; `./ttranslator-linux --shortcut` legt das Programm ins Anwendungsmenü. Mehr in
+[README.txt](README.txt).
+</details>
+
+<details>
+<summary>Español</summary>
+
+1. Descomprima el archivo `Ttranslator-<versión>-windows-x64.zip` (Windows) o `…-linux-x64.tar.gz` (Linux) en una
+   carpeta en la que pueda escribir (no en Archivos de programa): obtendrá la carpeta portátil `Ttranslator`; no se
+   instala nada en el sistema. El motor llama.cpp ya está dentro.
+2. Inicie `Ttranslator.exe` (Windows) o `./ttranslator-linux` (Linux). En el primer inicio la interfaz está en inglés:
+   elija «Español» en la lista «Interface language» de la ventana de bienvenida.
+3. Pulse «Descargar»: el programa muestra qué descarga, de dónde y a qué carpeta (un modelo Gemma 4, 3,35 GB), y
+   después funciona sin internet. O «Omitir»: el modelo se elige más tarde en el menú de modelos.
+
+Windows puede mostrar «Windows protegió su PC» (el programa no está firmado): «Más información» → «Ejecutar de todas
+formas». Linux: los paquetes para la ventana y el sonido están en la tabla de la sección [Linux](#linux) de arriba;
+`./ttranslator-linux --shortcut` añade el programa al menú de aplicaciones. Más información en
+[README.txt](README.txt).
+</details>
+
+<details>
+<summary>中文</summary>
+
+1. 把压缩包 `Ttranslator-<版本>-windows-x64.zip`（Windows）或 `…-linux-x64.tar.gz`（Linux）解压到您有写入权限的文件夹
+   （不要放进 Program Files）：得到可随意移动的 `Ttranslator` 文件夹，不会向系统安装任何东西。llama.cpp 引擎已包含在内。
+2. 运行 `Ttranslator.exe`（Windows）或 `./ttranslator-linux`（Linux）。首次启动时界面为英语：在欢迎窗口的
+   “Interface language” 列表中选择 “中文”。
+3. 点击“下载”：程序会显示要下载什么、从哪里下载、保存到哪个文件夹（一个 Gemma 4 模型，3.35 GB），之后无需联网即可使用。
+   也可以点击“跳过”，之后再在模型菜单中选择模型。
+
+Windows 可能会显示“Windows 已保护你的电脑”（程序没有签名）：点击“更多信息”→“仍要运行”。Linux：窗口和声音所需的软件包见上方
+[Linux](#linux) 一节中的表格；`./ttranslator-linux --shortcut` 会把程序添加到应用程序菜单。详见 [README.txt](README.txt)。
+</details>

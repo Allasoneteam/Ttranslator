@@ -21,7 +21,10 @@
 # and listed (--verbose) to listen to. Verdict per voice: "ok", or "SLOW" (speech much longer than the text needs:
 # more than 0.09 s per character of text on average, or one phrase over 0.16 s per character; Chinese, where a
 # character is a whole syllable: 0.45 and 0.60 s) and/or "WORDS" (more than 60 % of the words wrong on average;
-# Chinese: characters). Measured in October 2026: the voices of the catalogue and seven other Spanish voices
+# Chinese: characters). A voice that reads another language (1.0: Latin by the Italian voice Paola, in Italian
+# spelling as the app gives it) is heard by Whisper in its own language, which writes Italian words for Latin ones —
+# there the letters are compared instead of the words (60 % too); measured: Paola 0.055 s per character, 42 % of
+# the letters wrong (the words: over 100 %). Measured in October 2026: the voices of the catalogue and seven other Spanish voices
 # 0.049–0.067 s per character (worst phrase 0.076), 0–34 % errors (Whisper base hears Russian worst);
 # es_ES-mls_9972-low 0.115–0.123 s per character (worst phrase 0.23–0.27), 106–132 % errors. Speech differs a little
 # from run to run (VITS draws noise), and so do the numbers. Exit code 1 if a voice is not "ok".
@@ -75,6 +78,11 @@ PHRASES = {
            "Min syster arbetar på ett sjukhus nära havet.", "Kan du stänga fönstret, tack?"],
     "zh": ["你好。", "早上好。", "猫在家里的沙发上睡觉。", "我喜欢在晚上看书。", "明天我们去乡下看望爷爷奶奶。",
            "火车早上出发，晚上到达北京。", "我的姐姐在海边的一家医院工作。", "请你把窗户关上，好吗？"],
+    # Latin is read by an Italian voice in Italian spelling (latin.go): the phrases are respelled as the app does it,
+    # and Whisper listens in Italian (the voice's own language) and is compared with the respelled text
+    "la": ["Salve.", "Gratias tibi.", "Puella in horto cum cane ambulat.", "Libros legere vesperi mihi placet.",
+           "Cras avum et aviam in villa visitabimus.", "Navis mane solvit et vesperi in portum venit.",
+           "Soror mea in valetudinario prope mare laborat.", "Claude, quaeso, fenestram cubiculi."],
 }
 # characters Whisper may write in the traditional form
 TRAD = str.maketrans("貓裡歡書們鄉車達爺發這個時間後來樣頭說話覺見", "猫里欢书们乡车达爷发这个时间后来样头说话觉见")
@@ -133,6 +141,25 @@ def catalogue(work):
     return json.load(open(out, encoding="utf-8"))
 
 
+def respell(work, texts, kind):
+    """The phrases as the app gives them to the voice (respellFor in tts.go: Latin in Italian spelling for the
+    Italian voice), through go test -run TestDumpRespell."""
+    if not kind:
+        return texts
+    if kind != "la-church":
+        fail("unknown respelling %s" % kind)
+    src, dst = os.path.join(work, "respell-in.txt"), os.path.join(work, "respell-out.txt")
+    open(src, "w", encoding="utf-8").write("\n".join(texts) + "\n")
+    r = subprocess.run(["go", "test", "-count=1", "-run", "^TestDumpRespell$", "."], cwd=LAUNCHER,
+                       env=dict(os.environ, TDOC_RESPELL_IN=src, TDOC_RESPELL_OUT=dst), capture_output=True, text=True)
+    if r.returncode != 0 or not os.path.exists(dst):
+        fail("go test -run TestDumpRespell:\n" + r.stdout + r.stderr)
+    out = open(dst, encoding="utf-8").read().rstrip("\n").split("\n")
+    if len(out) != len(texts):
+        fail("respelling: %d lines for %d" % (len(out), len(texts)))
+    return out
+
+
 def install_voice(work, v):
     """The voice's folder under <work>/voices, as the app puts it together."""
     vd = os.path.join(work, "voices", v["dir"])
@@ -167,8 +194,13 @@ def words(s, lang):
     return re.sub(r"[^\w\s]", " ", s).split()
 
 
-def error_rate(ref, hyp, lang):
-    r, h = words(ref, lang), words(hyp, lang)
+def letters(s):
+    s = unicodedata.normalize("NFD", s.lower())
+    return [c for c in s if unicodedata.category(c).startswith("L")]
+
+
+def error_rate(ref, hyp, lang, by_letters=False):
+    r, h = (letters(ref), letters(hyp)) if by_letters else (words(ref, lang), words(hyp, lang))
     d = list(range(len(h) + 1))
     for i in range(1, len(r) + 1):
         prev, d[0] = d[0], i
@@ -210,7 +242,8 @@ def main():
         vd = install_voice(work, v)
         rel = os.path.relpath(vd, os.path.join(work, "voices"))
         rows = []
-        for i, text in enumerate(PHRASES[lang], 1):
+        hear = v.get("via") or lang   # the language Whisper listens in: the voice's own
+        for i, text in enumerate(respell(work, PHRASES[lang], v.get("respell")), 1):
             out = os.path.join(speech, "%s-%d.wav" % (v["id"], i))
             cmd = [os.path.join(top, "bin", "sherpa-onnx-offline-tts"), "--vits-model=%s/%s" % (rel, v["model"]),
                    "--vits-tokens=%s/tokens.txt" % rel]
@@ -228,7 +261,7 @@ def main():
         r = subprocess.run([os.path.join(top, "bin", "sherpa-onnx-offline"),
                             "--whisper-encoder=" + os.path.join(wdir, "base-encoder.int8.onnx"),
                             "--whisper-decoder=" + os.path.join(wdir, "base-decoder.int8.onnx"),
-                            "--tokens=" + os.path.join(wdir, "base-tokens.txt"), "--whisper-language=" + lang,
+                            "--tokens=" + os.path.join(wdir, "base-tokens.txt"), "--whisper-language=" + hear,
                             "--whisper-task=transcribe", "--num-threads=4"] + [x[1] for x in rows],
                            env=env, capture_output=True, text=True)
         heard = re.findall(r'"text": "((?:[^"\\]|\\.)*)"', r.stdout + r.stderr)
@@ -241,7 +274,10 @@ def main():
         scored = [x for x in rows if (len(words(x[0], lang)) >= 6 if zh else len(x[0].split()) >= 4)]
         per_char = sum(x[2] for x in scored) / sum(len(x[0]) for x in scored)
         worst = max(x[2] / len(x[0]) for x in scored)
-        errors = sum(error_rate(x[0], x[3], lang) for x in scored) / len(scored)
+        # a voice that reads another language (Latin by an Italian voice): Whisper hears it as Italian and writes
+        # Italian words, so the letters are compared, not the words
+        by_letters = bool(v.get("via"))
+        errors = sum(error_rate(x[0], x[3], lang, by_letters) for x in scored) / len(scored)
         slow = per_char > (0.45 if zh else 0.09) or worst > (0.60 if zh else 0.16)
         verdict = " ".join(w for w, f in (("SLOW", slow), ("WORDS", errors > 0.6)) if f) or "ok"
         bad += verdict != "ok"

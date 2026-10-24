@@ -131,7 +131,7 @@ try:
       NEW = page.evaluate('WHATS_NEW')   # «Что нового» меняется с каждой версией
       ok(page.inner_text('#welcomeVersion') == 'Версия ' + VERSION and page.inner_text('#welcomeNewTitle') == 'Что нового в версии ' + NEW['version'] and page.locator('#welcomeNew li').count() == len(NEW['ru']) > 0,
          'version and «Что нового»: %s; %s; %d items' % (page.inner_text('#welcomeVersion'), page.inner_text('#welcomeNewTitle'), page.locator('#welcomeNew li').count()))
-      ok(page.input_value('#welcomeLangSel') == 'ru' and texts(page, '#welcomeLangSel option') == ['Русский', 'English', 'Deutsch'], 'interface language: %s' % texts(page, '#welcomeLangSel option'))
+      ok(page.input_value('#welcomeLangSel') == 'ru' and texts(page, '#welcomeLangSel option') == ['English', 'Русский', 'Deutsch', 'Español', '中文'], 'interface language: %s' % texts(page, '#welcomeLangSel option'))
       ok(pressed(page, '#welcomeModeSeg') == 'window' and page.is_checked('#welcomeLoad') and page.is_checked('#welcomeShow'), 'defaults: app window, load the model at start, show this window')
       ok(texts(page, '#welcomeModeSeg button') == ['Окно приложения', 'Вкладка браузера'] and page.get_attribute('#welcomeModeSeg button >> nth=0', 'data-v') == 'window',
          'two window types, the app window (own window) first (0.9.2): %s' % texts(page, '#welcomeModeSeg button'))

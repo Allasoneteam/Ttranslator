@@ -16,6 +16,8 @@ start() {
 stop() { post /api/quit; wait $LPID 2>/dev/null; }
 
 rm -rf $ROOT && mkdir -p $ROOT/engine/linux-amd64 $ROOT/ui && cp $BIN $ROOT/ttranslator && cp $UI/index.html $UI/tests.txt $ROOT/ui/
+# the messages below are checked in Russian; a new installation is English since 1.0 (as start_launcher in run_all.sh)
+printf '{"ui_language": "ru"}\n' > $ROOT/config.json
 # 1. engine unpacked by hand (no engine.json): found and remembered
 tar -C $ROOT/engine/linux-amd64 -xzf $W/mirror/$ENGINE
 # slow copy of the models for cancel/resume, and a list with a wrong checksum

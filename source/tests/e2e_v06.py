@@ -92,7 +92,7 @@ try:
       # ================= the first-start screen: choose English before downloading
       page.wait_for_selector('#setupView:not([hidden])', timeout=15000)
       ok(page.inner_text('#setupTitle') == 'Первый запуск' and page.input_value('#setupLangSel') == 'ru', 'first start in Russian, language list on the screen')
-      ok(texts(page, '#setupLangSel option') == ['Русский', 'English', 'Deutsch'], 'interface languages named in themselves: %s' % texts(page, '#setupLangSel option'))
+      ok(texts(page, '#setupLangSel option') == ['English', 'Русский', 'Deutsch', 'Español', '中文'], 'interface languages named in themselves, English first (1.0): %s' % texts(page, '#setupLangSel option'))
       ok(page.is_hidden('#settingsBtn') and page.is_hidden('#helpBtn'), 'no Settings and Help buttons before the work window')
       ok(files('saved') == [] and files('glossary') == [], 'no files are created before the work window: %s %s' % (files('saved'), files('glossary')))
       switch_lang(page, '#setupLangSel', 'en')

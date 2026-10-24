@@ -11,8 +11,8 @@ import (
 	"testing"
 )
 
-// every message wrapped in tr("…") and every catalogue text has an English and a German translation
-// with the same format verbs; the dictionaries hold nothing else
+// every message wrapped in tr("…") and every catalogue text has an English, a German, a Spanish and a Chinese
+// translation with the same format verbs; the dictionaries hold nothing else
 func TestTranslations(t *testing.T) {
 	keys := map[string]bool{}
 	files, _ := filepath.Glob("*.go")
@@ -40,7 +40,7 @@ func TestTranslations(t *testing.T) {
 	for _, lang := range []struct {
 		name string
 		m    map[string]string
-	}{{"en", msgEN}, {"de", msgDE}} {
+	}{{"en", msgEN}, {"de", msgDE}, {"es", msgES}, {"zh", msgZH}} {
 		for k := range keys {
 			v, ok := lang.m[k]
 			if !ok {
@@ -60,6 +60,14 @@ func TestTranslations(t *testing.T) {
 	setUILang("de")
 	if tr("неверный запрос") != "ungültige Anfrage" || tr("нет такого текста") != "нет такого текста" {
 		t.Errorf("tr in German")
+	}
+	setUILang("es")
+	if tr("неверный запрос") != "solicitud no válida" {
+		t.Errorf("tr in Spanish")
+	}
+	setUILang("zh")
+	if tr("неверный запрос") != "无效请求" {
+		t.Errorf("tr in Chinese")
 	}
 	setUILang("ru")
 	if tr("неверный запрос") != "неверный запрос" {
@@ -83,11 +91,17 @@ func TestSettings(t *testing.T) {
 		h.ServeHTTP(rec, req)
 		return rec.Code, rec.Body.String()
 	}
-	if code, body := call("GET", "/api/settings", ""); code != 200 || !strings.Contains(body, `"ui_language":"ru"`) || !strings.Contains(body, `"theme":"light"`) || !strings.Contains(body, `"font_scale":100`) {
+	// a new installation: English (1.0)
+	if code, body := call("GET", "/api/settings", ""); code != 200 || !strings.Contains(body, `"ui_language":"en"`) || !strings.Contains(body, `"theme":"light"`) || !strings.Contains(body, `"font_scale":100`) {
 		t.Fatalf("defaults: %d %s", code, body)
 	}
-	if code, body := call("GET", "/", ""); code != 200 || !strings.Contains(body, `<html lang="ru" data-theme="light" data-font="100">`) {
+	if code, body := call("GET", "/", ""); code != 200 || !strings.Contains(body, `<html lang="en" data-theme="light" data-font="100">`) {
 		t.Errorf("page: %d %s", code, body)
+	}
+	for _, l := range []string{"es", "zh", "ru"} {
+		if code, body := call("POST", "/api/settings", `{"ui_language":"`+l+`"}`); code != 200 || !strings.Contains(body, `"ui_language":"`+l+`"`) || curLang() != l {
+			t.Errorf("%s: %d %s", l, code, body)
+		}
 	}
 	if code, body := call("POST", "/api/settings", `{"ui_language":"de","theme":"dark"}`); code != 200 || !strings.Contains(body, `"ui_language":"de"`) {
 		t.Fatalf("change: %d %s", code, body)
@@ -136,8 +150,18 @@ func TestSettings(t *testing.T) {
 	c := defaultConfig()
 	c.UILanguage, c.Theme, c.FontScale, c.LaunchMode = "xx", "", 7, "x"
 	normSettings(&c)
-	if c.UILanguage != "ru" || c.Theme != "light" || c.FontScale != 100 || c.LaunchMode != "window" {
+	if c.UILanguage != "en" || c.Theme != "light" || c.FontScale != 100 || c.LaunchMode != "window" {
 		t.Errorf("normSettings: %+v", c)
+	}
+	// config.json of a version before 0.6 has no ui_language: its interface was Russian, and so it stays;
+	// without config.json (a new installation) — English
+	_ = os.WriteFile(filepath.Join(a.root, "config.json"), []byte(`{"active_model":"g4-e2b"}`), 0o644)
+	if old := a.loadConfig(); old.UILanguage != "ru" {
+		t.Errorf("config.json without ui_language: %q", old.UILanguage)
+	}
+	_ = os.Remove(filepath.Join(a.root, "config.json"))
+	if fresh := a.loadConfig(); fresh.UILanguage != "en" {
+		t.Errorf("no config.json: %q", fresh.UILanguage)
 	}
 	_ = os.WriteFile(filepath.Join(a.root, "config.json"), []byte(`{"active_model":"g4-e2b","ui_language":"en"}`), 0o644)
 	if old := a.loadConfig(); !old.ShowWelcome || old.LaunchMode != "window" || !old.LoadModelAtStart || old.UILanguage != "en" || !old.StartMaximized {

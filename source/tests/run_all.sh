@@ -26,16 +26,19 @@ SUMMARY=""; FAILED=0; PIDS=""
 
 say() { printf '\n=== %s\n' "$*"; }
 cleanup() {
-  for p in 18771 18772 18773 18774 18775 18776 18777 18778 18780 18781 18782 18783 18785 18786 18787 18788; do curl -s -m 1 -o /dev/null -X POST -H "Origin: http://127.0.0.1:$p" "http://127.0.0.1:$p/api/quit"; done
+  for p in 18771 18772 18773 18774 18775 18776 18777 18778 18780 18781 18782 18783 18785 18786 18787 18788 18789; do curl -s -m 1 -o /dev/null -X POST -H "Origin: http://127.0.0.1:$p" "http://127.0.0.1:$p/api/quit"; done
   [ -n "$PIDS" ] && kill $PIDS 2>/dev/null
 }
 trap cleanup EXIT
 
 # a launcher in a fresh folder; the SSE client keeps it alive between browser sessions (not with "nokeep": the
 # test itself checks that the program exits when its last window closes). XENV: more environment variables.
+# The suites were written for the Russian interface: since 1.0 a new installation starts in English, so the folder
+# gets a config.json with "ui_language": "ru" (FRESH=1: no config.json — a really new installation).
 start_launcher() {   # root port [saved.tsv of version 0.5 to put into data/ before the start] [nokeep]
   rm -rf "$1"; mkdir -p "$1/ui"
   cp "$W/ttranslator" "$1/"; cp "$UI/index.html" "$UI/tests.txt" "$1/ui/"
+  [ -n "${FRESH:-}" ] || printf '{"ui_language": "ru"}\n' > "$1/config.json"
   if [ -n "${3:-}" ]; then mkdir -p "$1/data"; cp "$3" "$1/data/saved.tsv"; fi
   (cd "$1" && exec env TDOC_ENGINE_URL="http://127.0.0.1:$MIRROR/$ENGINE" TDOC_TEST_MODELS="$W/models.json" ${XENV:-} \
      ./ttranslator --no-window --port "$2" >> "$W/launcher.log" 2>&1) &
@@ -150,7 +153,7 @@ PIDS="$PIDS $!"
 for i in $(seq 1 100); do (exec 3<>"/dev/tcp/127.0.0.1/$MIRROR") 2>/dev/null && break; sleep 0.1; done
 
 # texts of the window in English and German (no launcher needed)
-run "interface translations: every text in English and German" python3 "$T/i18n_check.py" "$UI/index.html"
+run "interface translations: every text in English, German, Spanish and Chinese" python3 "$T/i18n_check.py" "$UI/index.html"
 # the program's icon inside the Windows build, up to date with the drawing
 run "icon of Ttranslator.exe" python3 "$T/icon_check.py" "$W/ttranslator.exe" "$SRC/launcher" "$UI/index.html" "$W"
 
@@ -249,6 +252,13 @@ run "e2e v0.9.4: the Spanish voice Sharvard (speaker F): download, pitch, length
 XENV="TDOC_TTS_URL=http://127.0.0.1:$MIRROR/$TTS TDOC_TEST_VOICES=$W/voices.json" start_launcher "$W/r15" 18788
 run "e2e v0.9.5: «Пропустить» — no model yet; voices copied without the speech program; sherpa-onnx copied by hand" \
   python3 "$T/e2e_v095.py" "$W" http://127.0.0.1:18788/ "$W/r15" "http://127.0.0.1:$MIRROR/$ENGINE" "$W/models.json" "http://127.0.0.1:$MIRROR/$TTS" "$W/voices.json"
+
+# 1.0: a really new installation (FRESH: no config.json) starts in English; the Spanish and Chinese interface; «Авто»
+# on the right by the interface language; the Latin voice in the menu; the test pairs in any two languages (the
+# Latin sayings of tests.txt; canned replies). The suite downloads the stand-in files itself and ends with Exit
+FRESH=1 start_launcher "$W/r16" 18789
+run "e2e v1.0: English first, Spanish and Chinese interface, «Авто», the Latin voice, test pairs in any languages" \
+  python3 "$T/e2e_v10.py" "$W" http://127.0.0.1:18789/ "$W/r16"
 
 # v0.9.1–0.9.3: the app window (ttranslator-window, source/window): the Windows program builds and needs only system
 # DLLs; the Linux program on WebKitGTK under a virtual screen (with openbox, if there is one: the maximized start) —

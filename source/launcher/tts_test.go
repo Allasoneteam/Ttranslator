@@ -96,7 +96,7 @@ func TestVoiceCatalog(t *testing.T) {
 	if espeakPart.URL != voiceRelease+espeakPart.File || espeakPart.Size < 1<<20 || !hex64.MatchString(espeakPart.SHA256) {
 		t.Errorf("espeak-ng-data part: %+v", espeakPart)
 	}
-	for _, l := range []string{"ru", "en", "de", "sv", "es", "zh"} {
+	for _, l := range []string{"ru", "en", "de", "sv", "es", "zh", "la"} {
 		free := false
 		for _, v := range voiceSpecs {
 			free = free || (v.Lang == l && !v.NC)

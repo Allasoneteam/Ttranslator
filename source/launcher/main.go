@@ -47,7 +47,7 @@ import (
 
 const (
 	appID      = "tdoc-translator"
-	appVersion = "0.9.5"
+	appVersion = "1.0"
 
 	// model selected on first start and when the configured one is gone
 	defaultModelID = "g4-e2b"
@@ -263,8 +263,15 @@ type Config struct {
 	SetupSkipped bool `json:"setup_skipped,omitempty"`
 }
 
+// The interface language of a new installation is English (author's decision for 1.0, 24.10.2026); a config.json
+// without "ui_language" was written by a version before 0.6, when the interface was only Russian, and stays Russian.
+const (
+	defaultUILanguage = "en"
+	legacyUILanguage  = "ru"
+)
+
 var (
-	uiLanguages = map[string]bool{"ru": true, "en": true, "de": true}
+	uiLanguages = map[string]bool{"en": true, "ru": true, "de": true, "es": true, "zh": true}
 	uiThemes    = map[string]bool{"light": true, "dark": true}
 	fontScales  = map[int]bool{90: true, 100: true, 115: true, 130: true}
 	// "app" (an Edge/Chrome window, the default before 0.9.2) is no longer a choice: it becomes "window", and an
@@ -275,7 +282,7 @@ var (
 // normSettings replaces unknown interface settings with the defaults.
 func normSettings(c *Config) {
 	if !uiLanguages[c.UILanguage] {
-		c.UILanguage = "ru"
+		c.UILanguage = defaultUILanguage
 	}
 	if !uiThemes[c.Theme] {
 		c.Theme = "light"
@@ -296,7 +303,7 @@ func (a *App) settingsJSON() map[string]any { // call under a.mu
 
 func defaultConfig() Config {
 	return Config{ActiveModel: defaultModelID, UIPort: 8765, CtxSize: 4096, Threads: 0, OpenWindow: true, ExtraEngineArgs: []string{},
-		UILanguage: "ru", Theme: "light", FontScale: 100, ShowWelcome: true, LaunchMode: "window", LoadModelAtStart: true,
+		UILanguage: defaultUILanguage, Theme: "light", FontScale: 100, ShowWelcome: true, LaunchMode: "window", LoadModelAtStart: true,
 		StartMaximized: true}
 }
 
@@ -392,7 +399,8 @@ func main() {
 
 	exe, err := os.Executable()
 	if err != nil {
-		fatal("Не удалось определить папку программы: " + err.Error())
+		// before config.json is read the language is not known: English first, then Russian
+		fatal("Could not find the program folder: " + err.Error() + "\n\nНе удалось определить папку программы: " + err.Error())
 	}
 	if p, err := filepath.EvalSymlinks(exe); err == nil {
 		exe = p
@@ -416,7 +424,8 @@ func main() {
 	a.reportsDir = filepath.Join(a.dataDir, "reports")
 	for _, d := range []string{a.engineDir, a.modelsDir, a.dataDir, a.logsDir, a.reportsDir} {
 		if err := os.MkdirAll(d, 0o755); err != nil {
-			fatal("Не удалось создать папку " + d + ": " + err.Error() + "\nВозможно, программа лежит в папке, куда нельзя писать.")
+			fatal("Could not create the folder " + d + ": " + err.Error() + "\nThe program is probably in a folder where it may not write (such as Program Files): move the Ttranslator folder, for example, into Documents." +
+				"\n\nНе удалось создать папку " + d + ": " + err.Error() + "\nВозможно, программа лежит в папке, куда нельзя писать (например, Program Files): перенесите папку Ttranslator, например, в «Документы».")
 		}
 	}
 	lf, err := openLauncherLog(a.logsDir)
@@ -541,6 +550,8 @@ func (a *App) loadConfig() Config {
 		if err := json.Unmarshal(b, &cfg); err != nil {
 			logger.Printf("config.json: %v (using defaults)", err)
 			cfg = defaultConfig()
+		} else if !bytes.Contains(b, []byte(`"ui_language"`)) {
+			cfg.UILanguage = legacyUILanguage
 		}
 	}
 	if cfg.ActiveModel == "" {

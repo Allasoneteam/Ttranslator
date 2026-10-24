@@ -70,7 +70,8 @@ with sync_playwright() as pw:
     # ================= the test panel names its styles
     page.click('#testBtn'); page.wait_for_timeout(300)
     intro = page.inner_text('#testIntro')
-    ok('в стилях «Нейтральный», «Разговорный»' in intro and 'Пар фраз: 2' in intro and 'Ещё 2 перевода фраз с формулами LaTeX' in intro, 'test intro: ' + intro[:200])
+    ok('в стилях «Нейтральный», «Разговорный»' in intro and 'Пар фраз: 6' in intro and 'Ещё 2 перевода фраз с формулами LaTeX' in intro, 'test intro: ' + intro[:200])
+    ok('Языки: английский ↔ русский — 2, латынь ↔ английский — 4.' in intro, 'the language pairs of tests.txt (1.0: Latin sayings): ' + intro[:300])
     ok(page.evaluate('TEST_STYLES') == ['neutral', 'casual'] and page.evaluate('MATH_TESTS.length') == 1, 'test styles and phrases with formulas')
     page.click('#closeTestBtn')
 

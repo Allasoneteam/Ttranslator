@@ -13,9 +13,14 @@ def spy(route):
 with sync_playwright() as p:
     b = p.chromium.launch(); page = b.new_page(viewport={'width': 1180, 'height': 780})
     page.add_init_script("try { sessionStorage.setItem('tdoc.window', '1'); sessionStorage.setItem('tdoc.welcome', 'done') } catch (e) {}")   # an "old" window: start languages are tested in e2e_v061.py, the welcome window in e2e_v07.py
+    # the checks below are in Russian; a browser without settings shows English since 1.0 (checked first)
+    page.add_init_script("try { if (sessionStorage.getItem('tdoc.ruSet') === null && localStorage.getItem('tdoc.settings') === null && location.search.indexOf('fresh') < 0) { localStorage.setItem('tdoc.settings', JSON.stringify({ ui_language: 'ru' })); sessionStorage.setItem('tdoc.ruSet', '1') } } catch (e) {}")
     errs = []; page.on('pageerror', lambda e: errs.append(str(e)))
     page.route('**/v1/chat/completions', spy)
+    page.goto(URL + ('&' if '?' in URL else '?') + 'fresh=1'); page.wait_for_selector('body[data-model="ready"]', timeout=30000)
+    ok(page.evaluate('document.documentElement.lang') == 'en' and page.inner_text('#goLabel') == 'Translate', 'a browser without settings: English (1.0)')
     page.goto(URL); page.wait_for_selector('body[data-model="ready"]', timeout=30000); page.wait_for_timeout(800)
+    ok(page.evaluate('document.documentElement.lang') == 'ru', 'Russian from the browser memory')
     ok('gemma-4-E2B_q4_0-it.gguf' in page.inner_text('#engineInfo'), 'engine info names the model file: ' + page.inner_text('#engineInfo'))
     ok(page.evaluate('basicFamily') == 'chat' and page.evaluate('basicCtx') == 4096, 'family and context from /props')
     ok(page.is_hidden('#unloadBtn') and page.is_hidden('#modelBtn'), 'no model menu and no unload button')
