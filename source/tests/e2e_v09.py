@@ -182,6 +182,15 @@ with sync_playwright() as pw:
     page.click('#srcSpeak'); page.wait_for_timeout(200)
     ok('speaking-host' not in (card.get_attribute('class') or '') and speaking('#srcSpeak'), 'another 🔊 button stops the previous reading')
     page.keyboard.press('Escape')
+    # 1.0: the speed of reading aloud from «Настройки» (config.json speech_speed, 70–120 %)
+    st, _, _ = api('POST', '/api/settings', {'speech_speed': 80}, origin=URL.rstrip('/'))
+    refresh()
+    n = len(tts_bodies)
+    card.locator('[data-act=speak]').click()
+    page.wait_for_function("speech && speech.audio && !speech.audio.paused", timeout=30000)
+    ok(st == 200 and len(tts_bodies) > n and tts_bodies[n].get('speed') == 0.8, 'reading at 80 %%: %s' % (tts_bodies[n] if len(tts_bodies) > n else None))
+    page.keyboard.press('Escape')
+    api('POST', '/api/settings', {'speech_speed': 100}, origin=URL.rstrip('/')); refresh()
 
     # ================= «Свой вариант» and the chat answers
     page.fill('#ownText', 'Небо сегодня синее.'); page.wait_for_timeout(100)

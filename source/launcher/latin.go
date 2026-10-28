@@ -19,6 +19,12 @@ package main
 //   - otherwise: the last but one syllable is marked if the word ends in a consonant (sanctificétur), else nothing.
 // A word that already has a stress mark (liturgical texts: Dóminus) keeps it. Macrons and breves are only read
 // for the stress and then dropped.
+//
+// The classical pronunciation (respellLatinClassical, 25.10.2026) leaves the spelling to espeak-ng's own Latin
+// rules (c [k], v [w], ae [ai], ph [pʰ]; the voice gets a copy of its model with the espeak-ng voice "la", see
+// espeakModel in tts.go). Those rules put the stress on the last but one syllable only if it is long — by position
+// or by a macron (fortūna) — so the program adds the macron where its rules put the stress on an open last but one
+// syllable; and where they cannot tell, it is the last but one syllable, as for the church pronunciation.
 
 import (
 	"strings"
@@ -59,6 +65,11 @@ var latinStressBack = map[string]bool{ // a short last but one syllable: the str
 	"facere": true, "dicere": true, "legere": true, "vivere": true, "credere": true, "scribere": true, "mittere": true,
 	"ponere": true, "quaerere": true, "agere": true, "regere": true, "accipere": true, "cogere": true,
 	"nihilo": true, "nihilum": true, "aliquis": true, "aliquid": true, "aliqua": true, "aliquem": true,
+	"anima": true, "animam": true, "animae": true, "animas": true, "animus": true, "animum": true, "animi": true, "animo": true,
+	"cogito": true, "cogitas": true, "cogitat": true, "cogitant": true, "cogitans": true,
+	"facilis": true, "facile": true, "facilem": true, "difficilis": true, "difficile": true, "similis": true, "simile": true,
+	"utilis": true, "utile": true, "littera": true, "litteram": true, "litterae": true, "litteras": true, "litteris": true,
+	"vesperi": true, "vespere": true,
 }
 var latinStressPenult = map[string]bool{ // a long vowel before a vowel: the last but one syllable after all
 	"maria": true, "mariae": true, "mariam": true, "diei": true,
@@ -67,8 +78,10 @@ var latinStressPenult = map[string]bool{ // a long vowel before a vowel: the las
 var latinShortEndings = []string{"ibus",
 	"icus", "icum", "ica", "ici", "icae", "icis", "icam", "icos", "icas", "ico",
 	"imus", "imum", "ima", "imi", "imae", "imis", "imam", "imos", "imas", "imo", "ime",
-	"ulus", "ulum", "ula", "uli", "ulae", "ulis", "ulam", "ulos", "ulas", "ulo",
-	"itas", "ietas"}
+	"ulus", "ulum", "ula", "uli", "ulae", "ulis", "ulam", "ulos", "ulas", "ulo", "ulat", "ulant", "ulans", // ambulat
+	"itas", "ietas",
+	"ine", "inem", "ines", // lumine, hominem, virgines (a short i of the third declension)
+	"bilis", "bile", "bilem", "bili"} // mobilis, possibile
 var latinDiphthongWords = map[string]bool{"heu": true, "eheu": true, "seu": true, "neu": true, "ceu": true, "cui": true, "huic": true}
 
 func latinVowel(c rune) bool {
@@ -337,4 +350,76 @@ func respellLatinChurch(s string) string {
 		i = j
 	}
 	return b.String()
+}
+
+// respellLatinClassical marks the stress of a Latin text for espeak-ng's Latin rules (the classical pronunciation):
+// a macron on the stressed vowel of an open last but one syllable; accents and breves are dropped, macrons of the
+// text are kept. Other words (not in Latin letters) and everything between words stay as they are.
+func respellLatinClassical(s string) string {
+	rs := []rune(s)
+	var b strings.Builder
+	for i := 0; i < len(rs); {
+		if !unicode.IsLetter(rs[i]) {
+			b.WriteRune(rs[i])
+			i++
+			continue
+		}
+		j := i
+		for j < len(rs) && unicode.IsLetter(rs[j]) {
+			j++
+		}
+		b.WriteString(string(latinClassicalWord(rs[i:j])))
+		i = j
+	}
+	return b.String()
+}
+
+var latinMacron = map[rune]rune{'a': 'ā', 'e': 'ē', 'i': 'ī', 'o': 'ō', 'u': 'ū', 'y': 'ȳ'}
+
+func latinClassicalWord(word []rune) []rune {
+	L, ok := latinParse(word)
+	if !ok {
+		return word
+	}
+	var b strings.Builder
+	for _, l := range L {
+		b.WriteRune(l.c)
+	}
+	w := b.String()
+	nu := latinNuclei(L, w)
+	k := -1
+	for i, n := range nu {
+		if L[n.start].acc {
+			k = i
+		}
+	}
+	if k < 0 {
+		k = latinStress(L, nu, w)
+		if k < 0 && len(nu) >= 3 {
+			k = len(nu) - 2 // as for the church pronunciation: the last but one syllable
+		}
+	}
+	if p := len(nu) - 2; len(nu) >= 3 && k == p && !nu[p].diph && !L[nu[p].start].long && latinConsonants(L, nu[p].end, nu[p+1].start) < 2 {
+		L[nu[p].start].long = true // espeak-ng stresses a long last but one syllable
+		L[nu[p].start].sep = false
+	}
+	res := make([]rune, 0, len(L))
+	for _, l := range L {
+		r := l.c
+		switch {
+		case l.long:
+			if m, ok := latinMacron[r]; ok {
+				r = m
+			}
+		case l.sep:
+			if d, ok := map[rune]rune{'a': 'ä', 'e': 'ë', 'i': 'ï', 'o': 'ö', 'u': 'ü', 'y': 'ÿ'}[r]; ok {
+				r = d
+			}
+		}
+		if l.upper {
+			r = unicode.ToUpper(r)
+		}
+		res = append(res, r)
+	}
+	return res
 }

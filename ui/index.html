@@ -261,6 +261,8 @@ label.check input { width: 15px; height: 15px; margin: 0; accent-color: var(--ac
 .set-row { display: flex; align-items: flex-start; gap: 6px 14px; flex-wrap: wrap; }
 .set-label { width: 170px; flex: none; padding-top: 6px; color: var(--muted); }
 .set-ctl { flex: 1; min-width: 240px; display: flex; flex-direction: column; align-items: flex-start; gap: 6px; }
+.set-line { display: flex; align-items: center; gap: 6px 10px; flex-wrap: wrap; }
+.set-line > span:first-child { min-width: 90px; }
 .seg { display: inline-flex; flex-wrap: wrap; }
 .seg button { border-radius: 0; margin-left: -1px; }
 .seg button:first-child { border-radius: var(--radius) 0 0 var(--radius); margin-left: 0; }
@@ -286,7 +288,11 @@ table.res th, table.res td { text-align: left; padding: 6px 8px; border-bottom: 
 table.res th { font-weight: 500; color: var(--muted); font-size: .8571rem; }
 table.res td.num { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
 .test-out { font-size: .9286rem; }
-.test-out .ref { color: var(--faint); }
+.test-out .ref, .test-out .src-line { color: var(--faint); }
+.test-out .src-line { margin: 2px 0; }
+.test-out .lbl { color: var(--faint); font-size: .8571rem; }
+.test-intro > div + div { margin-top: 4px; }
+.test-intro b { color: var(--text); font-weight: 600; }
 .progress { height: 6px; background: var(--panel2); border: 1px solid var(--border); border-radius: 4px; overflow: hidden; }
 .progress > div { height: 100%; background: var(--accent); width: 0%; transition: width .3s; }
 
@@ -536,6 +542,21 @@ footer.status {
             <div class="set-ctl"><label class="check"><input type="checkbox" id="setLoad"> <span>Загружать выбранную модель</span></label><label class="check"><input type="checkbox" id="setWelcome"> <span>Показывать окно приветствия</span></label></div>
           </div>
         </div>
+        <div class="set-row">
+          <div class="set-label">Спросить модель</div>
+          <div class="set-ctl">
+            <div class="set-line"><span>Температура</span><select id="setTemp" aria-label="Температура"></select><span class="note">ниже — точнее и однообразнее, выше — свободнее</span></div>
+            <div class="set-line"><span>Ответы</span><div id="ansSeg" class="seg"><button data-v="short">Коротко</button><button data-v="normal">Обычно</button><button data-v="detailed">Подробно</button></div></div>
+            <div class="note">Только для вопросов в «Спросить модель»; у переводов — свои настройки.</div>
+          </div>
+        </div>
+        <div class="set-row">
+          <div class="set-label">Чтение вслух</div>
+          <div class="set-ctl">
+            <div class="set-line"><span>Скорость</span><div id="speedSeg" class="seg"><button data-v="70">70 %</button><button data-v="80">80 %</button><button data-v="90">90 %</button><button data-v="100">100 %</button><button data-v="110">110 %</button><button data-v="120">120 %</button></div></div>
+            <div class="note">Для всех голосов.</div>
+          </div>
+        </div>
         <div id="settingsNote" class="note"></div>
         <div class="set-links"><button id="openHelpBtn">Справка</button><button id="openAboutBtn">О программе</button><button id="openWelcomeBtn" hidden>Окно приветствия</button></div>
         <div id="quitRow" class="set-row" hidden>
@@ -569,12 +590,13 @@ footer.status {
 
     <div id="testView" hidden>
       <div class="pane-head">
-        <h2>Тест на ваших фразах</h2>
+        <h2>Тест переводчика</h2>
         <span class="spacer"></span>
-        <button id="runTestBtn" class="primary needs-model">Запустить тест</button>
+        <button id="quickTestBtn" class="primary needs-model">Быстрый тест</button>
+        <button id="runTestBtn" class="needs-model">Подробный тест</button>
         <button id="closeTestBtn">Назад</button>
       </div>
-      <div id="testIntro" class="note" style="margin:-6px 0 10px"></div>
+      <div id="testIntro" class="note test-intro" style="margin:-6px 0 10px"></div>
       <div id="testProgress" hidden style="margin-bottom:12px">
         <div class="row small" style="margin-bottom:4px"><span id="testProgressText"></span></div>
         <div class="progress"><div id="testBar"></div></div>
@@ -712,7 +734,18 @@ const CTX_EXAMPLE = 'текст научно-популярной статьи';
 const MAX_CHARS = 1000;
 const MAX_CONTEXT = 300;
 const BASE_SEED = 1;          // одинаковый текст даёт одинаковые основные варианты
-const TEST_STYLES = ['neutral', 'casual'];   // стили для кнопки «Тест»: нейтральный и разговорный
+const TEST_STYLES = ['neutral', 'casual'];   // стили «Подробного теста»: нейтральный и разговорный
+// «Быстрый тест» (предложение автора от 25.10.2026): две латинские крылатые фразы — с латыни на язык интерфейса и
+// обратно, в одном стиле, без правки (4 перевода, около минуты). Образцы переводов — на пяти языках интерфейса.
+const QUICK_TEST = {
+  style: 'neutral',
+  pairs: [
+    { la: 'Audentes fortuna iuvat.', en: 'Fortune favors the bold.', ru: 'Смелым судьба помогает.',
+      de: 'Den Mutigen hilft das Glück.', es: 'La fortuna favorece a los audaces.', zh: '命运眷顾勇敢的人。' },
+    { la: 'Cogito, ergo sum.', en: 'I think, therefore I am.', ru: 'Мыслю, следовательно, существую.',
+      de: 'Ich denke, also bin ich.', es: 'Pienso, luego existo.', zh: '我思故我在。' },
+  ],
+};
 
 // Что показывать, когда нужна модель, а она выгружена или не запущена. По решению автора — всегда по-английски.
 // Это же сообщение отдаёт программа запуска (Ttranslator.exe), если запрос пришёл при выгруженной модели.
@@ -798,8 +831,15 @@ const MATH_TESTS = [
 // «Спросить модель»: инструкция для модели, параметры генерации, предел длины ответа (в токенах).
 const ASK = {
   system: "You are a helpful assistant built into an offline translator application. Users ask about translations, terminology, grammar, style and wording, and sometimes general questions. Reply in the language of the user's question unless asked otherwise. Be accurate and concise; if you are not sure, say so.",
-  sampling: { temperature: 0.6, top_p: 0.95, top_k: 64, repeat_penalty: 1.0 },
+  sampling: { temperature: 0.6, top_p: 0.95, top_k: 64, repeat_penalty: 1.0 },   // temperature — из «Настроек»
   maxTokens: 1024,
+  // «Ответы» в «Настройках» (просьба автора от 25.10.2026): добавка к инструкции и предел длины ответа (в токенах)
+  answers: {
+    short: { system: 'Answer briefly: a few sentences at most, unless the user asks for more.', maxTokens: 512 },
+    normal: { system: '', maxTokens: 1024 },
+    detailed: { system: 'Answer in detail: explain the reasoning step by step and give examples where they help.', maxTokens: 2048 },
+  },
+  temperatures: [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0],   // выбор температуры в «Настройках»
   hymtNote: 'Hy-MT2 обучена только переводу и на вопросы отвечает плохо — для вопросов лучше выбрать Gemma 4.',
 };
 
@@ -1054,8 +1094,9 @@ const LESSON_ASK = {
 // Чтение вслух (кнопки 🔊): голоса Piper скачиваются в меню моделей. Длинный текст читается кусками по предложениям
 // (не длиннее maxChunk знаков; китайский — maxChunkZh: иероглиф — целый слог, кусок звучал бы втрое дольше): звук
 // начинается после первого куска, следующий готовится, пока звучит предыдущий.
-// speed — скорость речи: 1 — обычная, больше — быстрее (от 0.5 до 2).
-const SPEAK = { maxChunk: 240, maxChunkZh: 80, speed: 1.0 };
+// speed — скорость речи: 1 — обычная, больше — быстрее (от 0.5 до 2); её умножает «Скорость» в «Настройках»
+// (speeds, в процентах).
+const SPEAK = { maxChunk: 240, maxChunkZh: 80, speed: 1.0, speeds: [70, 80, 90, 100, 110, 120] };
 
 // Словарь терминов: имя первого файла, его языки и начальные термины с примечаниями (примечание записывается на
 // языке интерфейса). Начальный словарь создаётся один раз — при самом первом запуске; ваши файлы не меняются.
@@ -1076,10 +1117,13 @@ const GLOSS_MAX_TERMS = 40;   // сколько найденных термин�
 
 // «О программе»: текст автора на пяти языках. Номер версии подставляется сам.
 const CONTACT_EMAIL = 'Ttranslator@proton.me';
-const SPONSOR_URL = '';   // адрес страницы GitHub Sponsors; пока пусто — строка о поддержке без ссылки
+// Поддержка (просьба автора от 25.10.2026): страница создателей на GitHub и их страница GitHub Sponsors (кнопка
+// «Sponsor» появится на ней, когда Sponsors будет включён в настройках GitHub). Пустой адрес — без ссылки.
+const GITHUB_URL = 'https://github.com/Allasoneteam';
+const SPONSOR_URL = 'https://github.com/sponsors/Allasoneteam';
 const ABOUT = {
   ru: {
-    intro: 'Представляем Вам Ttranslator — бесплатный офлайн-переводчик с открытым исходным кодом. Его возможности:',
+    intro: 'Представляем Вам Ttranslator — бесплатный многофункциональный офлайн-переводчик с открытым исходным кодом. Его возможности:',
     features: [
       'Быстрый многоязычный перевод: по Вашему выбору — разные стили, контекст и несколько вариантов.',
       'Собственный словарь со специальными переводами: его можно дополнять и редактировать.',
@@ -1088,12 +1132,13 @@ const ABOUT = {
       'Переформулировки на выбранном языке, объяснения, тесты, справка, поиск, исправления и другие функции по Вашему выбору.',
     ],
     contact: 'Если у Вас возникнут вопросы, предложения или отзывы, напишите создателям приложения:',
-    support: 'Создатели будут рады любой поддержке через GitHub Sponsors.',
+    support: 'Создатели будут рады любой поддержке через GitHub Sponsors:',
+    thanks: 'Особая благодарность: Иван Гоносков и Claude Opus 5.5 (Anthropic).',
     license: 'Лицензия: MIT, © 2026 Allasoneteam and Ttranslator authors (файл LICENSE.txt в папке программы).',
     credits: 'Используются: движок llama.cpp (лицензия MIT) и модели Gemma 4 (Google, лицензия Apache 2.0); для чтения вслух — программа sherpa-onnx (лицензия Apache 2.0, внутри — espeak-ng, лицензия GPL-3.0) и голоса Piper (лицензия каждого голоса указана в меню моделей); окно приложения — библиотека webview (лицензия MIT), в Windows — Microsoft Edge WebView2.',
   },
   en: {
-    intro: 'Meet Ttranslator, a free, offline, open-source translator. Its features:',
+    intro: 'Meet Ttranslator, a free, open-source, multifunctional offline translator. Its features:',
     features: [
       'Fast multilingual translation, with the styles, context and number of variants of your choice.',
       'Your own glossary of special translations, which you can extend and edit.',
@@ -1102,12 +1147,13 @@ const ABOUT = {
       'Rephrasing in the chosen language, explanations, tests, help, search, corrections and other functions of your choice.',
     ],
     contact: 'If you have questions, suggestions or feedback, please write to the creators of the app:',
-    support: 'The creators will be glad of any support via GitHub Sponsors.',
+    support: 'The creators will be glad of any support via GitHub Sponsors:',
+    thanks: 'Special thanks to Ivan Gonoskov and Claude Opus 5.5 (Anthropic).',
     license: 'Licence: MIT, © 2026 Allasoneteam and Ttranslator authors (the file LICENSE.txt in the program folder).',
     credits: 'Built with the llama.cpp engine (MIT licence) and the Gemma 4 models (Google, Apache 2.0 licence); reading aloud uses the sherpa-onnx program (Apache 2.0 licence, with espeak-ng inside, GPL-3.0 licence) and Piper voices (the licence of each voice is shown in the model menu); the app window uses the webview library (MIT licence) and, on Windows, Microsoft Edge WebView2.',
   },
   de: {
-    intro: 'Wir stellen Ihnen Ttranslator vor – einen kostenlosen Offline-Übersetzer mit offenem Quellcode. Seine Funktionen:',
+    intro: 'Wir stellen Ihnen Ttranslator vor – einen kostenlosen multifunktionalen Offline-Übersetzer mit offenem Quellcode. Seine Funktionen:',
     features: [
       'Schnelle mehrsprachige Übersetzung: nach Ihrer Wahl mit verschiedenen Stilen, Kontext und mehreren Varianten.',
       'Ein eigenes Glossar mit speziellen Übersetzungen, das Sie ergänzen und bearbeiten können.',
@@ -1116,12 +1162,13 @@ const ABOUT = {
       'Umformulierungen in der gewählten Sprache, Erklärungen, Tests, Hilfe, Suche, Korrekturen und weitere Funktionen nach Ihrer Wahl.',
     ],
     contact: 'Wenn Sie Fragen, Vorschläge oder Rückmeldungen haben, schreiben Sie den Entwicklern der Anwendung:',
-    support: 'Die Entwickler freuen sich über jede Unterstützung über GitHub Sponsors.',
+    support: 'Die Entwickler freuen sich über jede Unterstützung über GitHub Sponsors:',
+    thanks: 'Besonderer Dank an Ivan Gonoskov und Claude Opus 5.5 (Anthropic).',
     license: 'Lizenz: MIT, © 2026 Allasoneteam and Ttranslator authors (Datei LICENSE.txt im Programmordner).',
     credits: 'Verwendet werden die Engine llama.cpp (MIT-Lizenz) und die Modelle Gemma 4 (Google, Apache-2.0-Lizenz); zum Vorlesen das Programm sherpa-onnx (Apache-2.0-Lizenz, darin espeak-ng, GPL-3.0-Lizenz) und Piper-Stimmen (die Lizenz jeder Stimme steht im Modellmenü); das App-Fenster nutzt die Bibliothek webview (MIT-Lizenz) und unter Windows Microsoft Edge WebView2.',
   },
   es: {
-    intro: 'Le presentamos Ttranslator, un traductor sin conexión, gratuito y de código abierto. Sus funciones:',
+    intro: 'Le presentamos Ttranslator, un traductor multifuncional sin conexión, gratuito y de código abierto. Sus funciones:',
     features: [
       'Traducción multilingüe rápida: con los estilos, el contexto y el número de variantes que usted elija.',
       'Un glosario propio con traducciones especiales, que puede ampliar y editar.',
@@ -1130,12 +1177,13 @@ const ABOUT = {
       'Reformulaciones en el idioma elegido, explicaciones, pruebas, ayuda, búsqueda, correcciones y otras funciones a su elección.',
     ],
     contact: 'Si tiene preguntas, sugerencias o comentarios, escriba a los creadores de la aplicación:',
-    support: 'Los creadores agradecerán cualquier apoyo a través de GitHub Sponsors.',
+    support: 'Los creadores agradecerán cualquier apoyo a través de GitHub Sponsors:',
+    thanks: 'Agradecimiento especial a Ivan Gonoskov y Claude Opus 5.5 (Anthropic).',
     license: 'Licencia: MIT, © 2026 Allasoneteam and Ttranslator authors (archivo LICENSE.txt en la carpeta del programa).',
     credits: 'Se utilizan el motor llama.cpp (licencia MIT) y los modelos Gemma 4 (Google, licencia Apache 2.0); para la lectura en voz alta, el programa sherpa-onnx (licencia Apache 2.0, con espeak-ng dentro, licencia GPL-3.0) y voces de Piper (la licencia de cada voz se indica en el menú de modelos); la ventana de la aplicación usa la biblioteca webview (licencia MIT) y, en Windows, Microsoft Edge WebView2.',
   },
   zh: {
-    intro: '向您介绍 Ttranslator——一款免费、离线、开源的翻译器。它的功能：',
+    intro: '向您介绍 Ttranslator——一款免费、离线、开源的多功能翻译器。它的功能：',
     features: [
       '快速的多语言翻译：风格、语境和版本数量均可按您的需要选择。',
       '个人术语表，收录特殊译法，可随时补充和编辑。',
@@ -1144,7 +1192,8 @@ const ABOUT = {
       '在所选语言内改写、解释、测试、帮助、搜索、校改，以及其他可按需选用的功能。',
     ],
     contact: '如有问题、建议或反馈，请写信给应用的创作者：',
-    support: '创作者欢迎您通过 GitHub Sponsors 给予任何支持。',
+    support: '创作者欢迎您通过 GitHub Sponsors 给予任何支持：',
+    thanks: '特别感谢 Ivan Gonoskov 和 Claude Opus 5.5（Anthropic）。',
     license: '许可证：MIT，© 2026 Allasoneteam and Ttranslator authors（程序文件夹中的 LICENSE.txt 文件）。',
     credits: '使用了 llama.cpp 引擎（MIT 许可证）和 Gemma 4 模型（Google，Apache 2.0 许可证）；朗读使用 sherpa-onnx 程序（Apache 2.0 许可证，内含 espeak-ng，GPL-3.0 许可证）和 Piper 语音（每个语音的许可证见模型菜单）；应用窗口使用 webview 库（MIT 许可证），在 Windows 上使用 Microsoft Edge WebView2。',
   },
@@ -1155,33 +1204,38 @@ const WHATS_NEW = {
   version: '1.0',
   ru: [
     'Интерфейс — на пяти языках: к русскому, английскому и немецкому добавлены испанский и китайский. При первом запуске интерфейс английский; язык меняется прямо на экране первого запуска, в окне приветствия или в «Настройках».',
-    'Латынь вслух: итальянский голос Paola читает латинский текст с «церковным» произношением, а ударения программа расставляет по правилам латыни (меню моделей → голоса).',
-    '«Тест»: пары фраз на любых двух языках из девяти; в наборе — латинские крылатые выражения (Audentes fortuna iuvat и другие).',
-    'Инструкция по установке в README.txt — на английском, русском, немецком, испанском и китайском.',
+    'Латынь вслух: итальянский голос Paola читает латинский текст с «церковным» или «классическим» произношением (на выбор, голос скачивается один раз), а ударения программа расставляет по правилам латыни (меню моделей → голоса).',
+    '«Тест»: «Быстрый тест» — две латинские крылатые фразы с переводом на язык интерфейса и обратно, около минуты; «Подробный тест» — пары фраз на любых двух языках из файла ui\\tests.txt. У каждого задания видны исходный текст, перевод модели и Ваш вариант.',
+    'В «Настройках»: температура и длина ответов для «Спросить модель», скорость чтения вслух.',
+    'README.txt: установка, обновление и удаление — на английском, русском, немецком, испанском и китайском.',
   ],
   en: [
     'The interface is in five languages: Spanish and Chinese join Russian, English and German. On the first start the interface is English; you can change the language right on the first-start screen, in the welcome window or in “Settings”.',
-    'Latin read aloud: the Italian voice Paola reads Latin text with the church pronunciation, and the program puts the stress where the rules of Latin say (model menu → voices).',
-    '“Test”: phrase pairs in any two of the nine languages; the set includes Latin sayings (Audentes fortuna iuvat and others).',
-    'The installation instructions in README.txt are in English, Russian, German, Spanish and Chinese.',
+    'Latin read aloud: the Italian voice Paola reads Latin text with the church or the classical pronunciation (your choice; the voice is downloaded once), and the program puts the stress where the rules of Latin say (model menu → voices).',
+    '“Test”: the “Quick test” — two Latin sayings translated into the interface language and back, about a minute; the “Full test” — phrase pairs in any two languages from ui\\tests.txt. Each task shows the source text, the model translation and your version.',
+    'In “Settings”: the temperature and the length of the answers for “Ask the model”, the speed of reading aloud.',
+    'README.txt: installing, updating and uninstalling in English, Russian, German, Spanish and Chinese.',
   ],
   de: [
     'Die Oberfläche gibt es in fünf Sprachen: Zu Russisch, Englisch und Deutsch kommen Spanisch und Chinesisch hinzu. Beim ersten Start ist die Oberfläche englisch; die Sprache lässt sich direkt auf dem Bildschirm des ersten Starts, im Begrüßungsfenster oder unter „Einstellungen“ ändern.',
-    'Latein vorlesen: Die italienische Stimme Paola liest lateinischen Text mit der kirchlichen Aussprache, und die Betonung setzt das Programm nach den Regeln des Lateins (Modellmenü → Stimmen).',
-    '„Test“: Satzpaare in zwei beliebigen der neun Sprachen; enthalten sind lateinische Redewendungen (Audentes fortuna iuvat und andere).',
-    'Die Installationsanleitung in README.txt gibt es auf Englisch, Russisch, Deutsch, Spanisch und Chinesisch.',
+    'Latein vorlesen: Die italienische Stimme Paola liest lateinischen Text mit der kirchlichen oder der klassischen Aussprache (nach Wahl; die Stimme wird nur einmal heruntergeladen), und die Betonung setzt das Programm nach den Regeln des Lateins (Modellmenü → Stimmen).',
+    '„Test“: der „Schnelltest“ – zwei lateinische Redewendungen, übersetzt in die Sprache der Oberfläche und zurück, etwa eine Minute; der „Ausführliche Test“ – Satzpaare in zwei beliebigen Sprachen aus ui\\tests.txt. Jede Aufgabe zeigt Ausgangstext, Übersetzung des Modells und Ihre Fassung.',
+    'Unter „Einstellungen“: Temperatur und Länge der Antworten für „Modell fragen“, Geschwindigkeit des Vorlesens.',
+    'README.txt: Installation, Aktualisierung und Deinstallation auf Englisch, Russisch, Deutsch, Spanisch und Chinesisch.',
   ],
   es: [
     'La interfaz está en cinco idiomas: al ruso, el inglés y el alemán se suman el español y el chino. En el primer inicio la interfaz está en inglés; el idioma se cambia en la misma pantalla del primer inicio, en la ventana de bienvenida o en «Ajustes».',
-    'Latín en voz alta: la voz italiana Paola lee textos latinos con la pronunciación eclesiástica, y el programa pone el acento según las reglas del latín (menú de modelos → voces).',
-    '«Prueba»: pares de frases en dos idiomas cualesquiera de los nueve; el conjunto incluye locuciones latinas (Audentes fortuna iuvat y otras).',
-    'Las instrucciones de instalación de README.txt están en inglés, ruso, alemán, español y chino.',
+    'Latín en voz alta: la voz italiana Paola lee textos latinos con la pronunciación eclesiástica o la clásica (a elegir; la voz se descarga una sola vez), y el programa pone el acento según las reglas del latín (menú de modelos → voces).',
+    '«Prueba»: la «Prueba rápida» —dos locuciones latinas traducidas al idioma de la interfaz y de vuelta, alrededor de un minuto— y la «Prueba completa» —pares de frases en dos idiomas cualesquiera del archivo ui\\tests.txt—. Cada tarea muestra el texto original, la traducción del modelo y su versión.',
+    'En «Ajustes»: la temperatura y la longitud de las respuestas de «Preguntar al modelo» y la velocidad de la lectura en voz alta.',
+    'README.txt: instalación, actualización y desinstalación en inglés, ruso, alemán, español y chino.',
   ],
   zh: [
     '界面支持五种语言：在俄语、英语和德语之外，新增西班牙语和中文。首次启动时界面为英语；可以直接在首次启动界面、欢迎窗口或“设置”中更改语言。',
-    '拉丁语朗读：意大利语语音 Paola 以教会式发音朗读拉丁语文本，程序按拉丁语规则标出重音（模型菜单 → 语音）。',
-    '“测试”：九种语言中任意两种语言的句子对；默认包含拉丁语名言（Audentes fortuna iuvat 等）。',
-    'README.txt 中的安装说明提供英语、俄语、德语、西班牙语和中文版本。',
+    '拉丁语朗读：意大利语语音 Paola 以教会式或古典式发音（任选其一；语音只需下载一次）朗读拉丁语文本，程序按拉丁语规则标出重音（模型菜单 → 语音）。',
+    '“测试”：“快速测试”——两句拉丁语名言译成界面语言再译回，约一分钟；“详细测试”——ui\\tests.txt 中任意两种语言的句子对。每项任务都会显示原文、模型译文和您的译文。',
+    '“设置”中新增：“询问模型”的温度和回答长度，以及朗读语速。',
+    'README.txt：安装、更新和卸载说明提供英语、俄语、德语、西班牙语和中文版本。',
   ],
 };
 
@@ -1214,21 +1268,29 @@ const HELP = {
       'Кнопка 🔊 у поля текста, у каждого варианта, у «Своего варианта» и у ответов модели читает текст вслух. Пока текст звучит, кнопка и текст подсвечены зелёным; второе нажатие — пауза (подсветка текста снимается), третье — продолжить. Кнопка ■ рядом, Esc или другая кнопка 🔊 останавливают чтение; правка текста — тоже. Формулы LaTeX не читаются.',
       '- Голоса скачиваются в меню моделей (кнопка с названием модели вверху), по голосу на язык. Вместе с первым голосом один раз скачивается программа озвучки sherpa-onnx. Голос не занимает память постоянно: он запускается на секунду-две для каждой фразы.',
       '- Голоса можно перенести с другого компьютера: скопируйте папку models\\voices. Если программы озвучки в папке engine ещё нет, в меню моделей появится строка «Программа озвучки sherpa-onnx» — скачается только она (20–30 МБ), голоса заново не скачиваются. Без интернета можно скопировать и всю папку engine с другого компьютера с той же системой (Windows или Linux).',
-      '- Голоса есть для русского, английского, немецкого, испанского, китайского, шведского и латыни. Латынь читает итальянский голос Paola — с «церковным» (итальянским) произношением: caelum — «челум», gratia — «грациа»; ударения программа расставляет сама по правилам латыни.',
-      '- Голоса есть для русского, английского, немецкого, испанского, китайского и шведского.',
+      '- Если для языка скачано два голоса, читает тот, что отмечен ✓; другой выбирается щелчком. Без голоса для языка текста кнопка 🔊 бледная.',
+      '- Голоса есть для русского, английского, немецкого, испанского, китайского, шведского и латыни. Латынь читает итальянский голос Paola с одним из двух произношений (на выбор в меню моделей; голос скачивается один раз): «церковным» (итальянским) — caelum как «челум», gratia как «грациа» — или «классическим» — caelum как «кайлум», Cicero как «кикеро». Ударения программа расставляет сама по правилам латыни.',
       '- Лицензии голосов разные (видны в меню моделей); Ruslan и HFC female — только для некоммерческого использования.'],
     ['Модели',
       'Кнопка с названием модели вверху открывает список. Перед скачиванием модели программа показывает, откуда, в какую папку и под каким именем скачивается файл; ненужную модель можно удалить; свой файл .gguf можно положить в папку models. Кнопка ⏏ выгружает модель из памяти: окно остаётся, а для перевода модель нужно загрузить снова. Если закрыть окно программы, через несколько секунд модель выгрузится из памяти и программа завершится.',
       'На экране первого запуска можно нажать «Пропустить»: окно откроется без модели (вверху — «Выбрать модель»), а модель Вы выберете и скачаете в этом списке.'],
     ['Тест',
-      'Кнопка «Тест» переводит пары фраз из файла ui\\tests.txt в обе стороны, исправляет каждую фразу на своём языке и сохраняет отчёт со временем и оценкой в папку data\\reports — так удобно сравнивать модели. Пара — две строки на двух языках: «EN: …» и «RU: …» (или LA, DE, FR, ES, EL, ZH, SV); в наборе — две пары английский ↔ русский и четыре латинских крылатых выражения. Свои пары можно дописать в этот файл.'],
+      'Кнопка «Тест» открывает два теста; отчёт со временем и оценкой каждого сохраняется в папку data\\reports — так удобно сравнивать модели.',
+      '- «Быстрый тест» — две латинские крылатые фразы (Audentes fortuna iuvat; Cogito, ergo sum): с латыни на язык интерфейса и обратно, в нейтральном стиле — четыре перевода, около минуты. Образцы переводов встроены в программу.',
+      '- «Подробный тест» переводит пары фраз из файла ui\\tests.txt в обе стороны в двух стилях и исправляет каждую фразу на своём языке. Пара — две строки на двух языках: «EN: …» и «RU: …» (или LA, DE, FR, ES, EL, ZH, SV); в наборе — две пары английский ↔ русский и четыре латинских крылатых выражения. Свои пары можно дописать в этот файл.',
+      '- В окне теста у каждого задания видны исходный текст, перевод модели и Ваш вариант (из файла) или образец перевода.'],
     ['Настройки',
       'Кнопка ⚙ вверху: язык интерфейса (английский, русский, немецкий, испанский или китайский), тема (светлая или тёмная), размер шрифта, «О программе» и «Выход». Настройки сохраняются сразу. Значок T вверху справа тоже открывает «О программе». При запуске программа показывает окно приветствия: язык, вид окна, загружать ли модель при запуске и показывать ли это окно; то же — в «Настройках». Окно приветствия можно передвинуть за заголовок; «Выйти» в нём закрывает программу.',
-      '- Вид окна: «Окно приложения» — окно самой программы на веб-движке системы (WebView2 в Windows, WebKitGTK в Linux), по умолчанию — на весь экран (галочка в «Настройках»); «Вкладка браузера» — вкладка браузера по умолчанию. Если окно приложения не открылось, программа откроет окно Edge или Chrome, а причину покажет в «Настройках». В окне приложения ссылки открываются в обычном браузере, а файлы сохраняются через окно «Сохранить как».'],
+      '- Вид окна: «Окно приложения» — окно самой программы на веб-движке системы (WebView2 в Windows, WebKitGTK в Linux), по умолчанию — на весь экран (галочка в «Настройках»); «Вкладка браузера» — вкладка браузера по умолчанию. Если окно приложения не открылось, программа откроет окно Edge или Chrome, а причину покажет в «Настройках». В окне приложения ссылки открываются в обычном браузере, а файлы сохраняются через окно «Сохранить как».',
+      '- «Спросить модель»: температура (от 0,1 до 1,0: ниже — точнее и однообразнее, выше — свободнее) и ответы — «Коротко», «Обычно» или «Подробно»; это только для вопросов модели, у переводов — свои настройки. «Чтение вслух»: скорость от 70 до 120 % для всех голосов.'],
     ['Файлы программы',
       '- data\\saved — сохранённые переводы; data\\glossary — словари; data\\reports — отчёты теста; data\\logs — журналы.',
       '- models — модели; models\\voices — голоса для чтения вслух; engine — движок llama.cpp и программа озвучки sherpa-onnx; config.json — настройки.',
       'Программа работает без интернета, тексты никуда не отправляются. Интернет нужен только для скачивания движка и моделей.'],
+    ['Обновление и удаление',
+      '- Обновить (Windows и Linux): закройте программу («Выход» или крестик окна), скачайте архив новой версии и распакуйте его туда, где лежит папка программы, с заменой файлов. В Windows: «Извлечь все» → выберите папку, в которой лежит папка Ttranslator → «Заменить файлы в папке назначения»; если Вы переименовали папку программы, скопируйте содержимое новой папки Ttranslator в свою с заменой файлов. Модели, голоса, сохранённые переводы, словари и настройки останутся — их в архиве нет; заменится только ui\\tests.txt (фразы «Подробного теста»).',
+      '- Удалить в Windows: закройте программу и удалите её папку (и ярлык, если Вы его делали). Программа ничего не устанавливает в систему и не пишет в реестр.',
+      '- Удалить в Linux: закройте программу и удалите её папку; если делали ярлык (--shortcut) — ещё файлы ~/.local/share/applications/ttranslator.desktop и ~/.local/share/icons/hicolor/256x256/apps/ttranslator.png; данные окна приложения — папки ~/.local/share/ttranslator и ~/.cache/ttranslator.'],
     ['Если что-то не работает',
       'Если модель не запустилась, над окном появится красная плашка с кнопками «Повторить», «Подробности» и «Открыть папку с журналами». Подробнее — в файле README.txt в папке программы (установка — на английском, русском, немецком, испанском и китайском).'],
   ],
@@ -1258,21 +1320,29 @@ const HELP = {
       'The 🔊 button at the text field, at every variant, at “Your version” and at the model’s answers reads the text aloud. While the text is read, the button and the text are highlighted in green; a second click pauses (the text is no longer highlighted), a third continues. The ■ button next to it, Esc or another 🔊 button stops reading, and so does editing the text. LaTeX formulas are not read.',
       '- Voices are downloaded in the model menu (the button with the model name at the top), one voice per language. With the first voice, the speech program sherpa-onnx is downloaded once. A voice does not stay in memory: it starts for a second or two for every phrase.',
       '- Voices can be moved from another computer: copy the folder models\\voices. If the speech program is not in the engine folder yet, the model menu shows the row “The speech program sherpa-onnx” — only the program is downloaded (20–30 MB), not the voices. Without the internet, you can also copy the whole engine folder from another computer with the same system (Windows or Linux).',
-      '- There are voices for Russian, English, German, Spanish, Chinese, Swedish and Latin. Latin is read by the Italian voice Paola, with the church (Italian) pronunciation: caelum as “chelum”, gratia as “gratsia”; the program puts the stress where the rules of Latin say.',
-      '- There are voices for Russian, English, German, Spanish, Chinese and Swedish.',
+      '- If two voices are downloaded for a language, the one marked ✓ reads; click the other one to choose it. Without a voice for the language of the text, the 🔊 button is pale.',
+      '- There are voices for Russian, English, German, Spanish, Chinese, Swedish and Latin. Latin is read by the Italian voice Paola with one of two pronunciations (choose in the model menu; the voice is downloaded once): the church (Italian) one — caelum as “chelum”, gratia as “gratsia” — or the classical one — caelum as “kailum”, Cicero as “Kikero”. The program puts the stress where the rules of Latin say.',
       '- The voices have different licences (shown in the model menu); Ruslan and HFC female are for non-commercial use only.'],
     ['Models',
       'The button with the model name at the top opens the list. Before downloading a model, the program shows where the file comes from, the folder it goes to and its name; a model you do not need can be deleted; your own .gguf file can be put into the models folder. The ⏏ button unloads the model from memory: the window stays, but to translate you need to load the model again. If you close the program window, the model is unloaded from memory within a few seconds and the program exits.',
       'On the first-start screen you can press “Skip”: the window opens without a model (“Choose a model” at the top), and you choose and download a model in this list.'],
     ['Test',
-      'The “Test” button translates the phrase pairs from ui\\tests.txt both ways, corrects each phrase in its own language and saves a report with timings and scores to data\\reports — handy for comparing models. A pair is two lines in two languages: “EN: …” and “RU: …” (or LA, DE, FR, ES, EL, ZH, SV); the set has two English ↔ Russian pairs and four Latin sayings. You can add your own pairs to this file.'],
+      'The “Test” button opens two tests; a report with the timings and scores of each is saved to data\\reports — handy for comparing models.',
+      '- “Quick test”: two Latin sayings (Audentes fortuna iuvat; Cogito, ergo sum), from Latin into the interface language and back, in the neutral style — four translations, about a minute. The reference translations are built into the program.',
+      '- “Full test” translates the phrase pairs from ui\\tests.txt both ways in two styles and corrects each phrase in its own language. A pair is two lines in two languages: “EN: …” and “RU: …” (or LA, DE, FR, ES, EL, ZH, SV); the set has two English ↔ Russian pairs and four Latin sayings. You can add your own pairs to this file.',
+      '- In the test window each task shows the source text, the model translation and your version (from the file) or the reference translation.'],
     ['Settings',
       'The ⚙ button at the top: interface language (English, Russian, German, Spanish or Chinese), theme (light or dark), font size, “About” and “Exit”. Settings are saved at once. The T icon at the top right also opens “About”. At start the program shows a welcome window: the language, the window type, whether to load the model at start and whether to show this window; the same options are in “Settings”. The welcome window can be moved by its title; “Exit” in it closes the program.',
-      '- Window type: “App window” — the program’s own window on the web engine of the system (WebView2 on Windows, WebKitGTK on Linux), maximized by default (a check box in “Settings”); “Browser tab” — a tab of the default browser. If the app window does not open, the program opens an Edge or Chrome window and shows the reason in “Settings”. In the app window, links open in your usual browser, and files are saved with the “Save as” dialog.'],
+      '- Window type: “App window” — the program’s own window on the web engine of the system (WebView2 on Windows, WebKitGTK on Linux), maximized by default (a check box in “Settings”); “Browser tab” — a tab of the default browser. If the app window does not open, the program opens an Edge or Chrome window and shows the reason in “Settings”. In the app window, links open in your usual browser, and files are saved with the “Save as” dialog.',
+      '- “Ask the model”: the temperature (from 0.1 to 1.0: lower is more precise and uniform, higher is freer) and the answers — “Short”, “Normal” or “Detailed”; this is only for questions to the model, translations have their own settings. “Reading aloud”: the speed from 70 to 120 % for all voices.'],
     ['Program files',
       '- data\\saved — saved translations; data\\glossary — glossaries; data\\reports — test reports; data\\logs — logs.',
       '- models — models; models\\voices — voices for reading aloud; engine — the llama.cpp engine and the speech program sherpa-onnx; config.json — settings.',
       'The program works without the internet and sends your texts nowhere. The internet is needed only to download the engine and the models.'],
+    ['Updating and uninstalling',
+      '- To update (Windows and Linux): close the program (“Exit” or the close button of the window), download the archive of the new version and unpack it where the program folder is, replacing files. On Windows: “Extract all” → choose the folder that contains the folder Ttranslator → “Replace the files in the destination”; if you renamed the program folder, copy the contents of the new folder Ttranslator into yours, replacing files. Models, voices, saved translations, glossaries and settings stay — they are not in the archive; only ui\\tests.txt (the phrases of the “Full test”) is replaced.',
+      '- To uninstall on Windows: close the program and delete its folder (and your shortcut, if you made one). The program installs nothing into the system and writes nothing to the registry.',
+      '- To uninstall on Linux: close the program and delete its folder; if you made the shortcut (--shortcut), also the files ~/.local/share/applications/ttranslator.desktop and ~/.local/share/icons/hicolor/256x256/apps/ttranslator.png; the data of the app window is in the folders ~/.local/share/ttranslator and ~/.cache/ttranslator.'],
     ['If something does not work',
       'If the model does not start, a red bar with the buttons “Retry”, “Details” and “Open the log folder” appears above the window. More in README.txt in the program folder (installation in English, Russian, German, Spanish and Chinese).'],
   ],
@@ -1302,21 +1372,29 @@ const HELP = {
       'Die Schaltfläche 🔊 beim Textfeld, bei jeder Variante, bei „Ihre Fassung“ und bei den Antworten des Modells liest den Text vor. Während der Text vorgelesen wird, sind Schaltfläche und Text grün hervorgehoben; ein zweiter Klick pausiert (der Text ist dann nicht mehr hervorgehoben), ein dritter setzt fort. Die Schaltfläche ■ daneben, Esc oder eine andere Schaltfläche 🔊 beendet das Vorlesen, ebenso das Bearbeiten des Textes. LaTeX-Formeln werden nicht vorgelesen.',
       '- Stimmen werden im Modellmenü heruntergeladen (die Schaltfläche mit dem Modellnamen oben), eine Stimme pro Sprache. Mit der ersten Stimme wird einmalig das Sprachausgabe-Programm sherpa-onnx heruntergeladen. Eine Stimme belegt keinen Arbeitsspeicher auf Dauer: Sie startet für jede Phrase für ein bis zwei Sekunden.',
       '- Stimmen lassen sich von einem anderen Computer übernehmen: Kopieren Sie den Ordner models\\voices. Ist das Sprachausgabe-Programm noch nicht im Ordner engine, zeigt das Modellmenü die Zeile „Das Sprachausgabe-Programm sherpa-onnx“ – heruntergeladen wird nur das Programm (20–30 MB), nicht die Stimmen. Ohne Internet können Sie auch den ganzen Ordner engine von einem anderen Computer mit demselben System (Windows oder Linux) kopieren.',
-      '- Stimmen gibt es für Russisch, Englisch, Deutsch, Spanisch, Chinesisch, Schwedisch und Latein. Latein liest die italienische Stimme Paola – mit der kirchlichen (italienischen) Aussprache: caelum wie „tschelum“, gratia wie „grazia“; die Betonung setzt das Programm nach den Regeln des Lateins.',
-      '- Stimmen gibt es für Russisch, Englisch, Deutsch, Spanisch, Chinesisch und Schwedisch.',
+      '- Sind für eine Sprache zwei Stimmen heruntergeladen, liest die mit ✓ markierte; die andere wählen Sie per Klick. Ohne Stimme für die Sprache des Textes ist die Schaltfläche 🔊 blass.',
+      '- Stimmen gibt es für Russisch, Englisch, Deutsch, Spanisch, Chinesisch, Schwedisch und Latein. Latein liest die italienische Stimme Paola mit einer von zwei Aussprachen (Auswahl im Modellmenü; die Stimme wird nur einmal heruntergeladen): der kirchlichen (italienischen) – caelum wie „tschelum“, gratia wie „grazia“ – oder der klassischen – caelum wie „kailum“, Cicero wie „Kikero“. Die Betonung setzt das Programm nach den Regeln des Lateins.',
       '- Die Stimmen haben verschiedene Lizenzen (im Modellmenü sichtbar); Ruslan und HFC female nur für nicht-kommerzielle Nutzung.'],
     ['Modelle',
       'Die Schaltfläche mit dem Modellnamen oben öffnet die Liste. Vor dem Herunterladen eines Modells zeigt das Programm Quelle, Zielordner und Dateinamen; ein nicht benötigtes Modell lässt sich löschen; eine eigene .gguf-Datei können Sie in den Ordner models legen. Die Schaltfläche ⏏ entlädt das Modell aus dem Arbeitsspeicher: Das Fenster bleibt, zum Übersetzen muss das Modell aber wieder geladen werden. Wenn Sie das Programmfenster schließen, wird das Modell nach wenigen Sekunden aus dem Arbeitsspeicher entladen und das Programm beendet.',
       'Auf dem Bildschirm des ersten Starts können Sie „Überspringen“ wählen: Das Fenster öffnet sich ohne Modell (oben „Modell wählen“), und Sie wählen und laden ein Modell in dieser Liste herunter.'],
     ['Test',
-      'Die Schaltfläche „Test“ übersetzt die Satzpaare aus ui\\tests.txt in beide Richtungen, korrigiert jeden Satz in seiner Sprache und speichert einen Bericht mit Zeiten und Bewertungen in data\\reports – praktisch, um Modelle zu vergleichen. Ein Paar sind zwei Zeilen in zwei Sprachen: „EN: …“ und „RU: …“ (oder LA, DE, FR, ES, EL, ZH, SV); enthalten sind zwei Paare Englisch ↔ Russisch und vier lateinische Redewendungen. Eigene Paare können Sie in diese Datei schreiben.'],
+      'Die Schaltfläche „Test“ öffnet zwei Tests; zu jedem wird ein Bericht mit Zeiten und Bewertungen in data\\reports gespeichert – praktisch, um Modelle zu vergleichen.',
+      '- „Schnelltest“: zwei lateinische Redewendungen (Audentes fortuna iuvat; Cogito, ergo sum), aus dem Lateinischen in die Sprache der Oberfläche und zurück, im neutralen Stil – vier Übersetzungen, etwa eine Minute. Die Referenzübersetzungen sind im Programm enthalten.',
+      '- „Ausführlicher Test“ übersetzt die Satzpaare aus ui\\tests.txt in beide Richtungen in zwei Stilen und korrigiert jeden Satz in seiner Sprache. Ein Paar sind zwei Zeilen in zwei Sprachen: „EN: …“ und „RU: …“ (oder LA, DE, FR, ES, EL, ZH, SV); enthalten sind zwei Paare Englisch ↔ Russisch und vier lateinische Redewendungen. Eigene Paare können Sie in diese Datei schreiben.',
+      '- Im Testfenster zeigt jede Aufgabe den Ausgangstext, die Übersetzung des Modells und Ihre Fassung (aus der Datei) oder die Referenzübersetzung.'],
     ['Einstellungen',
       'Die Schaltfläche ⚙ oben: Sprache der Oberfläche (Englisch, Russisch, Deutsch, Spanisch oder Chinesisch), Design (hell oder dunkel), Schriftgröße, „Über das Programm“ und „Beenden“. Einstellungen werden sofort gespeichert. Auch das Symbol T oben rechts öffnet „Über das Programm“. Beim Start zeigt das Programm ein Begrüßungsfenster: Sprache, Fensterart, ob das Modell beim Start geladen wird und ob dieses Fenster erscheint; dieselben Optionen gibt es unter „Einstellungen“. Das Begrüßungsfenster lässt sich an der Überschrift verschieben; „Beenden“ darin schließt das Programm.',
-      '- Fensterart: „App-Fenster“ – das eigene Fenster des Programms mit der Web-Engine des Systems (WebView2 unter Windows, WebKitGTK unter Linux), standardmäßig maximiert (ein Kontrollkästchen unter „Einstellungen“); „Browser-Tab“ – ein Tab des Standardbrowsers. Öffnet sich das App-Fenster nicht, öffnet das Programm ein Edge- oder Chrome-Fenster und zeigt den Grund unter „Einstellungen“. Im App-Fenster öffnen sich Links im gewohnten Browser, und Dateien werden über „Speichern unter“ gespeichert.'],
+      '- Fensterart: „App-Fenster“ – das eigene Fenster des Programms mit der Web-Engine des Systems (WebView2 unter Windows, WebKitGTK unter Linux), standardmäßig maximiert (ein Kontrollkästchen unter „Einstellungen“); „Browser-Tab“ – ein Tab des Standardbrowsers. Öffnet sich das App-Fenster nicht, öffnet das Programm ein Edge- oder Chrome-Fenster und zeigt den Grund unter „Einstellungen“. Im App-Fenster öffnen sich Links im gewohnten Browser, und Dateien werden über „Speichern unter“ gespeichert.',
+      '- „Modell fragen“: die Temperatur (von 0,1 bis 1,0: niedriger – genauer und einheitlicher, höher – freier) und die Antworten – „Kurz“, „Normal“ oder „Ausführlich“; das gilt nur für Fragen an das Modell, Übersetzungen haben eigene Einstellungen. „Vorlesen“: die Geschwindigkeit von 70 bis 120 % für alle Stimmen.'],
     ['Programmdateien',
       '- data\\saved – gespeicherte Übersetzungen; data\\glossary – Glossare; data\\reports – Testberichte; data\\logs – Protokolle.',
       '- models – Modelle; models\\voices – Stimmen zum Vorlesen; engine – die Engine llama.cpp und das Sprachausgabe-Programm sherpa-onnx; config.json – Einstellungen.',
       'Das Programm arbeitet ohne Internet und sendet Ihre Texte nirgendwohin. Internet ist nur zum Herunterladen der Engine und der Modelle nötig.'],
+    ['Aktualisieren und Deinstallieren',
+      '- Aktualisieren (Windows und Linux): Schließen Sie das Programm („Beenden“ oder das Kreuz des Fensters), laden Sie das Archiv der neuen Version herunter und entpacken Sie es dorthin, wo der Programmordner liegt, und ersetzen Sie die Dateien. Unter Windows: „Alle extrahieren“ → den Ordner wählen, in dem der Ordner Ttranslator liegt → „Dateien im Ziel ersetzen“; haben Sie den Programmordner umbenannt, kopieren Sie den Inhalt des neuen Ordners Ttranslator in Ihren Ordner und ersetzen Sie die Dateien. Modelle, Stimmen, gespeicherte Übersetzungen, Glossare und Einstellungen bleiben erhalten – sie sind nicht im Archiv; ersetzt wird nur ui\\tests.txt (die Sätze des „Ausführlichen Tests“).',
+      '- Deinstallieren unter Windows: Schließen Sie das Programm und löschen Sie seinen Ordner (und Ihre Verknüpfung, falls Sie eine angelegt haben). Das Programm installiert nichts im System und schreibt nichts in die Registry.',
+      '- Deinstallieren unter Linux: Schließen Sie das Programm und löschen Sie seinen Ordner; falls Sie die Verknüpfung angelegt haben (--shortcut), auch die Dateien ~/.local/share/applications/ttranslator.desktop und ~/.local/share/icons/hicolor/256x256/apps/ttranslator.png; die Daten des App-Fensters liegen in den Ordnern ~/.local/share/ttranslator und ~/.cache/ttranslator.'],
     ['Wenn etwas nicht funktioniert',
       'Wenn das Modell nicht startet, erscheint über dem Fenster eine rote Leiste mit den Schaltflächen „Wiederholen“, „Details“ und „Protokollordner öffnen“. Mehr dazu in README.txt im Programmordner (Installation auf Englisch, Russisch, Deutsch, Spanisch und Chinesisch).'],
   ],
@@ -1347,20 +1425,28 @@ const HELP = {
       '- Las voces se descargan en el menú de modelos (el botón con el nombre del modelo, arriba), una voz por idioma. Con la primera voz se descarga una sola vez el programa de voz sherpa-onnx. Una voz no ocupa la memoria de forma permanente: se inicia uno o dos segundos para cada frase.',
       '- Las voces se pueden pasar desde otro ordenador: copie la carpeta models\\voices. Si el programa de voz todavía no está en la carpeta engine, el menú de modelos muestra la línea «Programa de voz sherpa-onnx»: solo se descarga el programa (20–30 MB), no las voces. Sin internet también puede copiar toda la carpeta engine desde otro ordenador con el mismo sistema (Windows o Linux).',
       '- Si hay dos voces descargadas para un idioma, lee la marcada con ✓; la otra se elige con un clic. Sin voz para el idioma del texto, el botón 🔊 aparece pálido.',
-      '- Hay voces para ruso, inglés, alemán, español, chino, sueco y latín. El latín lo lee la voz italiana Paola, con la pronunciación eclesiástica (italiana): caelum como «chelum», gratia como «gratsia»; el programa pone el acento según las reglas del latín.',
+      '- Hay voces para ruso, inglés, alemán, español, chino, sueco y latín. El latín lo lee la voz italiana Paola con una de dos pronunciaciones (se elige en el menú de modelos; la voz se descarga una sola vez): la eclesiástica (italiana) —caelum como «chelum», gratia como «gratsia»— o la clásica —caelum como «kailum», Cicero como «Kikero»—. El programa pone el acento según las reglas del latín.',
       '- Las voces tienen licencias distintas (se ven en el menú de modelos); Ruslan y HFC female son solo para uso no comercial.'],
     ['Modelos',
       'El botón con el nombre del modelo, arriba, abre la lista. Antes de descargar un modelo, el programa muestra de dónde viene el archivo, a qué carpeta va y con qué nombre; un modelo que no necesite se puede eliminar; puede poner su propio archivo .gguf en la carpeta models. El botón ⏏ libera el modelo de la memoria: la ventana sigue abierta, pero para traducir hay que volver a cargar el modelo. Si cierra la ventana del programa, en unos segundos el modelo se libera de la memoria y el programa termina.',
       'En la pantalla del primer inicio puede pulsar «Omitir»: la ventana se abre sin modelo (arriba, «Elegir un modelo») y usted elige y descarga un modelo en esta lista.'],
     ['Prueba',
-      'El botón «Prueba» traduce en ambos sentidos los pares de frases del archivo ui\\tests.txt, corrige cada frase en su propio idioma y guarda un informe con tiempos y puntuaciones en la carpeta data\\reports: así es fácil comparar modelos. Un par son dos líneas en dos idiomas: «EN: …» y «RU: …» (o LA, DE, FR, ES, EL, ZH, SV); el conjunto tiene dos pares inglés ↔ ruso y cuatro locuciones latinas. Puede añadir sus propios pares a este archivo.'],
+      'El botón «Prueba» abre dos pruebas; de cada una se guarda un informe con tiempos y puntuaciones en la carpeta data\\reports: así es fácil comparar modelos.',
+      '- «Prueba rápida»: dos locuciones latinas (Audentes fortuna iuvat; Cogito, ergo sum), del latín al idioma de la interfaz y de vuelta, en estilo neutro: cuatro traducciones, alrededor de un minuto. Las traducciones de referencia vienen incluidas en el programa.',
+      '- «Prueba completa» traduce en ambos sentidos y en dos estilos los pares de frases del archivo ui\\tests.txt y corrige cada frase en su propio idioma. Un par son dos líneas en dos idiomas: «EN: …» y «RU: …» (o LA, DE, FR, ES, EL, ZH, SV); el conjunto tiene dos pares inglés ↔ ruso y cuatro locuciones latinas. Puede añadir sus propios pares a este archivo.',
+      '- En la ventana de la prueba, cada tarea muestra el texto original, la traducción del modelo y su versión (del archivo) o la traducción de referencia.'],
     ['Ajustes',
       'El botón ⚙ de arriba: idioma de la interfaz (inglés, ruso, alemán, español o chino), tema (claro u oscuro), tamaño de letra, «Acerca de» y «Salir». Los ajustes se guardan al instante. El icono T de arriba a la derecha también abre «Acerca de». Al iniciar, el programa muestra una ventana de bienvenida: el idioma, el tipo de ventana, si se carga el modelo al iniciar y si se muestra esta ventana; las mismas opciones están en «Ajustes». La ventana de bienvenida se puede mover por el título; «Salir» en ella cierra el programa.',
-      '- Tipo de ventana: «Ventana de la aplicación», la ventana propia del programa con el motor web del sistema (WebView2 en Windows, WebKitGTK en Linux), maximizada por defecto (una casilla en «Ajustes»); «Pestaña del navegador», una pestaña del navegador predeterminado. Si la ventana de la aplicación no se abre, el programa abre una ventana de Edge o Chrome y muestra el motivo en «Ajustes». En la ventana de la aplicación, los enlaces se abren en su navegador habitual y los archivos se guardan con el cuadro «Guardar como».'],
+      '- Tipo de ventana: «Ventana de la aplicación», la ventana propia del programa con el motor web del sistema (WebView2 en Windows, WebKitGTK en Linux), maximizada por defecto (una casilla en «Ajustes»); «Pestaña del navegador», una pestaña del navegador predeterminado. Si la ventana de la aplicación no se abre, el programa abre una ventana de Edge o Chrome y muestra el motivo en «Ajustes». En la ventana de la aplicación, los enlaces se abren en su navegador habitual y los archivos se guardan con el cuadro «Guardar como».',
+      '- «Preguntar al modelo»: la temperatura (de 0,1 a 1,0: más baja, más precisa y uniforme; más alta, más libre) y las respuestas: «Breves», «Normales» o «Detalladas»; solo para las preguntas al modelo, las traducciones tienen sus propios ajustes. «Lectura en voz alta»: la velocidad, del 70 al 120 %, para todas las voces.'],
     ['Archivos del programa',
       '- data\\saved: traducciones guardadas; data\\glossary: glosarios; data\\reports: informes de prueba; data\\logs: registros.',
       '- models: modelos; models\\voices: voces para la lectura en voz alta; engine: el motor llama.cpp y el programa de voz sherpa-onnx; config.json: ajustes.',
       'El programa funciona sin internet y no envía sus textos a ningún sitio. Internet solo hace falta para descargar el motor y los modelos.'],
+    ['Actualizar y desinstalar',
+      '- Actualizar (Windows y Linux): cierre el programa («Salir» o la cruz de la ventana), descargue el archivo de la nueva versión y descomprímalo donde está la carpeta del programa, reemplazando los archivos. En Windows: «Extraer todo» → elija la carpeta que contiene la carpeta Ttranslator → «Reemplazar los archivos en el destino»; si cambió el nombre de la carpeta del programa, copie el contenido de la nueva carpeta Ttranslator en la suya, reemplazando los archivos. Los modelos, las voces, las traducciones guardadas, los glosarios y los ajustes se conservan: no están en el archivo; solo se reemplaza ui\\tests.txt (las frases de la «Prueba completa»).',
+      '- Desinstalar en Windows: cierre el programa y elimine su carpeta (y su acceso directo, si lo creó). El programa no instala nada en el sistema ni escribe en el registro.',
+      '- Desinstalar en Linux: cierre el programa y elimine su carpeta; si creó el acceso directo (--shortcut), también los archivos ~/.local/share/applications/ttranslator.desktop y ~/.local/share/icons/hicolor/256x256/apps/ttranslator.png; los datos de la ventana de la aplicación están en las carpetas ~/.local/share/ttranslator y ~/.cache/ttranslator.'],
     ['Si algo no funciona',
       'Si el modelo no se inicia, aparece sobre la ventana una barra roja con los botones «Reintentar», «Detalles» y «Abrir la carpeta de registros». Más información en README.txt, en la carpeta del programa (instalación en inglés, ruso, alemán, español y chino).'],
   ],
@@ -1391,20 +1477,28 @@ const HELP = {
       '- 语音在模型菜单（顶部显示模型名称的按钮）中下载，每种语言一个语音。下载第一个语音时，会一次性下载语音合成程序 sherpa-onnx。语音不会长期占用内存：每句话只运行一两秒。',
       '- 语音可以从另一台电脑迁移过来：复制 models\\voices 文件夹即可。如果 engine 文件夹中还没有语音合成程序，模型菜单会显示“语音合成程序 sherpa-onnx”一行——只需下载该程序（20–30 MB），无需重新下载语音。没有网络时，也可以从使用相同系统（Windows 或 Linux）的另一台电脑复制整个 engine 文件夹。',
       '- 如果某种语言下载了两个语音，由标有 ✓ 的语音朗读；点击另一个即可切换。文本语言没有语音时，🔊 按钮显示为浅色。',
-      '- 支持俄语、英语、德语、西班牙语、中文、瑞典语和拉丁语的语音。拉丁语由意大利语语音 Paola 朗读，采用教会式（意大利式）发音：caelum 读作“切卢姆”，gratia 读作“格拉齐亚”；程序会按拉丁语规则标出重音。',
+      '- 支持俄语、英语、德语、西班牙语、中文、瑞典语和拉丁语的语音。拉丁语由意大利语语音 Paola 朗读，可在模型菜单中选择两种发音之一（语音只需下载一次）：教会式（意大利式）发音——caelum 读作“切卢姆”，gratia 读作“格拉齐亚”；或古典式发音——caelum 读作“凯卢姆”，Cicero 读作“基凯罗”。程序会按拉丁语规则标出重音。',
       '- 各语音的许可证不同（在模型菜单中可见）；Ruslan 和 HFC female 仅限非商业用途。'],
     ['模型',
       '顶部显示模型名称的按钮会打开模型列表。下载模型前，程序会显示文件来源、保存到哪个文件夹以及文件名；不需要的模型可以删除；也可以把自己的 .gguf 文件放进 models 文件夹。⏏ 按钮可从内存中卸载模型：窗口保留，但要翻译需重新加载模型。关闭程序窗口后，几秒钟内模型会从内存中卸载，程序随之退出。',
       '在首次启动界面可以点击“跳过”：窗口会在没有模型的情况下打开（顶部显示“选择模型”），您可以在此列表中选择并下载模型。'],
     ['测试',
-      '“测试”按钮会双向翻译 ui\\tests.txt 文件中的句子对，用每个句子本身的语言校改它，并把带用时和评分的报告保存到 data\\reports 文件夹——便于比较模型。一对句子是两种语言的两行：“EN: …”和“RU: …”（或 LA、DE、FR、ES、EL、ZH、SV）；默认包含两对英语 ↔ 俄语句子和四句拉丁语名言。您可以在此文件中添加自己的句子对。'],
+      '“测试”按钮提供两种测试；每次测试都会把带用时和评分的报告保存到 data\\reports 文件夹——便于比较模型。',
+      '- “快速测试”：两句拉丁语名言（Audentes fortuna iuvat；Cogito, ergo sum），从拉丁语译成界面语言再译回，中性风格——共四次翻译，约一分钟。参考译文内置于程序中。',
+      '- “详细测试”以两种风格双向翻译 ui\\tests.txt 文件中的句子对，并用每个句子本身的语言校改它。一对句子是两种语言的两行：“EN: …”和“RU: …”（或 LA、DE、FR、ES、EL、ZH、SV）；默认包含两对英语 ↔ 俄语句子和四句拉丁语名言。您可以在此文件中添加自己的句子对。',
+      '- 在测试窗口中，每项任务都会显示原文、模型译文，以及您的译文（来自文件）或参考译文。'],
     ['设置',
       '顶部的 ⚙ 按钮：界面语言（英语、俄语、德语、西班牙语或中文）、主题（浅色或深色）、字体大小、“关于”和“退出”。设置会立即保存。右上角的 T 图标也会打开“关于”。启动时程序会显示欢迎窗口：语言、窗口类型、启动时是否加载模型、是否显示此窗口；“设置”中也有相同选项。欢迎窗口可以拖动标题移动；其中的“退出”会关闭程序。',
-      '- 窗口类型：“应用窗口”——程序自己的窗口，使用系统的网页引擎（Windows 上为 WebView2，Linux 上为 WebKitGTK），默认最大化（“设置”中的复选框）；“浏览器标签页”——默认浏览器的一个标签页。如果应用窗口无法打开，程序会打开 Edge 或 Chrome 窗口，并在“设置”中显示原因。在应用窗口中，链接会在您常用的浏览器中打开，文件通过“另存为”对话框保存。'],
+      '- 窗口类型：“应用窗口”——程序自己的窗口，使用系统的网页引擎（Windows 上为 WebView2，Linux 上为 WebKitGTK），默认最大化（“设置”中的复选框）；“浏览器标签页”——默认浏览器的一个标签页。如果应用窗口无法打开，程序会打开 Edge 或 Chrome 窗口，并在“设置”中显示原因。在应用窗口中，链接会在您常用的浏览器中打开，文件通过“另存为”对话框保存。',
+      '- “询问模型”：温度（0.1 到 1.0：越低越准确、越单一，越高越自由）和回答长度——“简短”“一般”或“详细”；仅用于向模型提问，翻译有自己的设置。“朗读”：语速 70% 到 120%，适用于所有语音。'],
     ['程序文件',
       '- data\\saved：已保存的译文；data\\glossary：术语表；data\\reports：测试报告；data\\logs：日志。',
       '- models：模型；models\\voices：朗读语音；engine：llama.cpp 引擎和语音合成程序 sherpa-onnx；config.json：设置。',
       '程序无需联网即可工作，不会把您的文本发送到任何地方。只有下载引擎和模型时才需要联网。'],
+    ['更新与卸载',
+      '- 更新（Windows 和 Linux）：关闭程序（“退出”或窗口的关闭按钮），下载新版本的压缩包，解压到程序文件夹所在的位置并替换文件。Windows：“全部解压缩”→ 选择 Ttranslator 文件夹所在的文件夹 →“替换目标中的文件”；如果您重命名过程序文件夹，请把新的 Ttranslator 文件夹中的内容复制到您的文件夹并替换文件。模型、语音、已保存的翻译、术语表和设置都会保留——压缩包里没有它们；只会替换 ui\\tests.txt（“详细测试”的句子）。',
+      '- 在 Windows 上卸载：关闭程序，删除程序文件夹（如果创建过快捷方式，也一并删除）。程序不会向系统安装任何东西，也不会写入注册表。',
+      '- 在 Linux 上卸载：关闭程序，删除程序文件夹；如果创建过快捷方式（--shortcut），还要删除 ~/.local/share/applications/ttranslator.desktop 和 ~/.local/share/icons/hicolor/256x256/apps/ttranslator.png；应用窗口的数据位于 ~/.local/share/ttranslator 和 ~/.cache/ttranslator 文件夹。'],
     ['如果出现问题',
       '如果模型未能启动，窗口上方会出现一条红色横栏，带有“重试”“详细信息”和“打开日志文件夹”按钮。详情见程序文件夹中的 README.txt（含英语、俄语、德语、西班牙语和中文的安装说明）。'],
   ],
@@ -2630,8 +2724,11 @@ function voiceWithoutProgram(lang) {
   if (!s || s.engine.present || !lang) return null;
   return (s.voices || []).find(v => v.lang === lang && v.active && v.present) || null;
 }
-// Голос другого языка (латынь читает итальянский голос — с «церковным» произношением, см. latin.go): с пометкой.
-const voiceLabel = (v) => (LANGS[v.lang] ? langName(v.lang) + ' · ' : '') + v.name + (v.via === 'it' ? ' (' + t('итальянский голос') + ')' : '');
+// Голос другого языка (латынь читает итальянский голос — с «церковным» или «классическим» произношением, см.
+// latin.go): с пометкой и произношением.
+const voicePron = (v) => v.respell === 'la-church' ? t('церковное произношение') : v.respell === 'la-classical' ? t('классическое произношение') : '';
+const voiceLabel = (v) => (LANGS[v.lang] ? langName(v.lang) + ' · ' : '') + v.name +
+  (v.via === 'it' ? ' (' + t('итальянский голос') + (voicePron(v) ? ', ' + voicePron(v) : '') + ')' : '');
 const voiceLicense = (v) => v.license === 'public domain' ? t('общественное достояние') : v.license;
 
 // Текст → куски для чтения: без формул и разметки, по предложениям, не длиннее SPEAK.maxChunk знаков (китайский —
@@ -2735,7 +2832,7 @@ function fetchChunk(sp, i) {
   if (!sp.pending.has(i)) {
     const p = fetch('/api/tts', {
       method: 'POST', headers: { 'Content-Type': 'application/json' }, signal: sp.ctl.signal,
-      body: JSON.stringify({ lang: sp.lang, text: sp.chunks[i], speed: SPEAK.speed }),
+      body: JSON.stringify({ lang: sp.lang, text: sp.chunks[i], speed: speechSpeed() }),
     }).then(async (r) => {
       if (!r.ok) { let j = {}; try { j = await r.json(); } catch (e) { /* пусто */ } throw new Error(j.error || 'HTTP ' + r.status); }
       return r.blob();
@@ -2816,8 +2913,9 @@ function renderVoiceMenu(menu) {
     pick.appendChild(el('span', 'title', (v.active ? '✓ ' : '') + voiceLabel(v)));
     const status = busyThis ? voiceDlText(dl) : (v.present && !s.engine.present) ? t('есть в папке; нужна программа озвучки') : v.active ? t('читает этот язык') : v.present ? t('скачан; нажмите, чтобы выбрать') : (v.partial ? t('скачано {p} %', { p: Math.round(100 * v.partial / v.size) }) : t('нужно скачать'));
     const lic = t('лицензия: {l}', { l: voiceLicense(v) }) + (v.nc ? ' — ' + t('только некоммерческое использование') : '');
-    const how = v.via && v.lang === 'la' ? ' · ' + t('«церковное» произношение') : '';
-    const sub = el('span', 'sub', `${fmtBytes(v.size)} · ${status} · ${v.gender === 'male' ? t('мужской голос') : t('женский голос')}${how} · ${lic}`);
+    // два произношения латыни — один и тот же голос: файл скачивается один раз, удаляется тоже для обоих
+    const shared = s.voices.some(o => o.id !== v.id && o.file === v.file) ? ' · ' + t('один файл на оба произношения') : '';
+    const sub = el('span', 'sub', `${fmtBytes(v.size)} · ${status} · ${v.gender === 'male' ? t('мужской голос') : t('женский голос')}${shared} · ${lic}`);
     pick.appendChild(sub);
     pick.onclick = async () => {
       if (busyThis) return;
@@ -3498,17 +3596,27 @@ function addBotMeta(m, text, info) {
 // Переписка для модели: инструкция и последние реплики, которые помещаются в контекст.
 // Отбрасываются самые старые пары «вопрос — ответ»; extraDrop — сколько пар убрать сверх оценки.
 function askMessages(nCtx, extraDrop) {
-  const reserve = Math.min(ASK.maxTokens, Math.floor(nCtx / 4));
+  const system = askSystem(), maxTokens = askMaxTokens();
+  const reserve = Math.min(maxTokens, Math.floor(nCtx / 4));
   const budget = nCtx - reserve - 64;
-  const sum = (from) => estTokens(ASK.system) + askHistory.slice(from).reduce((s, x) => s + estTokens(x.content), 0);
+  const sum = (from) => estTokens(system) + askHistory.slice(from).reduce((s, x) => s + estTokens(x.content), 0);
   const lastUser = askHistory.length - 1;   // переписка всегда заканчивается вопросом
   let first = 0;
   while (first < lastUser && sum(first) > budget) first += 2;
   first = Math.min(first + 2 * extraDrop, lastUser);
-  const messages = [{ role: 'system', content: ASK.system }]
+  const messages = [{ role: 'system', content: system }]
     .concat(askHistory.slice(first).map(x => ({ role: x.role, content: x.content })));
   const est = sum(first);
-  return { messages, first, maxTokens: Math.max(128, Math.min(ASK.maxTokens, nCtx - est - 32)) };
+  return { messages, first, maxTokens: Math.max(128, Math.min(maxTokens, nCtx - est - 32)) };
+}
+
+// «Спросить модель» по «Настройкам»: инструкция и длина ответа («Ответы»), температура.
+function askAnswers() { return ASK.answers[SETTINGS.chat_answers] || ASK.answers.normal; }
+function askSystem() { const a = askAnswers(); return a.system ? ASK.system + ' ' + a.system : ASK.system; }
+function askMaxTokens() { return askAnswers().maxTokens || ASK.maxTokens; }
+function askSampling() {
+  const x = Number(SETTINGS.chat_temperature);
+  return Object.assign({}, ASK.sampling, x >= 0.1 && x <= 1 ? { temperature: Math.round(x * 10) / 10 } : {});
 }
 
 function markForgotten() {
@@ -3543,7 +3651,7 @@ async function askSend(opts = {}) {
     for (let drop = 0; !r; drop++) {
       const req = askMessages(nCtx, drop);
       try {
-        r = await chat(null, { messages: req.messages, sampling: opts.sampling || ASK.sampling, maxTokens: req.maxTokens, signal: askCtl.signal, onText: (t) => { partial = t; renderBotSoon(bm, t); } });
+        r = await chat(null, { messages: req.messages, sampling: opts.sampling || askSampling(), maxTokens: req.maxTokens, signal: askCtl.signal, onText: (t) => { partial = t; renderBotSoon(bm, t); } });
         askFirst = req.first;
       } catch (e) {
         // модель сама сообщила, что переписка не помещается: убрать ещё одну старую пару и повторить
@@ -4232,32 +4340,81 @@ function testDirections(results) {
   return [...seen.values()];
 }
 
+// Язык «Быстрого теста» — язык интерфейса.
+function quickLang() { return LANGS[UI_LANG] ? UI_LANG : 'en'; }
+
+// «Быстрый тест»: каждая фраза QUICK_TEST — с латыни на язык интерфейса и обратно; образцы встроены в программу.
+function quickJobs() {
+  const ui = quickLang(), jobs = [];
+  QUICK_TEST.pairs.forEach((p, i) => {
+    for (const [from, to] of [['la', ui], [ui, 'la']]) {
+      if (p[from] && p[to]) jobs.push({ kind: 'translate', pair: i + 1, from, to, style: QUICK_TEST.style, source: cleanInput(p[from]), ref: cleanInput(p[to]), builtin: true });
+    }
+  });
+  return jobs;
+}
+
+// Описание тестов над кнопками: модель, «Быстрый тест», «Подробный тест» (абзацами).
 async function renderTestIntro() {
   const pairs = await loadTests();
   const nT = pairs.length * 2 * TEST_STYLES.length, nE = pairs.length * 2;
   const m = activeModel();
   const [qa, qb] = QUOTES;
-  const styles = TEST_STYLES.map(k => qa + styleLabel(k) + qb).join(', ');
-  $('#testIntro').textContent = pairs.length
-    ? t('Модель: {m}. Пар фраз: {p} (файл ui/tests.txt). Каждая переводится в обе стороны в стилях {s} ({nt} {wt}), а ещё каждая фраза исправляется на своём языке ({ne}). Результаты и время сохраняются в отчёт.',
-      { m: m ? m.name : '—', p: pairs.length, s: styles, nt: nT, wt: plural(nT, 'перевод', 'перевода', 'переводов'), ne: nE })
+  const zh = UI_LANG === 'zh';
+  const styles = TEST_STYLES.map(k => qa + styleLabel(k) + qb).join(zh ? '、' : ', ');
+  const box = $('#testIntro'); box.innerHTML = '';
+  const para = (title, text) => { const d = el('div'); if (title) { d.appendChild(el('b', '', title + (zh ? '。' : '.'))); if (!zh) d.appendChild(document.createTextNode(' ')); } d.appendChild(document.createTextNode(text)); box.appendChild(d); };
+  para('', t('Модель: {m}. Результаты и время сохраняются в отчёт.', { m: m ? m.name : '—' }));
+  const nQ = quickJobs().length;
+  para(t('Быстрый тест'), t('Две латинские крылатые фразы ({q}): {d}, в нейтральном стиле — {n} {w}, около минуты. Образцы переводов встроены в программу.',
+    { q: QUICK_TEST.pairs.map(p => p.la.replace(/[.!]$/, '')).join('; '), d: langLower('la') + ' ↔ ' + langLower(quickLang()), n: nQ, w: plural(nQ, 'перевод', 'перевода', 'переводов') }));
+  let full = pairs.length
+    ? t('Пар фраз: {p} (файл ui/tests.txt). Каждая переводится в обе стороны в стилях {s} ({nt} {wt}), а ещё каждая фраза исправляется на своём языке ({ne}).',
+      { p: pairs.length, s: styles, nt: nT, wt: plural(nT, 'перевод', 'перевода', 'переводов'), ne: nE })
     : t('Файл ui/tests.txt не найден или пуст.');
-  if (pairs.length) $('#testIntro').textContent += ' ' + t('Языки: {l}.', { l: testLangSummary(pairs) });
+  if (pairs.length) full += ' ' + t('Языки: {l}.', { l: testLangSummary(pairs) });
   const nM = MATH.on ? MATH_TESTS.length * 2 : 0;
-  if (pairs.length && nM) $('#testIntro').textContent += ' ' + t('Ещё {n} {w} фраз с формулами LaTeX — проверяется, что формулы остаются на месте.', { n: nM, w: plural(nM, 'перевод', 'перевода', 'переводов') });
-  if (pairs.length && GL.on && GL.loaded) $('#testIntro').textContent += ' ' + t('Словарь терминов включён ({f}): найденные в фразах термины учитываются; выключить можно во вкладке «Словарь».', { f: GL.file || t('в браузере') });
+  if (pairs.length && nM) full += ' ' + t('Ещё {n} {w} фраз с формулами LaTeX — проверяется, что формулы остаются на месте.', { n: nM, w: plural(nM, 'перевод', 'перевода', 'переводов') });
+  if (pairs.length && GL.on && GL.loaded) full += ' ' + t('Словарь терминов включён ({f}): найденные в фразах термины учитываются; выключить можно во вкладке «Словарь».', { f: GL.file || t('в браузере') });
+  para(t('Подробный тест'), full);
 }
 
-async function runTest() {
+// Строка задания в окне теста: «Исходный текст: …», затем результат модели с подписью, у перевода — «Ваш вариант: …»
+// (из ui/tests.txt) или «Образец перевода: …» (встроенные фразы «Быстрого теста» и фразы с формулами).
+function testRow(j) {
+  const row = el('div', 'item test-out');
+  const edit = j.kind === 'edit';
+  const headText = edit ? t('Пара {p} · правка ({l}) · исправленный', { p: j.pair, l: langLower(j.from) })
+    : `${j.kind === 'math' ? t('Формулы {p}', { p: j.pair }) : (j.builtin ? t('Фраза {p}', { p: j.pair }) : t('Пара {p}', { p: j.pair }))} · ${langName(j.from)} → ${langName(j.to)} · ${styleLabel(j.style)}`;
+  const head = el('div', 'meta', headText);
+  // подпись и пробел после неё (пробел — и для копирования текста строки)
+  const src = el('div', 'src-line');
+  src.appendChild(el('span', 'lbl', t('Исходный текст:'))); src.appendChild(document.createTextNode(' ' + j.source));
+  const out = el('div', 'tr');
+  out.appendChild(el('span', 'lbl', edit ? t('Исправленный:') : t('Перевод модели:'))); out.appendChild(document.createTextNode(' '));
+  const body = el('span', 'txt', '…'); out.appendChild(body);
+  row.appendChild(head); row.appendChild(src); row.appendChild(out);
+  if (!edit) row.appendChild(el('div', 'ref small', (j.kind === 'math' || j.builtin ? t('Образец перевода:') : t('Ваш вариант:')) + ' ' + j.ref));
+  return { row, head, out, body };
+}
+
+// kind: 'quick' — «Быстрый тест», 'full' — «Подробный тест». Повторное нажатие той же кнопки останавливает тест.
+async function runTest(kind) {
   if (testRunning) { stop(); return; }
   if (busy) { toast(t('Дождитесь окончания перевода')); return; }
   if (!isReady()) { needModel(); return; }
-  const pairs = await loadTests();
-  if (!pairs.length) { toast(t('Нет тестовых фраз')); return; }
-  const jobs = testJobs(pairs);
-  testRunning = true; setBusy(true);
+  let jobs;
+  if (kind === 'quick') jobs = quickJobs();
+  else {
+    const pairs = await loadTests();
+    if (!pairs.length) { toast(t('Нет тестовых фраз')); return; }
+    jobs = testJobs(pairs);
+  }
+  if (!jobs.length) { toast(t('Нет тестовых фраз')); return; }
+  const btn = $(kind === 'quick' ? '#quickTestBtn' : '#runTestBtn'), other = $(kind === 'quick' ? '#runTestBtn' : '#quickTestBtn');
+  testRunning = kind; setBusy(true);
   abortCtl = new AbortController();
-  $('#runTestBtn').textContent = t('Остановить');
+  btn.textContent = t('Остановить'); other.disabled = true;
   $('#testProgress').hidden = false;
   $('#testSummary').innerHTML = ''; const rowsBox = $('#testRows'); rowsBox.innerHTML = '';
   const started = new Date();
@@ -4271,19 +4428,15 @@ async function runTest() {
       j.terms = run.terms.map(p => `${p.s} → ${p.t}`);
       $('#testProgressText').textContent = t('Задание {k} из {n}…', { k: k + 1, n: jobs.length });
       $('#testBar').style.width = (100 * k / jobs.length) + '%';
-      const row = el('div', 'item test-out');
-      const headText = run.edit ? t('Пара {p} · правка ({l}) · исправленный', { p: j.pair, l: langLower(j.from) })
-        : `${j.kind === 'math' ? t('Формулы {p}', { p: j.pair }) : t('Пара {p}', { p: j.pair })} · ${langName(j.from)} → ${langName(j.to)} · ${styleLabel(j.style)}`;
-      const head = el('div', 'meta', headText);
-      const out = el('div', 'tr', '…');
-      row.appendChild(head); row.appendChild(out); rowsBox.appendChild(row);
+      const { row, head, out, body } = testRow(j);
+      rowsBox.appendChild(row);
       const s0 = performance.now();
       let r;
       try {
-        r = await askVariant(run, j.style, { seed: BASE_SEED, signal: abortCtl.signal, onText: (x) => { out.textContent = x; } });
+        r = await askVariant(run, j.style, { seed: BASE_SEED, signal: abortCtl.signal, onText: (x) => { body.textContent = x; } });
       } catch (e) {
         if (e.name === 'AbortError') throw e;
-        out.textContent = e.message; out.className = 'tr error';
+        out.querySelector('.lbl').textContent = t('Ошибка:'); body.textContent = e.message; out.classList.add('error');
         results.push(Object.assign({}, j, { output: '', error: e.message, ms: Math.round(performance.now() - s0), chrf: NaN, timings: {} }));
         continue;
       }
@@ -4295,34 +4448,33 @@ async function runTest() {
       const fmHead = run.math ? ' · ' + (r.lost.length ? t('потерялись формулы: {n}', { n: r.lost.length }) : t('формулы на месте')) : '';
       if (run.edit) {
         const ops = diffWords(j.source, text);
-        out.innerHTML = ''; out.className = 'tr card-diff'; out.appendChild(diffToNode(ops));
+        body.innerHTML = ''; out.classList.add('card-diff'); body.appendChild(diffToNode(ops));
         const n = diffCount(ops);
         head.textContent += ` · ${fmtSec(ms)}` + (tm.predicted_per_second ? ` · ${fmtNum(tm.predicted_per_second, 0)} ${t('ток/с')}` : '') + ` · ${n ? n + ' ' + plural(n, 'правка', 'правки', 'правок') : t('без правок')}` + fmHead;
         results.push(Object.assign({}, j, fm, { output: text, diff: diffToMarkdown(ops), changes: n, ms: Math.round(ms), chrf: NaN, timings: tm, finish: r.finish }));
       } else {
         const score = chrF(text, j.ref);
-        out.textContent = text;
+        body.textContent = text;
         head.textContent += ` · ${fmtSec(ms)}` + (tm.predicted_per_second ? ` · ${fmtNum(tm.predicted_per_second, 0)} ${t('ток/с')}` : '') + ` · chrF ${fmtNum(score, 0)}` + fmHead;
-        row.appendChild(el('div', 'ref small', (j.kind === 'math' ? t('Образец перевода:') : t('Ваш вариант:')) + ' ' + j.ref));
         results.push(Object.assign({}, j, fm, { output: text, ms: Math.round(ms), chrf: Math.round(score * 10) / 10, timings: tm, finish: r.finish }));
       }
     }
     $('#testBar').style.width = '100%';
     const nErr = results.filter(r => r.error).length;
     $('#testProgressText').textContent = t('Готово: {n} {w} за {t}', { n: results.length, w: plural(results.length, 'задание', 'задания', 'заданий'), t: fmtSec(performance.now() - t0) }) + (nErr ? t(', с ошибками: {n}.', { n: nErr }) : '.');
-    await finishTest(results, started, performance.now() - t0);
+    await finishTest(results, started, performance.now() - t0, kind);
   } catch (e) {
     if (e.name === 'AbortError') $('#testProgressText').textContent = t('Тест остановлен.');
     else { $('#testProgressText').textContent = t('Ошибка: {e}', { e: e.message }); refreshState(); }
   } finally {
     testRunning = false; setBusy(false);
-    $('#runTestBtn').textContent = t('Запустить тест');
+    btn.textContent = kind === 'quick' ? t('Быстрый тест') : t('Подробный тест'); other.disabled = false;
   }
 }
 
 function avg(a) { const b = a.filter(x => typeof x === 'number' && isFinite(x)); return b.length ? b.reduce((s, x) => s + x, 0) / b.length : NaN; }
 
-async function finishTest(results, started, totalMs) {
+async function finishTest(results, started, totalMs, kind) {
   const groups = [];
   for (const [from, to] of testDirections(results)) for (const st of TEST_STYLES) {
     const g = results.filter(r => r.kind === 'translate' && r.from === from && r.to === to && r.style === st);
@@ -4352,7 +4504,8 @@ async function finishTest(results, started, totalMs) {
   const sum = $('#testSummary'); sum.innerHTML = '';
   sum.appendChild(tbl);
   if (fLine) sum.appendChild(el('div', 'note', fLine));
-  sum.appendChild(el('div', 'note', t('chrF (0–100) — сходство с вашим собственным переводом по буквенным сочетаниям. Это грубый ориентир: верный перевод другими словами получает меньше.')));
+  sum.appendChild(el('div', 'note', kind === 'quick' ? t('chrF (0–100) — сходство с образцом перевода по буквенным сочетаниям. Это грубый ориентир: верный перевод другими словами получает меньше.')
+    : t('chrF (0–100) — сходство с вашим собственным переводом по буквенным сочетаниям. Это грубый ориентир: верный перевод другими словами получает меньше.')));
 
   const s = STATE || {};
   const mi = s.machine || {};
@@ -4369,7 +4522,7 @@ async function finishTest(results, started, totalMs) {
   };
   const L = [];
   const tps = (x) => x ? `${fmtNum(x, 1)} ${t('ток/с')}` : `— ${t('ток/с')}`;
-  L.push(`# ${t('Тест переводчика')} — ${started.toLocaleString(LOCALE)}`, '');
+  L.push(`# ${t('Тест переводчика')}: ${kind === 'quick' ? t('Быстрый тест') : t('Подробный тест')} — ${started.toLocaleString(LOCALE)}`, '');
   L.push(`- ${t('Модель:')} ${report.model.name || '—'} (${report.model.file || ''})`);
   L.push(`- ${t('Компьютер: {cpu}; потоков: {th}; ОЗУ: {ram}', { cpu: report.machine.cpu || '—', th: report.machine.threads || '—', ram: report.machine.ram_gb ? t('{n} ГБ', { n: report.machine.ram_gb }) : '—' })}; ${report.machine.os || ''}`);
   L.push(`- ${t('Движок: llama.cpp {b}; контекст {c}; потоков {th}; модель загружена за {t}', { b: report.engine.build || '—', c: report.engine.n_ctx || '—', th: report.engine.threads || '—', t: report.engine.load_ms ? fmtSec(report.engine.load_ms) : '—' })}`);
@@ -4380,15 +4533,15 @@ async function finishTest(results, started, totalMs) {
   for (const g of groups) L.push(`| ${g.title} | ${g.style} | ${fmtSec(g.ms)} | ${dash(g.gen, 1)} | ${dash(g.pp, 1)} | ${dash(g.chrf, 1)} |`);
   L.push('', `## ${t('Переводы')}`, '');
   for (const r of results.filter(x => x.kind === 'translate')) {
-    L.push(`### ${t('Пара {p}', { p: r.pair })}: ${langName(r.from)} → ${langName(r.to)}, ${styleLabel(r.style)}`);
+    L.push(`### ${r.builtin ? t('Фраза {p}', { p: r.pair }) : t('Пара {p}', { p: r.pair })}: ${langName(r.from)} → ${langName(r.to)}, ${styleLabel(r.style)}`);
     L.push(`- ${t('Исходный текст:')} ${r.source}`);
     L.push(r.error ? `- ${t('Ошибка:')} ${r.error}` : `- ${t('Перевод модели:')} ${r.output}`);
-    L.push(`- ${t('Ваш вариант:')} ${r.ref}`);
+    L.push(`- ${r.builtin ? t('Образец перевода:') : t('Ваш вариант:')} ${r.ref}`);
     if (r.terms && r.terms.length) L.push(`- ${t('Термины из словаря:')} ${r.terms.join('; ')}`);
     if (r.formulas && !r.error) L.push(`- ${t('Формулы:')} ${fStatus(r)}`);
     L.push(`- ${t('Время: {t}; токенов: {n}; генерация {g}; chrF {c}', { t: fmtSec(r.ms), n: r.timings.predicted_n ?? '—', g: tps(r.timings.predicted_per_second), c: dash(r.chrf, 1) })}`, '');
   }
-  L.push(`## ${t('Правка на том же языке')}`, '', t('Удалённое — ~~зачёркнуто~~, добавленное — **жирным**.'), '');
+  if (results.some(x => x.kind === 'edit')) L.push(`## ${t('Правка на том же языке')}`, '', t('Удалённое — ~~зачёркнуто~~, добавленное — **жирным**.'), '');
   for (const r of results.filter(x => x.kind === 'edit')) {
     L.push(`### ${t('Пара {p}', { p: r.pair })}: ${t('правка ({l})', { l: langLower(r.from) })}`);
     L.push(`- ${t('Исходный текст:')} ${r.source}`);
@@ -4411,7 +4564,7 @@ async function finishTest(results, started, totalMs) {
   const md = L.join('\n');
   if (MODE === 'launcher') {
     try {
-      const r = await fetch('/api/report', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ markdown: md, json: report }) });
+      const r = await fetch('/api/report', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ markdown: md, json: report, kind: kind === 'quick' ? 'quick' : 'full' }) });
       const j = await r.json();
       sum.appendChild(el('div', 'note', t('Отчёт сохранён: {p}', { p: j.path || '' })));
     } catch (e) { sum.appendChild(el('div', 'error', t('Не удалось сохранить отчёт: {e}', { e: e.message }))); }
@@ -4668,7 +4821,7 @@ async function refreshState() {
   // настройки «при запуске» могли поменять в другом окне; ответ, запрошенный до изменения в этом окне, не в счёт
   if (s.settings && seq === settingsSeq) {
     let changed = false;
-    for (const k of ['show_welcome', 'launch_mode', 'load_model_at_start', 'start_maximized']) if (k in s.settings && SETTINGS[k] !== s.settings[k]) { SETTINGS[k] = s.settings[k]; changed = true; }
+    for (const k of ['show_welcome', 'launch_mode', 'load_model_at_start', 'start_maximized', ...SETTINGS_OWN]) if (k in s.settings && SETTINGS[k] !== s.settings[k]) { SETTINGS[k] = s.settings[k]; changed = true; }
     if (changed && !$('#settingsView').hidden) renderSettings();
     if (changed && !$('#welcomeView').hidden) renderWelcome();
   }
@@ -4821,13 +4974,28 @@ function renderModelMenu() {
 
 // Настройки интерфейса. С Ttranslator.exe они хранятся в config.json (одни и те же для окна-приложения и вкладки
 // браузера), при запуске без него — в памяти этого браузера.
+// Настройки, общие для окна с программой запуска и без неё («Спросить модель», скорость чтения).
+const SETTINGS_OWN = ['chat_temperature', 'chat_answers', 'speech_speed'];
 const SETTINGS = {
   ui_language: UI_LANG,
   theme: document.documentElement.dataset.theme === 'dark' ? 'dark' : 'light',
   font_scale: Number(document.documentElement.dataset.font) || 100,
   // при запуске (только с Ttranslator.exe): окно приветствия, вид окна, загружать ли модель — приходят из /api/state
   show_welcome: true, launch_mode: 'window', load_model_at_start: true, start_maximized: true,
+  // «Спросить модель» (температура, ответы) и скорость чтения вслух в процентах (1.0)
+  chat_temperature: 0.6, chat_answers: 'normal', speech_speed: 100,
 };
+// без программы запуска эти настройки — в памяти браузера (с ней — из /api/state)
+(function () {
+  const st = store.get('settings') || {};
+  for (const k of SETTINGS_OWN) if (k in st) SETTINGS[k] = st[k];
+})();
+
+// Скорость чтения вслух для /api/tts.
+function speechSpeed() {
+  const p = Number(SETTINGS.speech_speed);
+  return SPEAK.speed * (SPEAK.speeds.includes(p) ? p : 100) / 100;
+}
 
 let settingsSeq = 0;   // растёт при каждом изменении настроек в этом окне
 
@@ -4835,7 +5003,11 @@ async function saveSettings(patch) {
   settingsSeq++;
   Object.assign(SETTINGS, patch);
   if (MODE === 'launcher') await post('/api/settings', patch);
-  else store.set('settings', { ui_language: SETTINGS.ui_language, theme: SETTINGS.theme, font_scale: SETTINGS.font_scale });   // без программы запуска — только вид окна
+  else {   // без программы запуска — вид окна, «Спросить модель» и скорость чтения
+    const keep = { ui_language: SETTINGS.ui_language, theme: SETTINGS.theme, font_scale: SETTINGS.font_scale };
+    for (const k of SETTINGS_OWN) keep[k] = SETTINGS[k];
+    store.set('settings', keep);
+  }
 }
 
 // Список языков интерфейса: названия — на самих языках.
@@ -4864,6 +5036,11 @@ function renderSettings() {
   $('#setWelcome').checked = SETTINGS.show_welcome !== false;
   for (const b of $('#themeSeg').children) b.setAttribute('aria-pressed', String(b.dataset.v === SETTINGS.theme));
   for (const b of $('#fontSeg').children) b.setAttribute('aria-pressed', String(Number(b.dataset.v) === SETTINGS.font_scale));
+  const ts = $('#setTemp');
+  if (!ts.options.length) for (const x of ASK.temperatures) { const o = el('option', '', fmtNum(x, 1)); o.value = x.toFixed(1); ts.appendChild(o); }
+  ts.value = (Math.round(Number(SETTINGS.chat_temperature) * 10) / 10 || ASK.sampling.temperature).toFixed(1);
+  for (const b of $('#ansSeg').children) b.setAttribute('aria-pressed', String(b.dataset.v === (ASK.answers[SETTINGS.chat_answers] ? SETTINGS.chat_answers : 'normal')));
+  for (const b of $('#speedSeg').children) b.setAttribute('aria-pressed', String(Number(b.dataset.v) === Number(SETTINGS.speech_speed)));
   $('#settingsNote').textContent = MODE === 'launcher'
     ? t('Настройки сохраняются сразу — в файле config.json в папке программы.')
     : t('Настройки сохраняются в этом браузере: программа запущена без Ttranslator.exe.');
@@ -4925,14 +5102,16 @@ function renderAbout() {
   const pc = el('p', '', A.contact + ' ');
   const mail = el('a', '', CONTACT_EMAIL); mail.href = 'mailto:' + CONTACT_EMAIL;
   pc.appendChild(mail); box.appendChild(pc);
-  const ps = el('p');
-  const i = A.support.indexOf('GitHub Sponsors');
-  if (SPONSOR_URL && i >= 0) {
-    ps.appendChild(document.createTextNode(A.support.slice(0, i)));
-    const a = el('a', '', 'GitHub Sponsors'); a.href = SPONSOR_URL; a.target = '_blank'; a.rel = 'noopener';
-    ps.appendChild(a); ps.appendChild(document.createTextNode(A.support.slice(i + 'GitHub Sponsors'.length)));
-  } else ps.textContent = A.support;
+  // поддержка: ссылки на страницу создателей и на GitHub Sponsors (открываются в обычном браузере)
+  const links = [GITHUB_URL, SPONSOR_URL].filter(Boolean);
+  const ps = el('p', '', links.length ? A.support + ' ' : A.support.replace(/[:：]$/, A.support.endsWith('：') ? '。' : '.'));
+  links.forEach((u, k) => {
+    if (k) ps.appendChild(document.createTextNode(t(' и ')));
+    const a = el('a', '', u.replace(/^https:\/\//, '')); a.href = u; a.target = '_blank'; a.rel = 'noopener';
+    ps.appendChild(a);
+  });
   box.appendChild(ps);
+  box.appendChild(el('p', '', A.thanks));
   box.appendChild(el('p', 'note', A.license));
   box.appendChild(el('p', 'note', A.credits));
 }
@@ -5217,7 +5396,9 @@ const I18N = {
   'мужской голос': ['male voice', 'männliche Stimme', 'voz masculina', '男声'],
   'женский голос': ['female voice', 'weibliche Stimme', 'voz femenina', '女声'],
   'итальянский голос': ['Italian voice', 'italienische Stimme', 'voz italiana', '意大利语语音'],
-  '«церковное» произношение': ['church pronunciation', 'kirchliche Aussprache', 'pronunciación eclesiástica', '教会式发音'],
+  'церковное произношение': ['church pronunciation', 'kirchliche Aussprache', 'pronunciación eclesiástica', '教会式发音'],
+  'классическое произношение': ['classical pronunciation', 'klassische Aussprache', 'pronunciación clásica', '古典式发音'],
+  'один файл на оба произношения': ['one file for both pronunciations', 'eine Datei für beide Aussprachen', 'un solo archivo para ambas pronunciaciones', '两种发音共用一个文件'],
   'Этот голос уже выбран': ['This voice is already chosen', 'Diese Stimme ist bereits gewählt', 'Esta voz ya está elegida', '已选择此语音'],
   'Идёт скачивание голоса, дождитесь окончания': ['A voice is being downloaded, please wait until it finishes', 'Eine Stimme wird heruntergeladen, bitte warten Sie, bis der Download fertig ist', 'Se está descargando una voz; espere a que termine', '正在下载语音，请等待完成'],
   'Отменить скачивание': ['Cancel the download', 'Download abbrechen', 'Cancelar la descarga', '取消下载'],
@@ -5251,6 +5432,16 @@ const I18N = {
   'Открыть словарь': ['Open the glossary', 'Glossar öffnen', 'Abrir el glosario', '打开术语表'],
   'Спросить модель и словарь': ['Ask the model and glossary', 'Modell fragen und Glossar', 'Preguntar al modelo y glosario', '询问模型和术语表'],
   'Спросить модель': ['Ask the model', 'Modell fragen', 'Preguntar al modelo', '询问模型'],
+  'Температура': ['Temperature', 'Temperatur', 'Temperatura', '温度'],
+  'ниже — точнее и однообразнее, выше — свободнее': ['lower is more precise and uniform, higher is freer', 'niedriger – genauer und einheitlicher, höher – freier', 'más baja: más precisa y uniforme; más alta: más libre', '越低越准确、越单一，越高越自由'],
+  'Ответы': ['Answers', 'Antworten', 'Respuestas', '回答'],
+  'Коротко': ['Short', 'Kurz', 'Breves', '简短'],
+  'Обычно': ['Normal', 'Normal', 'Normales', '一般'],
+  'Подробно': ['Detailed', 'Ausführlich', 'Detalladas', '详细'],
+  'Только для вопросов в «Спросить модель»; у переводов — свои настройки.': ['Only for questions in “Ask the model”; translations have their own settings.', 'Nur für Fragen unter „Modell fragen“; Übersetzungen haben eigene Einstellungen.', 'Solo para las preguntas de «Preguntar al modelo»; las traducciones tienen sus propios ajustes.', '仅用于“询问模型”中的问题；翻译有自己的设置。'],
+  'Чтение вслух': ['Reading aloud', 'Vorlesen', 'Lectura en voz alta', '朗读'],
+  'Скорость': ['Speed', 'Geschwindigkeit', 'Velocidad', '语速'],
+  'Для всех голосов.': ['For all voices.', 'Für alle Stimmen.', 'Para todas las voces.', '适用于所有语音。'],
   'Словарь': ['Glossary', 'Glossar', 'Glosario', '术语表'],
   'Вопрос выбранной модели: как перевести термин, чем различаются варианты, верна ли фраза. Модель видит только эту переписку. Кнопка «?» у варианта перевода задаёт вопрос о нём.': ['A question to the chosen model: how to translate a term, how the variants differ, whether a phrase is correct. The model sees only this chat. The “?” button on a variant asks about it.', 'Eine Frage an das gewählte Modell: wie ein Begriff zu übersetzen ist, worin sich die Varianten unterscheiden, ob ein Satz stimmt. Das Modell sieht nur diesen Chat. Die Schaltfläche „?“ an einer Variante fragt nach ihr.', 'Una pregunta al modelo elegido: cómo traducir un término, en qué se diferencian las variantes, si una frase es correcta. El modelo solo ve esta conversación. El botón «?» de una variante pregunta por ella.', '向所选模型提问：术语怎么译、各版本有何不同、句子是否正确。模型只能看到这段对话。版本上的“?”按钮可针对该版本提问。'],
   'Ваш вопрос…': ['Your question…', 'Ihre Frage…', 'Su pregunta…', '您的问题…'],
@@ -5287,8 +5478,6 @@ const I18N = {
   'О программе': ['About', 'Über das Programm', 'Acerca de', '关于'],
   'Выйти из программы': ['Exit the program', 'Programm beenden', 'Salir del programa', '退出程序'],
   'Модель выгрузится из памяти, движок остановится; окно после этого можно закрыть.': ['The model is unloaded from memory and the engine stops; you can then close the window.', 'Das Modell wird aus dem Arbeitsspeicher entladen und die Engine angehalten; danach können Sie das Fenster schließen.', 'El modelo se libera de la memoria y el motor se detiene; después puede cerrar la ventana.', '模型从内存中卸载，引擎停止；之后可以关闭窗口。'],
-  'Тест на ваших фразах': ['Test on your phrases', 'Test mit Ihren Sätzen', 'Prueba con sus frases', '用您的句子测试'],
-  'Запустить тест': ['Run the test', 'Test starten', 'Iniciar la prueba', '开始测试'],
   'Первый запуск': ['First start', 'Erster Start', 'Primer inicio', '首次启动'],
   'Для работы нужно один раз скачать два файла. После этого программа работает без интернета.': ['To work, the program needs to download two files once. After that it works without the internet.', 'Zum Arbeiten müssen einmalig zwei Dateien heruntergeladen werden. Danach funktioniert das Programm ohne Internet.', 'Para funcionar, el programa tiene que descargar dos archivos una sola vez. Después funciona sin internet.', '程序需要一次性下载两个文件。之后无需联网即可使用。'],
   'Скачать': ['Download', 'Herunterladen', 'Descargar', '下载'],
@@ -5512,7 +5701,6 @@ const I18N = {
   'Словарь: {n} {w}': ['Glossary: {n} {w}', 'Glossar: {n} {w}', 'Glosario: {n} {w}', '术语表：{n} {w}'],
   'Будут учтены термины из словаря:': ['Glossary terms that will be used:', 'Folgende Glossarbegriffe werden berücksichtigt:', 'Se usarán estos términos del glosario:', '将使用以下术语表词条：'],
   'Нажмите, чтобы открыть словарь.': ['Click to open the glossary.', 'Klicken, um das Glossar zu öffnen.', 'Pulse para abrir el glosario.', '点击打开术语表。'],
-  'Модель: {m}. Пар фраз: {p} (файл ui/tests.txt). Каждая переводится в обе стороны в стилях {s} ({nt} {wt}), а ещё каждая фраза исправляется на своём языке ({ne}). Результаты и время сохраняются в отчёт.': ['Model: {m}. Phrase pairs: {p} (file ui/tests.txt). Each is translated both ways in the styles {s} ({nt} {wt}), and each phrase is also corrected in its own language ({ne}). Results and timings are saved to a report.', 'Modell: {m}. Satzpaare: {p} (Datei ui/tests.txt). Jedes wird in beide Richtungen in den Stilen {s} übersetzt ({nt} {wt}), außerdem wird jeder Satz in seiner Sprache korrigiert ({ne}). Ergebnisse und Zeiten werden in einem Bericht gespeichert.', 'Modelo: {m}. Pares de frases: {p} (archivo ui/tests.txt). Cada par se traduce en ambos sentidos en los estilos {s} ({nt} {wt}) y, además, cada frase se corrige en su propio idioma ({ne}). Los resultados y los tiempos se guardan en un informe.', '模型：{m}。句子对：{p}（文件 ui/tests.txt）。每一对都会以 {s} 风格双向翻译（{nt} {wt}），每个句子还会用其本身的语言校改（{ne}）。结果和用时会保存到报告中。'],
   'Файл ui/tests.txt не найден или пуст.': ['The file ui/tests.txt was not found or is empty.', 'Die Datei ui/tests.txt wurde nicht gefunden oder ist leer.', 'No se encontró el archivo ui/tests.txt o está vacío.', '未找到文件 ui/tests.txt，或文件为空。'],
   'Языки: {l}.': ['Languages: {l}.', 'Sprachen: {l}.', 'Idiomas: {l}.', '语言：{l}。'],
   'Словарь терминов включён ({f}): найденные в фразах термины учитываются; выключить можно во вкладке «Словарь».': ['The glossary is on ({f}): terms found in the phrases are used; you can switch it off in the “Glossary” tab.', 'Das Glossar ist eingeschaltet ({f}): In den Sätzen gefundene Begriffe werden berücksichtigt; ausschalten können Sie es im Reiter „Glossar“.', 'El glosario está activado ({f}): se usan los términos que aparecen en las frases; puede desactivarlo en la pestaña «Glosario».', '术语表已启用（{f}）：会使用句子中出现的词条；可在“术语表”标签页中关闭。'],
@@ -5535,6 +5723,13 @@ const I18N = {
   'Генерация, ток/с': ['Generation, tok/s', 'Erzeugung, Tok./s', 'Generación, tok/s', '生成速度，词元/秒'],
   'chrF (0–100) — сходство с вашим собственным переводом по буквенным сочетаниям. Это грубый ориентир: верный перевод другими словами получает меньше.': ['chrF (0–100) is the similarity to your own translation by letter combinations. It is a rough guide: a correct translation in other words gets less.', 'chrF (0–100) ist die Ähnlichkeit mit Ihrer eigenen Übersetzung nach Buchstabenfolgen. Das ist nur ein grober Anhaltspunkt: Eine richtige Übersetzung mit anderen Worten erhält weniger.', 'chrF (0–100) es la semejanza con su propia traducción por combinaciones de letras. Es una referencia aproximada: una traducción correcta con otras palabras obtiene menos.', 'chrF（0–100）按字符组合衡量与您自己译文的相似度。这只是粗略参考：用词不同的正确译文得分会偏低。'],
   'Тест переводчика': ['Translator test', 'Übersetzertest', 'Prueba del traductor', '翻译器测试'],
+  'Быстрый тест': ['Quick test', 'Schnelltest', 'Prueba rápida', '快速测试'],
+  'Подробный тест': ['Full test', 'Ausführlicher Test', 'Prueba completa', '详细测试'],
+  'Фраза {p}': ['Phrase {p}', 'Satz {p}', 'Frase {p}', '第 {p} 句'],
+  'Модель: {m}. Результаты и время сохраняются в отчёт.': ['Model: {m}. Results and timings are saved to a report.', 'Modell: {m}. Ergebnisse und Zeiten werden in einem Bericht gespeichert.', 'Modelo: {m}. Los resultados y los tiempos se guardan en un informe.', '模型：{m}。结果和用时会保存到报告中。'],
+  'Две латинские крылатые фразы ({q}): {d}, в нейтральном стиле — {n} {w}, около минуты. Образцы переводов встроены в программу.': ['Two Latin sayings ({q}): {d}, in the neutral style — {n} {w}, about a minute. The reference translations are built into the program.', 'Zwei lateinische Redewendungen ({q}): {d}, im neutralen Stil – {n} {w}, etwa eine Minute. Die Referenzübersetzungen sind im Programm enthalten.', 'Dos locuciones latinas ({q}): {d}, en estilo neutro: {n} {w}, alrededor de un minuto. Las traducciones de referencia vienen incluidas en el programa.', '两句拉丁语名言（{q}）：{d}，中性风格，共 {n} {w}，约一分钟。参考译文内置于程序中。'],
+  'Пар фраз: {p} (файл ui/tests.txt). Каждая переводится в обе стороны в стилях {s} ({nt} {wt}), а ещё каждая фраза исправляется на своём языке ({ne}).': ['Phrase pairs: {p} (file ui/tests.txt). Each is translated both ways in the styles {s} ({nt} {wt}), and each phrase is also corrected in its own language ({ne}).', 'Satzpaare: {p} (Datei ui/tests.txt). Jedes wird in beide Richtungen in den Stilen {s} übersetzt ({nt} {wt}), außerdem wird jeder Satz in seiner Sprache korrigiert ({ne}).', 'Pares de frases: {p} (archivo ui/tests.txt). Cada par se traduce en ambos sentidos en los estilos {s} ({nt} {wt}) y, además, cada frase se corrige en su propio idioma ({ne}).', '句子对：{p}（文件 ui/tests.txt）。每一对都会以 {s} 风格双向翻译（{nt} {wt}），每个句子还会用其本身的语言校改（{ne}）。'],
+  'chrF (0–100) — сходство с образцом перевода по буквенным сочетаниям. Это грубый ориентир: верный перевод другими словами получает меньше.': ['chrF (0–100) is the similarity to the reference translation by letter combinations. It is a rough guide: a correct translation in other words gets less.', 'chrF (0–100) ist die Ähnlichkeit mit der Referenzübersetzung nach Buchstabenfolgen. Das ist nur ein grober Anhaltspunkt: Eine richtige Übersetzung mit anderen Worten erhält weniger.', 'chrF (0–100) es la semejanza con la traducción de referencia por combinaciones de letras. Es una referencia aproximada: una traducción correcta con otras palabras obtiene menos.', 'chrF（0–100）按字符组合衡量与参考译文的相似度。这只是粗略参考：用词不同的正确译文得分会偏低。'],
   'Модель:': ['Model:', 'Modell:', 'Modelo:', '模型：'],
   'Компьютер: {cpu}; потоков: {th}; ОЗУ: {ram}': ['Computer: {cpu}; threads: {th}; RAM: {ram}', 'Computer: {cpu}; Threads: {th}; RAM: {ram}', 'Ordenador: {cpu}; hilos: {th}; RAM: {ram}', '电脑：{cpu}；线程：{th}；内存：{ram}'],
   'Движок: llama.cpp {b}; контекст {c}; потоков {th}; модель загружена за {t}': ['Engine: llama.cpp {b}; context {c}; threads {th}; model loaded in {t}', 'Engine: llama.cpp {b}; Kontext {c}; Threads {th}; Modell geladen in {t}', 'Motor: llama.cpp {b}; contexto {c}; hilos {th}; modelo cargado en {t}', '引擎：llama.cpp {b}；上下文 {c}；线程 {th}；模型加载用时 {t}'],
@@ -5873,10 +6068,14 @@ function init() {
   $('#ownText').addEventListener('input', ownInput);
   stopSpeechOnEdit($('#src')); stopSpeechOnEdit($('#ownText'));
   $('#themeSeg').addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) setTheme(b.dataset.v); });
+  $('#setTemp').addEventListener('change', () => setStartOption({ chat_temperature: Number($('#setTemp').value) }));
+  $('#ansSeg').addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) setStartOption({ chat_answers: b.dataset.v }); });
+  $('#speedSeg').addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) setStartOption({ speech_speed: Number(b.dataset.v) }); });
   $('#fontSeg').addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) setFontScale(Number(b.dataset.v)); });
   $('#quit2Btn').onclick = quitApp;
   $('#closeTestBtn').onclick = () => showPane('results');
-  $('#runTestBtn').onclick = runTest;
+  $('#runTestBtn').onclick = () => runTest('full');
+  $('#quickTestBtn').onclick = () => runTest('quick');
   $('#errorOpenBtn').onclick = () => post('/api/open', { what: 'logs' }).catch(e => toast(e.message));
   $('#errorLogBtn').onclick = () => { errorLogOpen = !errorLogOpen; refreshState(); };
   $('#dlBtn').onclick = async () => { try { await post('/api/setup'); refreshState(); } catch (e) { $('#setupError').textContent = e.message; } };

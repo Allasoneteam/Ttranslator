@@ -28,6 +28,7 @@ import (
 	"io"
 	"io/fs"
 	"log"
+	"math"
 	"net"
 	"net/http"
 	"net/http/httputil"
@@ -255,6 +256,11 @@ type Config struct {
 	LaunchMode       string `json:"launch_mode"`         // "window": the app window (own window, window.go; else Edge/Chrome); "tab": a tab of the default browser
 	StartMaximized   bool   `json:"start_maximized"`     // the app window starts maximized
 	LoadModelAtStart bool   `json:"load_model_at_start"` // load the chosen model when the program starts
+	// «Спросить модель» (1.0, author's request of 25.10.2026): the temperature and how long the answers are; reading
+	// aloud: the speed in percent. Only the window uses them; they are kept here like the other settings.
+	ChatTemperature float64 `json:"chat_temperature"` // 0.1–1.0
+	ChatAnswers     string  `json:"chat_answers"`     // "short", "normal" or "detailed"
+	SpeechSpeed     int     `json:"speech_speed"`     // 70–120
 	// read aloud: the voice chosen for each language (language code → voice id, tts.go)
 	Voices map[string]string `json:"voices,omitempty"`
 	// «Пропустить» on the first-start screen (0.9.5): until the first model is downloaded or chosen, the program
@@ -276,8 +282,18 @@ var (
 	fontScales  = map[int]bool{90: true, 100: true, 115: true, 130: true}
 	// "app" (an Edge/Chrome window, the default before 0.9.2) is no longer a choice: it becomes "window", and an
 	// Edge/Chrome window opens only when the own window cannot (window.go)
-	launchModes = map[string]bool{"window": true, "tab": true}
+	launchModes  = map[string]bool{"window": true, "tab": true}
+	chatAnswers  = map[string]bool{"short": true, "normal": true, "detailed": true}
+	speechSpeeds = map[int]bool{70: true, 80: true, 90: true, 100: true, 110: true, 120: true}
 )
+
+const defaultChatTemperature = 0.6
+
+// chatTemperature: one decimal, 0.1–1.0; ok is false for anything else.
+func chatTemperature(x float64) (float64, bool) {
+	r := math.Round(x*10) / 10
+	return r, r >= 0.1 && r <= 1.0 && math.Abs(x-r) < 1e-6
+}
 
 // normSettings replaces unknown interface settings with the defaults.
 func normSettings(c *Config) {
@@ -293,18 +309,30 @@ func normSettings(c *Config) {
 	if !launchModes[c.LaunchMode] {
 		c.LaunchMode = "window"
 	}
+	if t, ok := chatTemperature(c.ChatTemperature); ok {
+		c.ChatTemperature = t
+	} else {
+		c.ChatTemperature = defaultChatTemperature
+	}
+	if !chatAnswers[c.ChatAnswers] {
+		c.ChatAnswers = "normal"
+	}
+	if !speechSpeeds[c.SpeechSpeed] {
+		c.SpeechSpeed = 100
+	}
 }
 
 func (a *App) settingsJSON() map[string]any { // call under a.mu
 	return map[string]any{"ui_language": a.cfg.UILanguage, "theme": a.cfg.Theme, "font_scale": a.cfg.FontScale,
 		"show_welcome": a.cfg.ShowWelcome, "launch_mode": a.cfg.LaunchMode, "load_model_at_start": a.cfg.LoadModelAtStart,
-		"start_maximized": a.cfg.StartMaximized}
+		"start_maximized": a.cfg.StartMaximized, "chat_temperature": a.cfg.ChatTemperature, "chat_answers": a.cfg.ChatAnswers,
+		"speech_speed": a.cfg.SpeechSpeed}
 }
 
 func defaultConfig() Config {
 	return Config{ActiveModel: defaultModelID, UIPort: 8765, CtxSize: 4096, Threads: 0, OpenWindow: true, ExtraEngineArgs: []string{},
 		UILanguage: defaultUILanguage, Theme: "light", FontScale: 100, ShowWelcome: true, LaunchMode: "window", LoadModelAtStart: true,
-		StartMaximized: true}
+		StartMaximized: true, ChatTemperature: defaultChatTemperature, ChatAnswers: "normal", SpeechSpeed: 100}
 }
 
 // ---------------------------------------------------------------- state
@@ -1610,12 +1638,16 @@ func (a *App) routes() http.Handler {
 		var req struct {
 			Markdown string          `json:"markdown"`
 			JSON     json.RawMessage `json:"json"`
+			Kind     string          `json:"kind"` // "quick": the quick test (1.0), else the full one
 		}
 		if err := json.NewDecoder(io.LimitReader(r.Body, 8*1024*1024)).Decode(&req); err != nil {
 			jsonError(w, 400, tr("неверный запрос"))
 			return
 		}
 		name := "test-" + time.Now().Format("2006-01-02_15-04-05")
+		if req.Kind == "quick" {
+			name = "quick-" + name
+		}
 		md := filepath.Join(a.reportsDir, name+".md")
 		if err := os.WriteFile(md, []byte(req.Markdown), 0o644); err != nil {
 			jsonError(w, 500, err.Error())
@@ -1656,20 +1688,29 @@ func (a *App) routes() http.Handler {
 			writeJSON(w, 200, st)
 		case http.MethodPost:
 			var req struct {
-				UILanguage       *string `json:"ui_language"`
-				Theme            *string `json:"theme"`
-				FontScale        *int    `json:"font_scale"`
-				ShowWelcome      *bool   `json:"show_welcome"`
-				LaunchMode       *string `json:"launch_mode"`
-				LoadModelAtStart *bool   `json:"load_model_at_start"`
-				StartMaximized   *bool   `json:"start_maximized"`
+				UILanguage       *string  `json:"ui_language"`
+				Theme            *string  `json:"theme"`
+				FontScale        *int     `json:"font_scale"`
+				ShowWelcome      *bool    `json:"show_welcome"`
+				LaunchMode       *string  `json:"launch_mode"`
+				LoadModelAtStart *bool    `json:"load_model_at_start"`
+				StartMaximized   *bool    `json:"start_maximized"`
+				ChatTemperature  *float64 `json:"chat_temperature"`
+				ChatAnswers      *string  `json:"chat_answers"`
+				SpeechSpeed      *int     `json:"speech_speed"`
 			}
 			if err := json.NewDecoder(io.LimitReader(r.Body, 4096)).Decode(&req); err != nil {
 				jsonError(w, 400, tr("неверный запрос"))
 				return
 			}
+			badTemp := false
+			if req.ChatTemperature != nil {
+				_, ok := chatTemperature(*req.ChatTemperature)
+				badTemp = !ok
+			}
 			if (req.UILanguage != nil && !uiLanguages[*req.UILanguage]) || (req.Theme != nil && !uiThemes[*req.Theme]) ||
-				(req.FontScale != nil && !fontScales[*req.FontScale]) || (req.LaunchMode != nil && !launchModes[*req.LaunchMode]) {
+				(req.FontScale != nil && !fontScales[*req.FontScale]) || (req.LaunchMode != nil && !launchModes[*req.LaunchMode]) ||
+				badTemp || (req.ChatAnswers != nil && !chatAnswers[*req.ChatAnswers]) || (req.SpeechSpeed != nil && !speechSpeeds[*req.SpeechSpeed]) {
 				jsonError(w, 400, tr("неверное значение настройки"))
 				return
 			}
@@ -1694,6 +1735,15 @@ func (a *App) routes() http.Handler {
 			}
 			if req.StartMaximized != nil {
 				a.cfg.StartMaximized = *req.StartMaximized
+			}
+			if req.ChatTemperature != nil {
+				a.cfg.ChatTemperature, _ = chatTemperature(*req.ChatTemperature)
+			}
+			if req.ChatAnswers != nil {
+				a.cfg.ChatAnswers = *req.ChatAnswers
+			}
+			if req.SpeechSpeed != nil {
+				a.cfg.SpeechSpeed = *req.SpeechSpeed
 			}
 			a.saveConfig(a.cfg)
 			lang := a.cfg.UILanguage

@@ -84,7 +84,8 @@ cyr_in_tr = [k for k, v in I18N.items() if any(CYR.search(json.dumps(x, ensure_a
 ok(not cyr_in_tr, 'translations contain no Cyrillic letters: %s' % cyr_in_tr[:6])
 ok(sorted(ui_langs) == ['de', 'en', 'es', 'ru', 'zh'] and ui_langs[0] == 'en', 'interface languages, English first: %s' % ui_langs)
 ok(sorted(help_) == ['de', 'en', 'es', 'ru', 'zh'] and len({len(help_[l]) for l in help_}) == 1 and all(len(help_[l][i]) == len(help_['ru'][i]) for l in help_ for i in range(len(help_['ru']))), 'help in five languages with the same sections and items')
-ok(sorted(about) == ['de', 'en', 'es', 'ru', 'zh'] and all(len(about[l]['features']) == len(about['ru']['features']) for l in about), 'About text in five languages')
+ok(sorted(about) == ['de', 'en', 'es', 'ru', 'zh'] and all(len(about[l]['features']) == len(about['ru']['features']) and sorted(about[l]) == sorted(about['ru']) for l in about),
+   'About text in five languages (the same parts: %s)' % sorted(about['ru']))
 ok(all(v == 'de,en,es,ru,zh' or all(x == 'de,en,es,ru,zh' for x in v) for v in ask_about.values()), 'questions of the «?» menu in five languages: %s' % ask_about)
 ok(not lesson['bad'] and lesson['n'] > 60, 'topics of «Учебный пример» have names in five languages (%d topics): %s' % (lesson['n'], lesson['bad'][:5]))
 ok(len(lesson['ask']) == 2 and all(x == 'de,en,es,ru,zh' for x in lesson['ask']), 'questions of «Учебный пример» in five languages: %s' % lesson['ask'])

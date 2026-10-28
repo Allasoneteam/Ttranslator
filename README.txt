@@ -57,6 +57,17 @@ The app window uses Microsoft Edge WebView2, which Windows 11 and up-to-date
 Windows 10 already have; if it is missing, an Edge or Chrome window opens
 instead.
 
+Updating: close the program (“Exit”, or close the window), then unpack the
+archive of the new version where the folder Ttranslator is and confirm
+“Replace the files in the destination”. If you renamed the folder, copy the
+contents of the new folder Ttranslator into yours, replacing files. Models,
+voices, saved translations, glossaries and settings stay: they are not in the
+archive.
+
+Uninstalling: close the program and delete the folder Ttranslator (and a
+shortcut to it, if you made one). That is all: the program installs nothing
+into the system and writes nothing to the registry.
+
 LINUX
 
 Any 64-bit x86 Linux from about 2022 on works: CachyOS, Arch, Manjaro,
@@ -98,10 +109,18 @@ Nothing is installed into the system: the program lives in its folder.
    and others) with its icon. If you move the program folder later, run this
    command again.
 
-To uninstall: delete the folder Ttranslator and, if you made the shortcut, the
-files ~/.local/share/applications/ttranslator.desktop and
-~/.local/share/icons/hicolor/256x256/apps/ttranslator.png; the data of the app
-window is in ~/.local/share/ttranslator.
+Updating: close the program and unpack the archive of the new version into the
+same place — the files are replaced, and models, voices, saved translations,
+glossaries and settings stay:
+    cd ~
+    tar -xzf ~/Downloads/Ttranslator-<version>-linux-x64.tar.gz
+The shortcut keeps working; run ./ttranslator-linux --shortcut again only if
+the folder has moved.
+
+Uninstalling: close the program and delete the folder Ttranslator and, if you
+made the shortcut, the files ~/.local/share/applications/ttranslator.desktop
+and ~/.local/share/icons/hicolor/256x256/apps/ttranslator.png; the data of the
+app window is in ~/.local/share/ttranslator and ~/.cache/ttranslator.
 
 If something goes wrong:
 - “Permission denied” at start: the file lost its permission to run (for
@@ -206,6 +225,16 @@ WINDOWS
 Если Windows покажет «Система Windows защитила ваш компьютер»: программа
 не подписана сертификатом. Нажмите «Подробнее» → «Выполнить в любом случае».
 
+Обновление: закройте программу («Выход» или крестик окна), распакуйте архив
+новой версии туда, где лежит папка Ttranslator, и подтвердите «Заменить файлы
+в папке назначения». Если вы переименовали папку, скопируйте содержимое новой
+папки Ttranslator в свою с заменой файлов. Модели, голоса, сохранённые
+переводы, словари и настройки останутся: их в архиве нет.
+
+Удаление: закройте программу и удалите папку Ttranslator (и ярлык к ней, если
+вы его делали). Больше ничего не нужно: программа ничего не устанавливает в
+систему и не пишет в реестр.
+
 
 LINUX
 
@@ -249,10 +278,18 @@ Tumbleweed и Leap 16, а также системы на их основе (дв
    другие) со своим значком. Если потом перенести папку программы,
    повторите эту команду.
 
-Удалить программу: удалите папку Ttranslator, а если делали ярлык — ещё
-файлы ~/.local/share/applications/ttranslator.desktop и
+Обновление: закройте программу и распакуйте архив новой версии туда же — файлы
+заменятся, а модели, голоса, сохранённые переводы, словари и настройки
+останутся:
+    cd ~
+    tar -xzf ~/Загрузки/Ttranslator-<версия>-linux-x64.tar.gz
+Ярлык продолжит работать; ./ttranslator-linux --shortcut нужно повторить,
+только если папка переехала.
+
+Удаление: закройте программу и удалите папку Ttranslator, а если делали ярлык
+— ещё файлы ~/.local/share/applications/ttranslator.desktop и
 ~/.local/share/icons/hicolor/256x256/apps/ttranslator.png; данные окна
-WebKitGTK лежат в ~/.local/share/ttranslator.
+WebKitGTK лежат в ~/.local/share/ttranslator и ~/.cache/ttranslator.
 
 Если что-то не так:
 - «Permission denied» («Отказано в доступе») при запуске: файл потерял право
@@ -358,6 +395,19 @@ Das App-Fenster nutzt Microsoft Edge WebView2, das Windows 11 und ein
 aktuelles Windows 10 bereits haben; fehlt es, öffnet sich stattdessen ein
 Edge- oder Chrome-Fenster.
 
+Aktualisieren: Schließen Sie das Programm („Beenden“ oder das Fenster
+schließen), entpacken Sie das Archiv der neuen Version dorthin, wo der Ordner
+Ttranslator liegt, und bestätigen Sie „Dateien im Ziel ersetzen“. Haben Sie
+den Ordner umbenannt, kopieren Sie den Inhalt des neuen Ordners Ttranslator in
+Ihren Ordner und ersetzen Sie die Dateien. Modelle, Stimmen, gespeicherte
+Übersetzungen, Glossare und Einstellungen bleiben erhalten: Sie sind nicht im
+Archiv.
+
+Deinstallieren: Schließen Sie das Programm und löschen Sie den Ordner
+Ttranslator (und eine Verknüpfung dazu, falls Sie eine angelegt haben). Mehr
+ist nicht nötig: Das Programm installiert nichts im System und schreibt nichts
+in die Registry.
+
 LINUX
 
 Geeignet ist jedes 64-Bit-x86-Linux ab etwa 2022: CachyOS, Arch, Manjaro,
@@ -400,11 +450,20 @@ neuer). Im System wird nichts installiert: Das Programm lebt in seinem Ordner.
    GNOME, Xfce und andere). Wenn Sie den Programmordner später verschieben,
    führen Sie den Befehl erneut aus.
 
-Deinstallieren: Löschen Sie den Ordner Ttranslator und, falls Sie die
-Verknüpfung angelegt haben, die Dateien
+Aktualisieren: Schließen Sie das Programm und entpacken Sie das Archiv der
+neuen Version an dieselbe Stelle – die Dateien werden ersetzt, Modelle,
+Stimmen, gespeicherte Übersetzungen, Glossare und Einstellungen bleiben
+erhalten:
+    cd ~
+    tar -xzf ~/Downloads/Ttranslator-<Version>-linux-x64.tar.gz
+Die Verknüpfung funktioniert weiter; ./ttranslator-linux --shortcut ist nur
+nötig, wenn der Ordner verschoben wurde.
+
+Deinstallieren: Schließen Sie das Programm und löschen Sie den Ordner
+Ttranslator und, falls Sie die Verknüpfung angelegt haben, die Dateien
 ~/.local/share/applications/ttranslator.desktop und
 ~/.local/share/icons/hicolor/256x256/apps/ttranslator.png; die Daten des
-App-Fensters liegen in ~/.local/share/ttranslator.
+App-Fensters liegen in ~/.local/share/ttranslator und ~/.cache/ttranslator.
 
 Wenn etwas nicht klappt:
 - „Permission denied“ („Keine Berechtigung“) beim Start: Die Datei hat ihr
@@ -508,6 +567,17 @@ La ventana de la aplicación usa Microsoft Edge WebView2, que ya tienen Windows
 11 y Windows 10 actualizado; si falta, se abre en su lugar una ventana de Edge
 o Chrome.
 
+Actualizar: cierre el programa («Salir» o cerrando la ventana), descomprima el
+archivo de la nueva versión donde está la carpeta Ttranslator y confirme
+«Reemplazar los archivos en el destino». Si cambió el nombre de la carpeta,
+copie el contenido de la nueva carpeta Ttranslator en la suya, reemplazando
+los archivos. Los modelos, las voces, las traducciones guardadas, los
+glosarios y los ajustes se conservan: no están en el archivo.
+
+Desinstalar: cierre el programa y elimine la carpeta Ttranslator (y el acceso
+directo, si lo creó). No hace falta nada más: el programa no instala nada en
+el sistema ni escribe en el registro.
+
 LINUX
 
 Sirve cualquier Linux x86 de 64 bits de 2022 en adelante, más o menos:
@@ -551,10 +621,19 @@ programa vive en su carpeta.
    GNOME, Xfce y otros). Si más tarde mueve la carpeta del programa, vuelva a
    ejecutar esta orden.
 
-Desinstalar: elimine la carpeta Ttranslator y, si creó el acceso directo, los
-archivos ~/.local/share/applications/ttranslator.desktop y
+Actualizar: cierre el programa y descomprima el archivo de la nueva versión en
+el mismo lugar; los archivos se reemplazan, y los modelos, las voces, las
+traducciones guardadas, los glosarios y los ajustes se conservan:
+    cd ~
+    tar -xzf ~/Descargas/Ttranslator-<versión>-linux-x64.tar.gz
+El acceso directo sigue funcionando; ./ttranslator-linux --shortcut solo hace
+falta de nuevo si la carpeta cambió de sitio.
+
+Desinstalar: cierre el programa y elimine la carpeta Ttranslator y, si creó el
+acceso directo, los archivos ~/.local/share/applications/ttranslator.desktop y
 ~/.local/share/icons/hicolor/256x256/apps/ttranslator.png; los datos de la
-ventana de la aplicación están en ~/.local/share/ttranslator.
+ventana de la aplicación están en ~/.local/share/ttranslator y
+~/.cache/ttranslator.
 
 Si algo falla:
 - «Permission denied» («Permiso denegado») al iniciar: el archivo perdió el
@@ -645,6 +724,14 @@ WINDOWS
 应用窗口使用 Microsoft Edge WebView2，Windows 11 和已更新的 Windows 10 都已自
 带；如果缺少，程序会改为打开 Edge 或 Chrome 窗口。
 
+更新：关闭程序（“退出”或关闭窗口），把新版本的压缩包解压到 Ttranslator 文件夹
+所在的位置，并确认“替换目标中的文件”。如果您重命名过文件夹，请把新的
+Ttranslator 文件夹中的内容复制到您的文件夹并替换文件。模型、语音、已保存的翻译、
+术语表和设置都会保留：压缩包里没有它们。
+
+卸载：关闭程序，删除 Ttranslator 文件夹（如果创建过快捷方式，也一并删除）。无
+需其他操作：程序不会向系统安装任何东西，也不会写入注册表。
+
 LINUX
 
 大约 2022 年以后的任何 64 位 x86 Linux 都可以使用：CachyOS、Arch、Manjaro、
@@ -681,10 +768,17 @@ EndeavourOS、Ubuntu 22.04 及更高版本、Debian 12 及更高版本、Linux M
    Ttranslator 会带着自己的图标出现在应用程序菜单中（KDE Plasma、GNOME、Xfce
    等）。如果以后移动了程序文件夹，请重新运行这条命令。
 
-卸载：删除 Ttranslator 文件夹；如果创建过快捷方式，还要删除
+更新：关闭程序，把新版本的压缩包解压到原来的位置——文件会被替换，模型、语音、已
+保存的翻译、术语表和设置都会保留：
+    cd ~
+    tar -xzf ~/下载/Ttranslator-<版本>-linux-x64.tar.gz
+快捷方式仍然有效；只有程序文件夹移动过时，才需要重新运行 ./ttranslator-linux
+--shortcut。
+
+卸载：关闭程序，删除 Ttranslator 文件夹；如果创建过快捷方式，还要删除
 ~/.local/share/applications/ttranslator.desktop 和
 ~/.local/share/icons/hicolor/256x256/apps/ttranslator.png 两个文件；应用窗口的
-数据位于 ~/.local/share/ttranslator。
+数据位于 ~/.local/share/ttranslator 和 ~/.cache/ttranslator。
 
 如果出现问题：
 - 启动时提示 “Permission denied”（权限不够）：文件失去了运行权限（例如通过云同
@@ -750,22 +844,31 @@ TTRANSLATOR — локальный переводчик, версия 1.0
 
 ЧТО НОВОГО В 1.0
 
-- Интерфейс — на пяти языках: к русскому, английскому и немецкому
-  добавлены испанский и китайский (с ними — справка, «О программе»,
-  сообщения программы и вопросы кнопки «?»). При первом запуске (новый
-  config.json) интерфейс английский; язык меняется прямо на экране первого
-  запуска, в окне приветствия или в «Настройках». Если в вашем config.json
-  язык уже записан, ничего не меняется.
-- Инструкция по установке и первому запуску — в начале этого файла, на
-  английском, русском, немецком, испанском и китайском.
-- Латынь вслух: латинский текст читает итальянский голос Paola (CC0) — с
-  «церковным» (итальянским) произношением; ударения программа расставляет
-  сама по правилам латыни (см. «Чтение вслух»). Голос скачивается в меню
-  моделей, как остальные.
-- «Тест»: пары фраз на любых двух языках из девяти (строки «EN: …», «RU: …»,
-  «LA: …» и т. д.). В наборе — две прежние пары английский ↔ русский и четыре
-  латинских крылатых выражения: Audentes fortuna iuvat, Ego cogito, ergo sum,
-  Corruptissima re publica plurimae leges, Ex aequo et bono.
+- Интерфейс — на пяти языках: к русскому, английскому и немецкому добавлены
+  испанский и китайский (с ними — справка, «О программе», сообщения программы
+  и вопросы кнопки «?»). При первом запуске (новый config.json) интерфейс
+  английский; язык меняется прямо на экране первого запуска, в окне
+  приветствия или в «Настройках». Если в вашем config.json язык уже записан,
+  ничего не меняется.
+- Инструкция по установке, обновлению и удалению — в начале этого файла, на
+  английском, русском, немецком, испанском и китайском; в программе — раздел
+  справки «Обновление и удаление».
+- Латынь вслух: латинский текст читает итальянский голос Paola (CC0) — на
+  выбор с «церковным» (итальянским) или «классическим» произношением; ударения
+  программа расставляет сама по правилам латыни (см. «Чтение вслух»). Голос
+  скачивается в меню моделей один раз для обоих произношений.
+- «Тест» — два теста. «Быстрый тест»: две латинские крылатые фразы (Audentes
+  fortuna iuvat и Cogito, ergo sum) с латыни на язык интерфейса и обратно —
+  четыре перевода, около минуты. «Подробный тест»: пары фраз на любых двух
+  языках из девяти (строки «EN: …», «RU: …», «LA: …» и т. д.); в наборе — две
+  прежние пары английский ↔ русский и четыре латинских крылатых выражения:
+  Audentes fortuna iuvat, Ego cogito, ergo sum, Corruptissima re publica
+  plurimae leges, Ex aequo et bono. В окне теста у каждого задания видны
+  исходный текст, перевод модели и ваш вариант (или образец перевода).
+- «Настройки»: температура и длина ответов для «Спросить модель», скорость
+  чтения вслух (от 70 до 120 %).
+- «О программе»: многофункциональный переводчик, ссылки на страницу создателей
+  на GitHub и на GitHub Sponsors, особая благодарность.
 - «Авто» справа: текст на языке интерфейса переводится на английский (при
   английском интерфейсе — на русский), текст на другом языке — на язык
   интерфейса. Для русского интерфейса всё как раньше.
@@ -1003,19 +1106,27 @@ TTRANSLATOR — локальный переводчик, версия 1.0
     Испанский  Sharvard    женский   CC BY 3.0
     Китайский  Chaowen     мужской   CC0
     Шведский   Alma        женский   CC BY 4.0
-    Латынь     Paola       женский   CC0 (итальянский голос)
+    Латынь     Paola       женский   CC0 (итальянский голос, два произношения)
 - Китайский голос читает по словарю произношения (без espeak-ng); числа,
   даты и номера телефонов он произносит словами.
-- Латинских голосов у Piper нет, поэтому латынь читает итальянский голос
-  Paola с «церковным» (итальянским) произношением. Перед чтением программа
-  пишет латынь итальянским письмом: ae и oe → e (caelum — «челум»), ti перед
-  гласной → zi (gratia — «грациа»), ph → f, th → t, y и j → i, h не читается
-  (mihi и nihil — «михи», «нихил» как michi, nichil), excelsis — «экшельсис».
-  Ударение ставится по правилам латыни: на предпоследний слог, если он долгий
-  (дифтонг, гласная перед двумя согласными или с макроном: fortūna), иначе —
-  на третий от конца (Dóminus, hominibus, véritas). Долготы гласных в обычном
-  тексте не видны, поэтому изредка ударение может оказаться не там; если в
-  тексте уже стоят знаки ударения (Dóminus), программа их не трогает.
+- Латинских голосов у Piper нет, поэтому латынь читает итальянский голос Paola
+  — с одним из двух произношений, на выбор в меню моделей (там две строки;
+  голос скачивается один раз, 67 МБ):
+  «церковное» (итальянское): перед чтением программа пишет латынь итальянским
+  письмом — ae и oe → e (caelum — «челум»), ti перед гласной → zi (gratia —
+  «грациа»), ph → f, th → t, y и j → i, h не читается (mihi и nihil — «мики»,
+  «никил»: программа пишет michi, nichil), excelsis — «экшельсис»;
+  «классическое»: голос читает по латинским правилам программы espeak-ng — c и
+  g всегда твёрдые (Cicero — «Кикеро»), v — как английское w (veni — «уэни»),
+  ae — «ай» (caelum — «кайлум»), ph, th и ch — с придыханием. Для этого
+  программа один раз делает копию голоса с латинскими правилами (ещё 63 МБ в
+  той же папке).
+  Ударение в обоих случаях ставится по правилам латыни: на предпоследний слог,
+  если он долгий (дифтонг, гласная перед двумя согласными или с макроном:
+  fortūna), иначе — на третий от конца (Dóminus, hominibus, véritas). Долготы
+  гласных в обычном тексте не видны, поэтому изредка ударение может оказаться
+  не там; знаки ударения (Dóminus) и макроны (fortūna) в тексте программа
+  учитывает.
 - Если для языка скачано два голоса, читает тот, что отмечен ✓; другой
   выбирается щелчком по нему. Ненужный голос удаляется значком корзины.
 - Голос не держится в памяти: для каждого куска текста программа озвучки
@@ -1027,6 +1138,7 @@ TTRANSLATOR — локальный переводчик, версия 1.0
   моделей подскажут: скачать нужно только её (строка «Программа озвучки
   sherpa-onnx»), голоса заново не скачиваются (см. «Обновление и перенос на
   другой компьютер»). Читать вслух можно и без модели для перевода.
+- Скорость чтения — в «Настройках»: от 70 до 120 % для всех голосов.
 - При запуске без Ttranslator.exe (start.bat) чтения вслух нет.
 
 
@@ -1128,6 +1240,10 @@ TTRANSLATOR — локальный переводчик, версия 1.0
 - Память модели ограничена (ctx_size в config.json, 4096 токенов — несколько
   страниц текста). Когда переписка становится длиннее, самые ранние сообщения
   бледнеют, и модель их больше не учитывает.
+- Температура и длина ответов — в «Настройках»: температура от 0,1 до 1,0 (по
+  умолчанию 0,6; ниже — ответы точнее и однообразнее, выше — свободнее) и
+  ответы «Коротко», «Обычно» или «Подробно» (длина ответа — до 512, 1024 или
+  2048 токенов). На переводы эти настройки не влияют.
 
 
 МОДЕЛИ
@@ -1212,14 +1328,21 @@ models. Окно остаётся: текст, варианты, чат и «С�
 
 ТЕСТ
 
-Кнопка «Тест» переводит пары фраз из ui\tests.txt в обе стороны, нейтрально
-и в разговорном стиле, а также исправляет каждую фразу на её языке. Отчёт с
-временем, текстами и правками сохраняется в data\reports; в нём указана
-модель, так что отчёты разных моделей можно сравнивать. Если словарь включён,
-найденные в фразах термины учитываются; это видно в отчёте. Кроме фраз из
-tests.txt, тест переводит фразу с формулами LaTeX (в обе стороны; MATH_TESTS в
-ui\index.html) и пишет в отчёт, остались ли формулы на месте и сколько раз
-пришлось повторить запрос.
+Кнопка «Тест» открывает два теста. Отчёт с временем, текстами и правками
+сохраняется в data\reports; в нём указана модель, так что отчёты разных
+моделей можно сравнивать. В окне теста у каждого задания видны исходный текст,
+перевод модели и ваш вариант (из ui\tests.txt) или образец перевода.
+- «Быстрый тест» — две латинские крылатые фразы, Audentes fortuna iuvat и
+  Cogito, ergo sum: с латыни на язык интерфейса и обратно, в нейтральном стиле
+  — четыре перевода, около минуты. Образцы переводов на пяти языках интерфейса
+  встроены в программу (QUICK_TEST в начале ui\index.html); отчёт — файл
+  quick-test-….md.
+- «Подробный тест» переводит пары фраз из ui\tests.txt в обе стороны,
+  нейтрально и в разговорном стиле, а также исправляет каждую фразу на её
+  языке. Если словарь включён, найденные в фразах термины учитываются; это
+  видно в отчёте. Кроме фраз из tests.txt, тест переводит фразу с формулами
+  LaTeX (в обе стороны; MATH_TESTS в ui\index.html) и пишет в отчёт, остались
+  ли формулы на месте и сколько раз пришлось повторить запрос.
 - Пара — две строки подряд на двух разных языках: «EN: …» и «RU: …», «LA: …»
   и «EN: …» и т. д. (коды EN, RU, DE, FR, ES, EL, ZH, LA, SV); пары
   разделяются пустой строкой, строки с # в начале пропускаются. Свои пары
@@ -1295,16 +1418,21 @@ Microsoft Edge WebView2 в Windows (в Windows 11 встроен, в Windows 10 
 
 Кнопка ⚙ вверху справа:
 - Язык интерфейса — English, русский, Deutsch, Español или 中文 (при первом
-  запуске — английский). Окно перезагружается на
-  новом языке; текст в поле и контекст остаются, а полученные варианты и
-  переписка — нет. На этом языке и справка, и сообщения программы, и вопросы
-  кнопки «?» (модель отвечает на языке вопроса). Запросы на перевод от этого
-  не меняются. Язык можно выбрать и на экране первого запуска.
+  запуске — английский). Окно перезагружается на новом языке; текст в поле и
+  контекст остаются, а полученные варианты и переписка — нет. На этом языке и
+  справка, и сообщения программы, и вопросы кнопки «?» (модель отвечает на
+  языке вопроса). Запросы на перевод от этого не меняются. Язык можно выбрать
+  и на экране первого запуска.
 - Тема — светлая или тёмная.
 - Размер шрифта — мелкий, обычный, крупный или очень крупный.
 - Вид окна («Окно приложения» или «Вкладка браузера»; галочка «Окно
   приложения — на весь экран») и «При запуске»: «Загружать выбранную
   модель», «Показывать окно приветствия» — то же, что в окне приветствия.
+- «Спросить модель»: температура (от 0,1 до 1,0, по умолчанию 0,6: ниже —
+  ответы точнее и однообразнее, выше — свободнее) и ответы — «Коротко»,
+  «Обычно» или «Подробно». Только для вопросов модели; у переводов — свои
+  параметры (раздел «Настройки» в ui\index.html).
+- «Чтение вслух»: скорость от 70 до 120 % для всех голосов.
 - «Справка», «О программе», «Окно приветствия» и «Выйти из программы».
 Всё сохраняется сразу в config.json и действует в любом окне программы.
 
@@ -1327,6 +1455,10 @@ config.json (появляется после первого запуска):
   start_maximized    — окно приложения на весь экран при запуске: true или
                        false;
   load_model_at_start — загружать выбранную модель при запуске: true или false;
+  chat_temperature   — температура «Спросить модель»: от 0.1 до 1.0 (0.6);
+  chat_answers       — длина ответов «Спросить модель»: short, normal или
+                       detailed;
+  speech_speed       — скорость чтения вслух в процентах: 70–120 (100);
   voices             — какой голос читает каждый язык (меняется в меню
                        моделей), например {"ru": "ru-ruslan"};
   setup_skipped      — на экране первого запуска нажата «Пропустить»: окно

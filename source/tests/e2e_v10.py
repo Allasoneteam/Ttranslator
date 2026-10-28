@@ -2,8 +2,10 @@
 # first in the list of interface languages; the Spanish and Chinese interface (the first-start screen, the first
 # files, the glossary header, help, About, settings, the test panel, the launcher's messages and the model notes,
 # the Chinese fonts); «Авто» on the right by the interface language and the start languages of a new window; the
-# Latin voice (the Italian Paola) in the voice menu; phrase pairs of ui/tests.txt in any two languages — the Latin
-# sayings — and the test report grouped by direction.
+# Latin voice (the Italian Paola) in the voice menu, with the church and the classical pronunciation sharing one
+# download; phrase pairs of ui/tests.txt in any two languages — the Latin sayings — and the test report grouped by
+# direction; the quick test (Latin ↔ the interface language) and the labels of the test rows; the settings of
+# «Спросить модель» (temperature, answers) and the speed of reading aloud; About with the links and the thanks.
 # Launcher + engine with a stand-in model + UI in Chromium; translations are canned replies.
 # Usage: e2e_v10.py <work> <ui_url> <root>   (a launcher in a fresh folder WITHOUT config.json — run_all.sh: FRESH=1;
 # the test downloads the stand-in files itself and ends by closing the launcher)
@@ -55,8 +57,11 @@ SCAN = r'''() => {
 }'''
 
 served = []
+reqs = []
 def reply(route):
     served.append(1)
+    try: reqs.append(json.loads(route.request.post_data))
+    except Exception: reqs.append({})
     out = 'data: ' + json.dumps({'choices': [{'delta': {'content': 'Fortuna audaces adiuvat.'}}]}) + '\n\n'
     out += 'data: ' + json.dumps({'choices': [{'delta': {}, 'finish_reason': 'stop'}], 'timings': {'predicted_n': 5, 'predicted_per_second': 9.5}}) + '\n\ndata: [DONE]\n\n'
     route.fulfill(status=200, headers={'Content-Type': 'text/event-stream'}, body=out)
@@ -110,20 +115,57 @@ try:
       ok(not bad, 'no Russian in the Spanish window: %s' % bad[:5])
       page.screenshot(path=os.path.join(shots, '3-main-es.png'))
       page.click('#helpBtn'); page.wait_for_selector('#helpView:not([hidden])')
-      ok(page.locator('#helpBody h3').count() == 11 and page.locator('#helpBody h3').first.inner_text() == 'Traducción' and 'pronunciación eclesiástica' in page.inner_text('#helpBody'),
-         'help in Spanish (with the Latin voice)')
+      hb = page.inner_text('#helpBody')
+      ok(page.locator('#helpBody h3').count() == 12 and page.locator('#helpBody h3').first.inner_text() == 'Traducción' and 'la eclesiástica (italiana)' in hb and 'o la clásica' in hb,
+         'help in Spanish (with both pronunciations of Latin)')
+      ok(texts(page, '#helpBody h3')[-2] == 'Actualizar y desinstalar' and 'Desinstalar en Windows' in hb and '~/.cache/ttranslator' in hb and 'Prueba rápida' in hb,
+         'help: updating and uninstalling, the quick test: %s' % texts(page, '#helpBody h3')[-3:])
+      ok(hb.count('Hay voces para') == 1 and 'Si hay dos voces descargadas para un idioma' in hb, 'help: one line about the voices, the line about two voices')
       page.click('#aboutBtn'); page.wait_for_selector('#aboutView:not([hidden])')
-      ok('Le presentamos Ttranslator' in page.inner_text('#aboutBody') and 'Versión 1.0' in page.inner_text('#aboutBody'), 'About in Spanish, version 1.0')
+      ab = page.inner_text('#aboutBody')
+      ok('Le presentamos Ttranslator, un traductor multifuncional' in ab and 'Versión 1.0' in ab, 'About in Spanish, version 1.0, «multifuncional»')
+      ok(page.locator('#aboutBody a[href="https://github.com/Allasoneteam"]').count() == 1 and page.locator('#aboutBody a[href="https://github.com/sponsors/Allasoneteam"]').count() == 1
+         and 'GitHub Sponsors: github.com/Allasoneteam y github.com/sponsors/Allasoneteam' in ab, 'About: the links to GitHub and GitHub Sponsors')
+      ok('Agradecimiento especial a Ivan Gonoskov y Claude Opus 5.5 (Anthropic).' in ab, 'About: the thanks')
       page.click('#settingsBtn'); page.wait_for_selector('#settingsView:not([hidden])')
       ok('config.json' in page.inner_text('#settingsNote') and page.inner_text('#settingsNote').startswith('Los ajustes'), 'settings in Spanish')
+
+      # ================= «Спросить модель» and reading aloud in the settings: saved in config.json, used by the requests
+      sv = page.inner_text('#settingsView')
+      ok('Temperatura' in sv and 'Respuestas' in sv and 'Breves' in sv and 'Velocidad' in sv and 'Para todas las voces.' in sv, 'the new settings in Spanish')
+      ok(texts(page, '#setTemp option')[:3] == ['0,1', '0,2', '0,3'] and len(texts(page, '#setTemp option')) == 10 and page.input_value('#setTemp') == '0.6'
+         and page.get_attribute('#ansSeg button[data-v="normal"]', 'aria-pressed') == 'true' and page.get_attribute('#speedSeg button[data-v="100"]', 'aria-pressed') == 'true',
+         'the defaults: temperature 0.6, normal answers, speed 100 %')
+      page.select_option('#setTemp', '0.3'); page.wait_for_timeout(300)
+      page.click('#ansSeg button[data-v="short"]'); page.wait_for_timeout(300)
+      page.click('#speedSeg button[data-v="80"]'); page.wait_for_timeout(400)
+      c = cfg()
+      ok(c.get('chat_temperature') == 0.3 and c.get('chat_answers') == 'short' and c.get('speech_speed') == 80, 'config.json: %s' % {k: c.get(k) for k in ('chat_temperature', 'chat_answers', 'speech_speed')})
+      ok(page.get_attribute('#ansSeg button[data-v="short"]', 'aria-pressed') == 'true' and page.evaluate('speechSpeed()') == 0.8, 'the choice is shown; reading aloud at 80 %%: %s' % page.evaluate('speechSpeed()'))
+      page.click('#closeSettingsBtn')
+      n = len(reqs)
+      page.fill('#askInput', '¿Qué significa «audentes»?'); page.click('#askSend')
+      page.wait_for_function("document.querySelectorAll('#askLog .msg.bot').length > 0 && !document.querySelector('#askLog .msg.bot.pending')", timeout=20000)
+      r = reqs[n] if len(reqs) > n else {}
+      sysmsg = (r.get('messages') or [{}])[0].get('content', '')
+      ok(r.get('temperature') == 0.3 and sysmsg.endswith('Answer briefly: a few sentences at most, unless the user asks for more.') and 0 < r.get('max_tokens', 0) <= 512,
+         'a chat question with the settings: t=%s, max_tokens=%s, system …%s' % (r.get('temperature'), r.get('max_tokens'), sysmsg[-60:]))
+      post('/api/settings', {'chat_temperature': 0.6, 'chat_answers': 'normal', 'speech_speed': 100})
 
       # ================= the test: pairs in any two languages (the Latin sayings), the report grouped by direction
       page.click('#testBtn'); page.wait_for_timeout(400)
       intro = page.inner_text('#testIntro')
-      ok('Pares de frases: 6' in intro and 'Idiomas: inglés ↔ ruso — 2, latín ↔ inglés — 4.' in intro, 'the test panel: six pairs, the languages: %s' % intro[:240])
+      ok('Pares de frases: 6' in intro and 'Idiomas: inglés ↔ ruso — 2, latín ↔ inglés — 4.' in intro, 'the test panel: six pairs, the languages: %s' % intro.replace('\n', ' | ')[:300])
+      ok(intro.startswith('Modelo: ') and 'Prueba rápida. Dos locuciones latinas (Audentes fortuna iuvat; Cogito, ergo sum): latín ↔ español' in intro and '4 traducciones' in intro
+         and 'Prueba completa. Pares de frases: 6' in intro, 'the test panel: the model, the quick test, the full test: %s' % intro.replace('\n', ' | ')[:300])
+      ok(texts(page, '#testView .pane-head button') == ['Prueba rápida', 'Prueba completa', 'Atrás'], 'the buttons: %s' % texts(page, '#testView .pane-head button'))
       page.click('#runTestBtn')
       page.wait_for_function("document.querySelector('#testProgressText').textContent.startsWith('Hecho') || document.querySelector('#testProgressText').textContent.startsWith('Error')", timeout=120000)
       ok(page.inner_text('#testProgressText').startswith('Hecho: 38 tareas'), 'the test: 6 pairs × 6 + 2 with formulas = 38 tasks: %s' % page.inner_text('#testProgressText'))
+      row0 = page.locator('#testRows .test-out').first.inner_text()
+      ok('Texto original: ' in row0 and 'Traducción del modelo: Fortuna audaces adiuvat.' in row0 and 'Su versión: ' in row0, 'a row of the full test: the source text, the model translation, your version: %s' % row0.replace('\n', ' | '))
+      ed = page.locator('#testRows .test-out', has_text='corrección').first.inner_text()
+      ok('Texto original: ' in ed and 'Corregido: ' in ed, 'a row of the correction: the source text and the corrected one: %s' % ed.replace('\n', ' | ')[:160])
       page.wait_for_function("document.querySelector('#testSummary').textContent.includes('Informe guardado')", timeout=15000)
       rows = texts(page, '#testSummary table tbody tr td:first-child')
       ok(rows[:8] == ['Inglés → Ruso'] * 2 + ['Ruso → Inglés'] * 2 + ['Latín → Inglés'] * 2 + ['Inglés → Latín'] * 2 and 'Corrección (latín)' in rows,
@@ -139,15 +181,37 @@ try:
       ok('### Par 3: Latín → Inglés, Neutro' in md and '### Par 6: Inglés → Latín, Coloquial' in md, 'the Markdown report in Spanish, with the Latin pairs')
       got = page.evaluate("parseTests('EN: one\\nRU: два\\n\\n# c\\nLA: tres\\nEN: three\\nDE: vier\\nDE: fünf\\nEN: five\\nXX: q\\nFR: seul').map(p => p.langs.join('-') + ':' + p.text[p.langs[1]])")
       ok(got == ['en-ru:два', 'la-en:three', 'de-en:five'], 'tests.txt: any two languages, a repeated language starts a new pair, unknown codes and a lone line skipped: %s' % got)
+
+      # ================= the quick test: Latin ↔ the interface language (Spanish), the reference translations built in
+      page.click('#quickTestBtn')
+      page.wait_for_function("document.querySelector('#testProgressText').textContent.startsWith('Hecho') || document.querySelector('#testProgressText').textContent.startsWith('Error')", timeout=60000)
+      ok(page.inner_text('#testProgressText').startswith('Hecho: 4 tareas'), 'the quick test: 2 sayings × 2 directions = 4 tasks: %s' % page.inner_text('#testProgressText'))
+      qrows = page.locator('#testRows .test-out')
+      r0, r1 = qrows.nth(0).inner_text(), qrows.nth(1).inner_text()
+      ok(qrows.count() == 4 and 'Frase 1 · Latín → Español · Neutro' in r0 and 'Texto original: Audentes fortuna iuvat.' in r0 and 'Traducción del modelo: ' in r0
+         and 'Traducción de referencia: La fortuna favorece a los audaces.' in r0, 'a row of the quick test: %s' % r0.replace('\n', ' | '))
+      ok('Español → Latín' in r1 and 'Texto original: La fortuna favorece a los audaces.' in r1 and 'Traducción de referencia: Audentes fortuna iuvat.' in r1, 'the way back: %s' % r1.replace('\n', ' | '))
+      ok(page.inner_text('#quickTestBtn') == 'Prueba rápida' and not page.is_disabled('#runTestBtn'), 'the buttons after the quick test')
+      page.wait_for_function("document.querySelector('#testSummary').textContent.includes('Informe guardado')", timeout=15000)
+      ok(texts(page, '#testSummary table tbody tr td:first-child') == ['Latín → Español', 'Español → Latín'], 'the summary of the quick test: %s' % texts(page, '#testSummary table tbody tr td:first-child'))
+      qrep = sorted(f for f in os.listdir(os.path.join(ROOT, 'data', 'reports')) if f.startswith('quick-test-') and f.endswith('.md'))
+      qmd = open(os.path.join(ROOT, 'data', 'reports', qrep[-1]), encoding='utf-8').read() if qrep else ''
+      qj = json.load(open(os.path.join(ROOT, 'data', 'reports', qrep[-1][:-3] + '.json'), encoding='utf-8')) if qrep else {}
+      ok(qmd.startswith('# Prueba del traductor: Prueba rápida') and '### Frase 2: Latín → Español, Neutro' in qmd and '- Traducción de referencia: Pienso, luego existo.' in qmd and '~~' not in qmd,
+         'the report of the quick test (%s): no correction section' % (qrep[-1] if qrep else 'none'))
+      ok(len(qj.get('results', [])) == 4 and all(r['kind'] == 'translate' and r.get('builtin') for r in qj.get('results', [])), 'the JSON report of the quick test: 4 translations')
       page.click('#closeTestBtn')
 
       # ================= the Latin voice in the voice menu (Spanish), the model notes of the launcher in Spanish
       page.click('#modelBtn'); page.wait_for_selector('#modelMenu:not([hidden])')
       menu = page.inner_text('#modelMenu')
-      ok('Latín · Paola (voz italiana)' in menu and 'pronunciación eclesiástica' in menu, 'the Latin voice: the Italian Paola, church pronunciation')
+      ok('Latín · Paola (voz italiana, pronunciación eclesiástica)' in menu and 'Latín · Paola (voz italiana, pronunciación clásica)' in menu, 'the Latin voice: the Italian Paola, church and classical pronunciation')
+      ok(menu.count('un solo archivo para ambas pronunciaciones') == 2, 'both Latin entries say they share one file')
       ok('Modelos de prueba' in menu, 'a group name of the launcher\'s catalogue in Spanish')
-      v = [x for x in api('/api/state')['tts']['voices'] if x['id'] == 'la-paola']
-      ok(len(v) == 1 and v[0]['lang'] == 'la' and v[0]['via'] == 'it' and v[0]['license'] == 'CC0' and v[0]['file'] == 'vits-piper-it_IT-paola-medium.tar.bz2', 'the Latin voice in /api/state: %s' % v)
+      vs = {x['id']: x for x in api('/api/state')['tts']['voices'] if x['lang'] == 'la'}
+      v, vc = vs.get('la-paola', {}), vs.get('la-paola-classical', {})
+      ok(sorted(vs) == ['la-paola', 'la-paola-classical'] and v.get('via') == vc.get('via') == 'it' and v.get('license') == 'CC0' and v.get('file') == vc.get('file') == 'vits-piper-it_IT-paola-medium.tar.bz2'
+         and v.get('respell') == 'la-church' and vc.get('respell') == 'la-classical', 'the Latin voices in /api/state: %s' % vs)
       page.keyboard.press('Escape')
       code, j = post('/api/voice', {'id': 'nope'})
       ok(code == 400 and j.get('error') == 'voz desconocida', 'a message of the launcher in Spanish: %s' % j)
@@ -165,9 +229,13 @@ try:
       page.click('#tabGloss'); page.wait_for_timeout(300)
       ok('5 个词条' in page.inner_text('#glossStatus'), 'number forms in Chinese: %s' % page.inner_text('#glossStatus'))
       page.click('#helpBtn'); page.wait_for_selector('#helpView:not([hidden])')
-      ok(page.locator('#helpBody h3').first.inner_text() == '翻译' and page.locator('#helpBody h3').count() == 11, 'help in Chinese')
+      ok(page.locator('#helpBody h3').first.inner_text() == '翻译' and page.locator('#helpBody h3').count() == 12 and texts(page, '#helpBody h3')[-2] == '更新与卸载', 'help in Chinese: %s' % texts(page, '#helpBody h3')[-3:])
       page.click('#testBtn'); page.wait_for_timeout(300)
-      ok('句子对：6' in page.inner_text('#testIntro'), 'the test panel in Chinese')
+      ok('句子对：6' in page.inner_text('#testIntro') and '快速测试。两句拉丁语名言' in page.inner_text('#testIntro') and '拉丁语 ↔ 中文' in page.inner_text('#testIntro')
+         and '“中性”、“口语”' in page.inner_text('#testIntro'),
+         'the test panel in Chinese: %s' % page.inner_text('#testIntro').replace('\n', ' | ')[:200])
+      ok(page.evaluate("quickJobs().map(j => j.from + '>' + j.to + ':' + j.ref)") == ['la>zh:命运眷顾勇敢的人。', 'zh>la:Audentes fortuna iuvat.', 'la>zh:我思故我在。', 'zh>la:Cogito, ergo sum.'],
+         'the quick test with the Chinese interface: Latin ↔ Chinese')
       page.screenshot(path=os.path.join(shots, '4-main-zh.png'))
       code, j = post('/api/voice', {'id': 'nope'})
       ok(code == 400 and j.get('error') == '未知语音', 'a message of the launcher in Chinese: %s' % j)

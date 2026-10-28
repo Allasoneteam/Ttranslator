@@ -172,6 +172,35 @@ func TestSettings(t *testing.T) {
 	if old := a.loadConfig(); old.LaunchMode != "window" || !old.StartMaximized {
 		t.Errorf("launch_mode app of 0.9.1: %+v", old)
 	}
+	// 1.0: «Спросить модель» (temperature, answers) and the speed of reading aloud; an older config.json gets the defaults
+	a.cfg = defaultConfig()
+	if _, body := call("GET", "/api/settings", ""); !strings.Contains(body, `"chat_temperature":0.6`) || !strings.Contains(body, `"chat_answers":"normal"`) || !strings.Contains(body, `"speech_speed":100`) {
+		t.Errorf("chat and speech defaults: %s", body)
+	}
+	if code, body := call("POST", "/api/settings", `{"chat_temperature":0.3,"chat_answers":"detailed","speech_speed":80}`); code != 200 ||
+		!strings.Contains(body, `"chat_temperature":0.3`) || !strings.Contains(body, `"chat_answers":"detailed"`) || !strings.Contains(body, `"speech_speed":80`) {
+		t.Errorf("chat and speech: %d %s", code, body)
+	}
+	b, _ = os.ReadFile(filepath.Join(a.root, "config.json"))
+	if err := json.Unmarshal(b, &saved); err != nil || saved.ChatTemperature != 0.3 || saved.ChatAnswers != "detailed" || saved.SpeechSpeed != 80 {
+		t.Errorf("config.json with chat and speech: %s", b)
+	}
+	for _, bad := range []string{`{"chat_temperature":0}`, `{"chat_temperature":1.5}`, `{"chat_temperature":0.35}`, `{"chat_answers":"long"}`, `{"speech_speed":75}`, `{"speech_speed":200}`} {
+		if code, body := call("POST", "/api/settings", bad); code != 400 {
+			t.Errorf("%s: %d %s", bad, code, body)
+		}
+	}
+	if code, body := call("POST", "/api/settings", `{"chat_temperature":1.0,"chat_answers":"short","speech_speed":120}`); code != 200 || !strings.Contains(body, `"chat_temperature":1,`) || !strings.Contains(body, `"chat_answers":"short"`) {
+		t.Errorf("chat and speech, the other ends: %d %s", code, body)
+	}
+	_ = os.WriteFile(filepath.Join(a.root, "config.json"), []byte(`{"active_model":"g4-e2b","ui_language":"ru"}`), 0o644)
+	if old := a.loadConfig(); old.ChatTemperature != 0.6 || old.ChatAnswers != "normal" || old.SpeechSpeed != 100 {
+		t.Errorf("config.json of 0.9.5: %+v", old)
+	}
+	_ = os.WriteFile(filepath.Join(a.root, "config.json"), []byte(`{"chat_temperature":7,"chat_answers":"x","speech_speed":3}`), 0o644)
+	if odd := a.loadConfig(); odd.ChatTemperature != 0.6 || odd.ChatAnswers != "normal" || odd.SpeechSpeed != 100 {
+		t.Errorf("odd values in config.json: %+v", odd)
+	}
 }
 
 // The download catalogue: the four Gemma 4 files chosen by the author, each pinned to a repository commit with

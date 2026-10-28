@@ -72,7 +72,12 @@ with sync_playwright() as p:
         page.select_option('#uiLangSel', 'ru')
     page.wait_for_selector('body[data-model="ready"]', timeout=30000)
     page.click('#themeSeg button[data-v="light"]'); page.click('#fontSeg button[data-v="100"]')
-    ok(page.evaluate("JSON.parse(localStorage.getItem('tdoc.settings'))") == {'ui_language': 'ru', 'theme': 'light', 'font_scale': 100}, 'settings in localStorage: %s' % page.evaluate("localStorage.getItem('tdoc.settings')"))
+    page.click('#speedSeg button[data-v="90"]'); page.wait_for_timeout(200)
+    st = page.evaluate("JSON.parse(localStorage.getItem('tdoc.settings'))")
+    ok(st == {'ui_language': 'ru', 'theme': 'light', 'font_scale': 100, 'chat_temperature': 0.6, 'chat_answers': 'normal', 'speech_speed': 90},
+       'settings in localStorage (1.0: with «Спросить модель» and the speed of reading): %s' % st)
+    page.reload(); page.wait_for_selector('body[data-model="ready"]', timeout=30000)
+    ok(page.evaluate('[SETTINGS.speech_speed, SETTINGS.chat_temperature, speechSpeed()]') == [90, 0.6, 0.9], 'the speed of reading from the browser memory: %s' % page.evaluate('[SETTINGS.speech_speed, SETTINGS.chat_temperature, speechSpeed()]'))
     ok(not errs, 'no page errors %s' % errs[:2])
     b.close()
 print('\n'.join(res))

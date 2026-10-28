@@ -89,7 +89,8 @@ type VoiceSpec struct {
 	Rules   []string    `json:"rules,omitempty"`   // …and the rules that spell out numbers, dates and phone numbers
 	Parts   []VoicePart `json:"parts,omitempty"`   // a voice made of separate files instead of one archive
 	Via     string      `json:"via,omitempty"`     // the voice's own language when it reads another one (Latin: "it")
-	Respell string      `json:"respell,omitempty"` // the text is respelled first: "la-church" — Latin in Italian spelling (latin.go)
+	Respell string      `json:"respell,omitempty"` // the text is respelled first: "la-church" — Latin in Italian spelling, "la-classical" — the stress marked for espeak-ng's Latin (latin.go)
+	Espeak  string      `json:"espeak,omitempty"`  // the voice reads with this espeak-ng voice instead of its own: a copy of its model (espeakModel)
 }
 
 // VoicePart is one file of a voice made of parts; an archive (.tar.bz2) is unpacked into the voice's folder.
@@ -125,10 +126,22 @@ func otherLanguage(v VoiceSpec, via, respell string) VoiceSpec {
 	return v
 }
 
+// espeakRules: the voice reads with the rules (the espeak-ng voice) of another language. sherpa-onnx takes the
+// espeak-ng voice only from the model's metadata, so the program makes a copy of the model with that voice
+// (espeakModel): the Italian Paola reads Latin with the classical pronunciation of espeak-ng's Latin rules
+// (author's request of 25.10.2026, the sample «B classical»). The archive is the same: both entries share it.
+func espeakRules(v VoiceSpec, voice string) VoiceSpec {
+	v.Espeak = voice
+	return v
+}
+
 // respellFor prepares the text for the voice (Latin for an Italian voice: latin.go).
 func respellFor(v *VoiceSpec, text string) string {
-	if v.Respell == "la-church" {
+	switch v.Respell {
+	case "la-church":
 		return respellLatinChurch(text)
+	case "la-classical":
+		return respellLatinClassical(text)
 	}
 	return text
 }
@@ -180,6 +193,10 @@ var voiceSpecs = []VoiceSpec{
 	// is CC0.
 	otherLanguage(piperVoice("la-paola", "la", "Paola", "female", "CC0", false, "it_IT-paola-medium", 67221173,
 		"7541f75778afa164e44e34baaef63befad7698595df26a95ca944b63ef1a16b4"), "it", "la-church"),
+	// the same voice with the classical pronunciation (author's choice, 25.10.2026): espeak-ng's Latin rules, the
+	// stress marked by latin.go; the same archive (Dir) — downloaded once for both
+	espeakRules(otherLanguage(piperVoice("la-paola-classical", "la", "Paola", "female", "CC0", false, "it_IT-paola-medium", 67221173,
+		"7541f75778afa164e44e34baaef63befad7698595df26a95ca944b63ef1a16b4"), "it", "la-classical"), "la"),
 }
 
 // Test hooks, used only when the environment variables are set: TDOC_TTS_URL replaces the sherpa-onnx archive
@@ -376,7 +393,7 @@ func (a *App) ttsStateJSON() map[string]any {
 		}
 		voices = append(voices, map[string]any{
 			"id": v.ID, "lang": v.Lang, "name": v.Name, "gender": v.Gender, "license": v.License, "nc": v.NC,
-			"url": v.URL, "page": v.Page, "file": path.Base(v.URL), "size": v.Size, "parts": parts, "via": v.Via,
+			"url": v.URL, "page": v.Page, "file": path.Base(v.URL), "size": v.Size, "parts": parts, "via": v.Via, "respell": v.Respell,
 			"present": present, "active": present && a.activeVoiceID(v.Lang) == v.ID, "partial": partial,
 		})
 	}
@@ -637,6 +654,16 @@ func (a *App) synthesize(ctx context.Context, exe string, v *VoiceSpec, text str
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
+	if v.Espeak != "" { // reads with another espeak-ng voice: its own copy of the model
+		name, err := a.espeakModel(v)
+		if err != nil {
+			logger.Printf("tts %s: %v", v.ID, err)
+			return nil, fmt.Errorf(tr("не удалось прочитать текст вслух: %s"), err.Error())
+		}
+		c := *v
+		c.Model = name
+		v = &c
+	}
 	dir := a.voicesDir()
 	out := fmt.Sprintf("tts-%d-%d.wav", os.Getpid(), ttsSeq.Add(1))
 	defer os.Remove(filepath.Join(dir, out))
@@ -762,6 +789,77 @@ func utf8Copy(exe string) (string, error) {
 	return dst, nil
 }
 
+// ---------------------------------------------------------------- another espeak-ng voice
+
+// espeakModelName is the copy of the voice's model that reads with v.Espeak: it_IT-paola-medium-la.onnx.
+func espeakModelName(v *VoiceSpec) string {
+	return strings.TrimSuffix(v.Model, ".onnx") + "-" + v.Espeak + ".onnx"
+}
+
+// patchEspeakVoice writes voice into the "voice" entries of the model's metadata (ONNX metadata_props: the key
+// "voice", then the value — two lowercase letters for every Piper voice). The new value has the length of the old
+// one, so nothing else in the file moves. It returns how many entries were changed.
+func patchEspeakVoice(b []byte, voice string) int {
+	key := []byte("\n\x05voice\x12")
+	n := 0
+	for i := 0; i < len(b); {
+		j := bytes.Index(b[i:], key)
+		if j < 0 {
+			break
+		}
+		k := i + j + len(key)
+		if k < len(b) && int(b[k]) == len(voice) && k+1+len(voice) <= len(b) && lowerASCII(b[k+1:k+1+len(voice)]) {
+			copy(b[k+1:], voice)
+			n++
+		}
+		i = k
+	}
+	return n
+}
+
+func lowerASCII(b []byte) bool {
+	for _, c := range b {
+		if c < 'a' || c > 'z' {
+			return false
+		}
+	}
+	return len(b) > 0
+}
+
+// espeakModel makes, once, the copy of the voice's model that reads with v.Espeak (about 63 MB for Paola) and
+// returns its file name. Caller holds a.ttsMu.
+func (a *App) espeakModel(v *VoiceSpec) (string, error) {
+	name := espeakModelName(v)
+	dst := filepath.Join(a.voiceDir(v), name)
+	if st, err := os.Stat(dst); err == nil && st.Size() > 0 {
+		return name, nil
+	}
+	b, err := os.ReadFile(filepath.Join(a.voiceDir(v), v.Model))
+	if err != nil {
+		return "", err
+	}
+	if patchEspeakVoice(b, v.Espeak) == 0 {
+		return "", fmt.Errorf("%s: no espeak-ng voice in the model", v.Model)
+	}
+	tmp := dst + ".tmp"
+	if err := os.WriteFile(tmp, b, 0o644); err != nil {
+		_ = os.Remove(tmp)
+		return "", err
+	}
+	if err := os.Rename(tmp, dst); err != nil {
+		_ = os.Remove(tmp)
+		return "", err
+	}
+	logger.Printf("voice %s: made %s (espeak-ng voice %s)", v.ID, name, v.Espeak)
+	return name, nil
+}
+
+// sameVoiceDir: the voice id is another entry of the same folder (the two pronunciations of Latin).
+func sameVoiceDir(id string, v *VoiceSpec) bool {
+	o := findVoice(id)
+	return o != nil && o.Dir == v.Dir
+}
+
 // ---------------------------------------------------------------- HTTP
 
 func (a *App) ttsRoutes(mux *http.ServeMux) {
@@ -824,7 +922,7 @@ func (a *App) ttsRoutes(mux *http.ServeMux) {
 			return
 		}
 		a.mu.Lock()
-		busy := a.vdl.Active && a.vdl.Name == v.ID
+		busy := a.vdl.Active && a.vdl.Name != "" && (a.vdl.Name == v.ID || sameVoiceDir(a.vdl.Name, v)) // two entries may share a folder
 		a.mu.Unlock()
 		if busy {
 			jsonError(w, 409, tr("этот голос сейчас скачивается"))

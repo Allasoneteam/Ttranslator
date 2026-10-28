@@ -23,8 +23,9 @@
 # character is a whole syllable: 0.45 and 0.60 s) and/or "WORDS" (more than 60 % of the words wrong on average;
 # Chinese: characters). A voice that reads another language (1.0: Latin by the Italian voice Paola, in Italian
 # spelling as the app gives it) is heard by Whisper in its own language, which writes Italian words for Latin ones —
-# there the letters are compared instead of the words (60 % too); measured: Paola 0.055 s per character, 42 % of
-# the letters wrong (the words: over 100 %). Measured in October 2026: the voices of the catalogue and seven other Spanish voices
+# there the letters are compared instead of the words (60 % too); measured: Paola 0.054–0.055 s per character, 39–44 %
+# of the letters wrong with the church pronunciation, 48 % with the classical one (its own copy of the model with the
+# espeak-ng voice "la", made here as the app makes it; Whisper hears Italian in both) — the words: over 100 %. Measured in October 2026: the voices of the catalogue and seven other Spanish voices
 # 0.049–0.067 s per character (worst phrase 0.076), 0–34 % errors (Whisper base hears Russian worst);
 # es_ES-mls_9972-low 0.115–0.123 s per character (worst phrase 0.23–0.27), 106–132 % errors. Speech differs a little
 # from run to run (VITS draws noise), and so do the numbers. Exit code 1 if a voice is not "ok".
@@ -146,18 +147,45 @@ def respell(work, texts, kind):
     Italian voice), through go test -run TestDumpRespell."""
     if not kind:
         return texts
-    if kind != "la-church":
+    if kind not in ("la-church", "la-classical"):
         fail("unknown respelling %s" % kind)
     src, dst = os.path.join(work, "respell-in.txt"), os.path.join(work, "respell-out.txt")
     open(src, "w", encoding="utf-8").write("\n".join(texts) + "\n")
     r = subprocess.run(["go", "test", "-count=1", "-run", "^TestDumpRespell$", "."], cwd=LAUNCHER,
-                       env=dict(os.environ, TDOC_RESPELL_IN=src, TDOC_RESPELL_OUT=dst), capture_output=True, text=True)
+                       env=dict(os.environ, TDOC_RESPELL_IN=src, TDOC_RESPELL_OUT=dst,
+                                TDOC_RESPELL_KIND="classical" if kind == "la-classical" else ""), capture_output=True, text=True)
     if r.returncode != 0 or not os.path.exists(dst):
         fail("go test -run TestDumpRespell:\n" + r.stdout + r.stderr)
     out = open(dst, encoding="utf-8").read().rstrip("\n").split("\n")
     if len(out) != len(texts):
         fail("respelling: %d lines for %d" % (len(out), len(texts)))
     return out
+
+
+def espeak_model(vd, v):
+    """The model file the voice reads with: for a voice that reads with another espeak-ng voice (the classical Latin
+    of Paola), the copy of the model with that voice in its metadata — as espeakModel in tts.go makes it."""
+    if not v.get("espeak"):
+        return v["model"]
+    name = v["model"][:-len(".onnx")] + "-" + v["espeak"] + ".onnx"
+    dst = os.path.join(vd, name)
+    if not os.path.exists(dst):
+        b = bytearray(open(os.path.join(vd, v["model"]), "rb").read())
+        key, voice, n, i = b"\n\x05voice\x12", v["espeak"].encode(), 0, 0
+        while True:
+            j = b.find(key, i)
+            if j < 0:
+                break
+            k = j + len(key)
+            old = bytes(b[k + 1:k + 1 + len(voice)])
+            if k < len(b) and b[k] == len(voice) and old.isalpha() and old.islower():
+                b[k + 1:k + 1 + len(voice)] = voice
+                n += 1
+            i = k
+        if not n:
+            fail("%s: no espeak-ng voice in %s" % (v["id"], v["model"]))
+        open(dst, "wb").write(bytes(b))
+    return name
 
 
 def install_voice(work, v):
@@ -243,9 +271,10 @@ def main():
         rel = os.path.relpath(vd, os.path.join(work, "voices"))
         rows = []
         hear = v.get("via") or lang   # the language Whisper listens in: the voice's own
+        model = espeak_model(vd, v)
         for i, text in enumerate(respell(work, PHRASES[lang], v.get("respell")), 1):
             out = os.path.join(speech, "%s-%d.wav" % (v["id"], i))
-            cmd = [os.path.join(top, "bin", "sherpa-onnx-offline-tts"), "--vits-model=%s/%s" % (rel, v["model"]),
+            cmd = [os.path.join(top, "bin", "sherpa-onnx-offline-tts"), "--vits-model=%s/%s" % (rel, model),
                    "--vits-tokens=%s/tokens.txt" % rel]
             if v.get("lexicon"):
                 cmd.append("--vits-lexicon=%s/%s" % (rel, v["lexicon"]))

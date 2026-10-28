@@ -19,11 +19,14 @@ follows your own glossary, answers questions about a translation and can read te
 - **LaTeX formulas** (`$…$`, `$$…$$`) are never translated or damaged.
 - **Ask the model:** a chat about translations, terms and grammar; mini lessons and exercises with checking.
 - **Reading aloud:** Piper voices for Russian, English, German, Spanish, Chinese and Swedish through the sherpa-onnx
-  program, downloaded on demand; Latin is read by the Italian voice Paola with the church pronunciation (the program
-  writes Latin in Italian spelling and marks the stress by the rules of Latin).
+  program, downloaded on demand; Latin is read by the Italian voice Paola with the church or the classical
+  pronunciation (your choice; the voice is downloaded once), the stress marked by the rules of Latin.
 - **Saved translations** in plain files, import and export (TSV, TXT).
-- A built-in **test** that checks a model on your computer with phrase pairs in any two of the nine languages (the
-  set includes Latin sayings such as *Audentes fortuna iuvat*) and writes a report.
+- A built-in **test** that checks a model on your computer and writes a report: a quick one (two Latin sayings,
+  *Audentes fortuna iuvat* and *Cogito, ergo sum*, into the interface language and back — about a minute) and a full
+  one with phrase pairs in any two of the nine languages; each task shows the source text, the model translation and
+  the reference.
+- **Settings** for the chat (temperature; short, normal or detailed answers) and the speed of reading aloud.
 - **Interface in five languages:** English (on the first start), Russian, German, Spanish and Chinese.
 
 ## Requirements
@@ -78,8 +81,7 @@ and libstdc++ of GCC 12 or newer).
 
    Closing the terminal closes the program too — the menu shortcut avoids the terminal:
 3. `./ttranslator-linux --shortcut` puts Ttranslator into the menu of applications (KDE Plasma, GNOME, Xfce…) with
-   its icon; run it again after moving the folder. To uninstall, delete the folder and, if you made the shortcut,
-   `~/.local/share/applications/ttranslator.desktop` and `~/.local/share/icons/hicolor/256x256/apps/ttranslator.png`.
+   its icon; run it again after moving the folder.
 
 If something goes wrong: an empty (white) app window happens with NVIDIA graphics — the program switches WebKitGTK to
 its older renderer there by itself; if it is still empty, start with `env WEBKIT_DISABLE_COMPOSITING_MODE=1
@@ -88,15 +90,35 @@ plugins from the table. GLIBC/GLIBCXX errors of the engine: the system is older 
 openSUSE Leap 15, RHEL/AlmaLinux/Rocky 9) — build llama.cpp yourself and set `engine_path` in `config.json`.
 NixOS needs `programs.nix-ld`. ARM and 32-bit Linux are not supported yet.
 
-### Updating and moving to another computer
+### Updating, uninstalling and moving to another computer
 
 Everything the program downloads and remembers is in its folder: `models` (with the voices in `models/voices`),
 `engine` (llama.cpp and sherpa-onnx, one folder per system), `data` (saved translations, glossaries, test reports,
-logs) and `config.json`. To update, unpack the new archive where the `Ttranslator` folder is, replacing files — none
-of these are in the archive (only `ui/tests.txt` is replaced). To move to another computer with the same system, copy
-the whole folder; to another system, unpack that system's archive and copy `models`, `data` and `config.json` into it.
+logs) and `config.json`. None of these are in the release archive, so an update keeps them (only `ui/tests.txt`, the
+phrases of the full test, is replaced).
+
+- **Update on Windows:** close the program, unpack the new archive where the `Ttranslator` folder is (“Extract all”
+  → the folder that contains `Ttranslator`) and confirm “Replace the files in the destination”. If you renamed the
+  folder, copy the contents of the new `Ttranslator` folder into yours, replacing files.
+- **Update on Linux:** close the program and unpack the new archive into the same place:
+  `cd ~ && tar -xzf ~/Downloads/Ttranslator-<version>-linux-x64.tar.gz`. The menu shortcut keeps working.
+- **Uninstall on Windows:** close the program and delete its folder. Nothing else is left: the program installs
+  nothing into the system and writes nothing to the registry.
+- **Uninstall on Linux:** close the program and delete its folder; if you made the shortcut, also
+  `~/.local/share/applications/ttranslator.desktop` and `~/.local/share/icons/hicolor/256x256/apps/ttranslator.png`;
+  the data of the app window is in `~/.local/share/ttranslator` and `~/.cache/ttranslator`.
+- **Another computer:** with the same system, copy the whole folder; with another system, unpack that system's
+  archive and copy `models`, `data` and `config.json` into it.
 Voices copied without the speech program work too: the model menu then offers to download only sherpa-onnx (20–30
 MB), and a sherpa-onnx folder copied into `engine/<system>` by hand is found by itself.
+
+## Support and thanks
+
+The creators will be glad of any support via GitHub Sponsors: [github.com/Allasoneteam](https://github.com/Allasoneteam)
+and [github.com/sponsors/Allasoneteam](https://github.com/sponsors/Allasoneteam). Questions, suggestions and feedback:
+Ttranslator@proton.me.
+
+Special thanks to Ivan Gonoskov and Claude Opus 5.5 (Anthropic).
 
 ## Translations
 
@@ -172,7 +194,12 @@ Third-party components:
 
 Windows может показать «Система Windows защитила ваш компьютер» (программа не подписана): «Подробнее» → «Выполнить в
 любом случае». Linux: пакеты для окна и звука — в таблице раздела [Linux](#linux) выше; `./ttranslator-linux
---shortcut` добавляет программу в меню приложений. Подробная инструкция — в [README.txt](README.txt).
+--shortcut` добавляет программу в меню приложений.
+
+Обновление: закройте программу и распакуйте новый архив туда же, где лежит папка `Ttranslator`, с заменой файлов —
+модели, голоса, переводы, словари и настройки останутся. Удаление: закройте программу и удалите её папку (в Linux —
+ещё ярлык и данные окна, см. [выше](#updating-uninstalling-and-moving-to-another-computer)). Подробная инструкция — в
+[README.txt](README.txt).
 </details>
 
 <details>
@@ -188,8 +215,12 @@ Windows может показать «Система Windows защитила в
 
 Windows zeigt eventuell „Der Computer wurde durch Windows geschützt“ (das Programm ist nicht signiert): „Weitere
 Informationen“ → „Trotzdem ausführen“. Linux: die Pakete für Fenster und Ton stehen in der Tabelle im Abschnitt
-[Linux](#linux) oben; `./ttranslator-linux --shortcut` legt das Programm ins Anwendungsmenü. Mehr in
-[README.txt](README.txt).
+[Linux](#linux) oben; `./ttranslator-linux --shortcut` legt das Programm ins Anwendungsmenü.
+
+Aktualisieren: Schließen Sie das Programm und entpacken Sie das neue Archiv dorthin, wo der Ordner `Ttranslator`
+liegt, und ersetzen Sie die Dateien — Modelle, Stimmen, Übersetzungen, Glossare und Einstellungen bleiben erhalten.
+Deinstallieren: Schließen Sie das Programm und löschen Sie seinen Ordner (unter Linux auch die Verknüpfung und die
+Fensterdaten, siehe [oben](#updating-uninstalling-and-moving-to-another-computer)). Mehr in [README.txt](README.txt).
 </details>
 
 <details>
@@ -205,8 +236,12 @@ Informationen“ → „Trotzdem ausführen“. Linux: die Pakete für Fenster u
 
 Windows puede mostrar «Windows protegió su PC» (el programa no está firmado): «Más información» → «Ejecutar de todas
 formas». Linux: los paquetes para la ventana y el sonido están en la tabla de la sección [Linux](#linux) de arriba;
-`./ttranslator-linux --shortcut` añade el programa al menú de aplicaciones. Más información en
-[README.txt](README.txt).
+`./ttranslator-linux --shortcut` añade el programa al menú de aplicaciones.
+
+Actualizar: cierre el programa y descomprima el nuevo archivo donde está la carpeta `Ttranslator`, reemplazando los
+archivos; los modelos, las voces, las traducciones, los glosarios y los ajustes se conservan. Desinstalar: cierre el
+programa y elimine su carpeta (en Linux, también el acceso directo y los datos de la ventana, véase
+[arriba](#updating-uninstalling-and-moving-to-another-computer)). Más información en [README.txt](README.txt).
 </details>
 
 <details>
@@ -220,5 +255,8 @@ formas». Linux: los paquetes para la ventana y el sonido están en la tabla de 
    也可以点击“跳过”，之后再在模型菜单中选择模型。
 
 Windows 可能会显示“Windows 已保护你的电脑”（程序没有签名）：点击“更多信息”→“仍要运行”。Linux：窗口和声音所需的软件包见上方
-[Linux](#linux) 一节中的表格；`./ttranslator-linux --shortcut` 会把程序添加到应用程序菜单。详见 [README.txt](README.txt)。
+[Linux](#linux) 一节中的表格；`./ttranslator-linux --shortcut` 会把程序添加到应用程序菜单。
+
+更新：关闭程序，把新的压缩包解压到 `Ttranslator` 文件夹所在的位置并替换文件——模型、语音、翻译、术语表和设置都会保留。卸载：关闭程序并删除
+程序文件夹（在 Linux 上还要删除快捷方式和窗口数据，见[上文](#updating-uninstalling-and-moving-to-another-computer)）。详见 [README.txt](README.txt)。
 </details>
