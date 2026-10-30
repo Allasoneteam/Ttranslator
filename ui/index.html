@@ -730,6 +730,9 @@ const DEFAULT_STYLES = ['neutral', 'academic', 'concise', 'paraphrase'];
 // полю вставляет пример, его можно поправить. На английском и немецком — переводы из I18N.
 const STYLE_EXAMPLE = 'художественно-литературный';
 const CTX_EXAMPLE = 'текст научно-популярной статьи';
+// Пример, вставленный двойным щелчком и не изменённый, — на языке интерфейса: поле «Свой» стиль запоминается, и
+// пример на другом языке (или прежний перевод) заменяется переводом на нынешний язык (замечание автора от 30.10.2026).
+const EXAMPLE_OLD = { 'художественно-литературный': ['literary, as in fiction', 'literarisch, wie in einem Roman', 'literario, como en una novela', '文学风格，如小说'] };
 
 const MAX_CHARS = 1000;
 const MAX_CONTEXT = 300;
@@ -1133,7 +1136,7 @@ const ABOUT = {
     ],
     contact: 'Если у Вас возникнут вопросы, предложения или отзывы, напишите создателям приложения:',
     support: 'Создатели будут рады любой поддержке через GitHub Sponsors:',
-    thanks: 'Особая благодарность: Иван Гоносков и Claude Opus 5.5 (Anthropic).',
+    thanks: 'Особая благодарность Ивану Гоноскову и Claude Opus 5.5 (Anthropic).',
     license: 'Лицензия: MIT, © 2026 Allasoneteam and Ttranslator authors (файл LICENSE.txt в папке программы).',
     credits: 'Используются: движок llama.cpp (лицензия MIT) и модели Gemma 4 (Google, лицензия Apache 2.0); для чтения вслух — программа sherpa-onnx (лицензия Apache 2.0, внутри — espeak-ng, лицензия GPL-3.0) и голоса Piper (лицензия каждого голоса указана в меню моделей); окно приложения — библиотека webview (лицензия MIT), в Windows — Microsoft Edge WebView2.',
   },
@@ -1841,6 +1844,12 @@ function activeModel() { return STATE && (STATE.models || []).find(m => m.id ===
 function family() {
   if (MODE === 'basic') return FAMILIES[basicFamily] || FAMILIES.chat;
   const m = activeModel(); return FAMILIES[(m && m.family) || 'chat'] || FAMILIES.chat;
+}
+
+// Пример (STYLE_EXAMPLE, CTX_EXAMPLE) на любом языке интерфейса — на нынешнем; другой текст остаётся как есть.
+function exampleInUiLang(value, ex) {
+  const v = String(value || '').trim();
+  return v && [ex, ...(I18N[ex] || []), ...(EXAMPLE_OLD[ex] || [])].includes(v) ? t(ex) : value;
 }
 
 function styleOf(key) {
@@ -5351,7 +5360,7 @@ const I18N = {
   'Контекст': ['Context', 'Kontext', 'Contexto', '语境'],
   'например: {x}': ['e.g. {x}', 'z. B. {x}', 'p. ej.: {x}', '例如：{x}'],
   'Двойной щелчок по пустому полю вставляет пример': ['Double-click the empty field to insert the example', 'Doppelklick in das leere Feld fügt das Beispiel ein', 'Doble clic en el campo vacío para insertar el ejemplo', '双击空白输入框可插入示例'],
-  'художественно-литературный': ['literary, as in fiction', 'literarisch, wie in einem Roman', 'literario, como en una novela', '文学风格，如小说'],
+  'художественно-литературный': ['literary', 'literarisch', 'literario', '文学风格'],
   'название не переводится': ['names are not translated', 'Namen werden nicht übersetzt', 'los nombres no se traducen', '名称不翻译'],
   'Учебный пример': ['Mini lesson', 'Mini-Lektion', 'Minilección', '小课堂'],
   'Уточнить': ['Clarify', 'Präzisieren', 'Revisar', '核查'],
@@ -5922,7 +5931,8 @@ function init() {
   $('#srcSpeak').onclick = () => speakToggle($('#srcSpeak'), $('#src'), $('#src').value, resolveDir($('#src').value).src);
   $('#ownSpeak').onclick = () => speakToggle($('#ownSpeak'), $('#ownText'), $('#ownText').value, OWN.run ? OWN.run.dir.tgt : '');
   $('#quitIcon').innerHTML = ICON.exit;
-  $('#customStyle').value = store.get('customStyle', '');
+  $('#customStyle').value = exampleInUiLang(store.get('customStyle', ''), STYLE_EXAMPLE);
+  if ($('#customStyle').value !== store.get('customStyle', '')) store.set('customStyle', $('#customStyle').value);
   // примеры в пустых полях «Свой» стиль и «Контекст»: подсказка «например: …», двойной щелчок вставляет пример
   for (const [id, ex] of [['customStyle', STYLE_EXAMPLE], ['ctx', CTX_EXAMPLE]]) {
     const f = $('#' + id);
@@ -5944,7 +5954,7 @@ function init() {
   let keep = null;
   try { keep = JSON.parse(sessionStorage.getItem('tdoc.keep') || 'null'); sessionStorage.removeItem('tdoc.keep'); } catch (e) { keep = null; }
   if (keep) {
-    $('#src').value = keep.src || ''; $('#ctx').value = keep.ctx || '';
+    $('#src').value = keep.src || ''; $('#ctx').value = exampleInUiLang(keep.ctx || '', CTX_EXAMPLE);
     updateCounter(); renderDir();
     if (keep.pane === 'settings') { showPane('settings'); renderSettings(); }
     if (keep.pane === 'welcome') welcomeForced = true;

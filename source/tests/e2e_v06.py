@@ -255,7 +255,7 @@ try:
       page.click('#helpAboutBtn'); page.wait_for_selector('#aboutView:not([hidden])')
       ab = page.inner_text('#aboutBody')
       ok('Версия ' + VERSION in ab and 'Ttranslator@proton.me' in ab and 'Лицензия: MIT' in ab and 'llama.cpp' in ab and 'GitHub Sponsors' in ab, 'About in Russian')
-      ok('бесплатный многофункциональный офлайн-переводчик' in ab and 'Особая благодарность: Иван Гоносков и Claude Opus 5.5 (Anthropic).' in ab
+      ok('бесплатный многофункциональный офлайн-переводчик' in ab and 'Особая благодарность Ивану Гоноскову и Claude Opus 5.5 (Anthropic).' in ab
          and 'github.com/Allasoneteam и github.com/sponsors/Allasoneteam' in ab, 'About in Russian: multifunctional, the links, the thanks')
       page.screenshot(path=os.path.join(shots, '8-about-dark.png'))
       page.click('#settingsBtn'); page.wait_for_selector('#settingsView:not([hidden])')

@@ -111,6 +111,19 @@ try:
       ok(page.evaluate("[AUTO_TARGET('es'), AUTO_TARGET('de'), AUTO_TARGET('ru')]") == ['en', 'es', 'es'], '«Авто» on the right: Spanish → English, other → Spanish')
       ok(page.get_attribute('#tgtSel option[value="auto"]', 'title') == 'Texto en español, al inglés; texto en otro idioma, al español', 'the hint of «Авто» in Spanish')
       ok(page.inner_text('#goLabel') == 'Traducir', 'the Translate button in Spanish')
+      # the example of «Свой» style in the interface language; an example inserted in another language (remembered in
+      # the browser) follows the interface language, a style written by hand stays (author's remark of 30.10.2026)
+      ok(page.get_attribute('#customStyle', 'placeholder') == 'p. ej.: literario' and page.get_attribute('#ctx', 'placeholder') == 'p. ej.: un artículo de divulgación científica',
+         'the examples of «Свой» style and context in Spanish: %s / %s' % (page.get_attribute('#customStyle', 'placeholder'), page.get_attribute('#ctx', 'placeholder')))
+      page.evaluate("localStorage.setItem('tdoc.customStyle', JSON.stringify('художественно-литературный'))")
+      page.reload(); ready(page, 30000); page.wait_for_timeout(500)
+      ok(page.input_value('#customStyle') == 'literario' and page.evaluate("JSON.parse(localStorage.getItem('tdoc.customStyle'))") == 'literario',
+         'the Russian example of «Свой» style becomes the Spanish one: %s' % page.input_value('#customStyle'))
+      page.evaluate("localStorage.setItem('tdoc.customStyle', JSON.stringify('como en un cuento'))")
+      page.reload(); ready(page, 30000); page.wait_for_timeout(500)
+      ok(page.input_value('#customStyle') == 'como en un cuento', 'a style written by hand stays as it is')
+      page.evaluate("localStorage.removeItem('tdoc.customStyle')")
+      page.reload(); ready(page, 30000); page.wait_for_timeout(500)
       bad = page.evaluate(SCAN)
       ok(not bad, 'no Russian in the Spanish window: %s' % bad[:5])
       page.screenshot(path=os.path.join(shots, '3-main-es.png'))

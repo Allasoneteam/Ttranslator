@@ -4,7 +4,8 @@ A free, open-source **offline translator** that runs a local language model on y
 account, no telemetry. It shows several translation variants in different styles, edits text in the same language,
 follows your own glossary, answers questions about a translation and can read texts aloud.
 
-> **Version 1.0** for Windows and Linux (macOS is planned for 1.1). The interface is in English, Russian, German,
+> **Version 1.0** for Windows and Linux (macOS is planned for 1.1) — download it from
+> [Releases](https://github.com/Allasoneteam/Ttranslator/releases/latest). The interface is in English, Russian, German,
 > Spanish and Chinese; the program has its full guide (Help) in each of them. [README.txt](README.txt) has the
 > installation in these five languages and the full guide in Russian; the installation is also
 > [below](#installation-in-other-languages) in Russian, German, Spanish and Chinese.
