@@ -1,14 +1,22 @@
-# Tests and builds on every change. Builds and the ready-to-run archives for Windows and Linux (the engine inside;
-# source/release.sh) go to the run's artifacts — test builds; releases are made separately, only after the author's
-# "yes". On a failure the last lines of the output are also shown as annotations of the run.
+# Tests and builds on every push to any branch (main, dev and the branches of Claude's cloud sessions, claude/...).
+# Builds and the ready-to-run archives for Windows and Linux (the engine inside; source/release.sh) go to the run's
+# artifacts — test builds; releases are made separately, only after the author's "yes". On a failure the last lines
+# of the output are also shown as annotations of the run.
+# The macos and android jobs only run scripts of the repository (source/ci/macos.sh, android/ci.sh): the work on
+# macOS (1.1) and the Android prototype change those scripts, not this file. Until a script exists its job only
+# says so and passes.
 name: CI
 on:
   push:
-    branches: [main]
+    branches: ['**']
   pull_request:
   workflow_dispatch:
 permissions:
   contents: read
+# a newer push to the same branch cancels the run still going on it
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
 jobs:
   tests:
     runs-on: ubuntu-24.04
@@ -111,4 +119,77 @@ jobs:
         with:
           name: archives-SHA256SUMS
           path: ${{ runner.temp }}/dist/SHA256SUMS.txt
+          retention-days: 14
+
+  macos:
+    # macOS (1.1): Intel and Apple Silicon. source/ci/macos.sh <arch> <out-dir> builds, checks and puts the results
+    # (archives, screenshots, logs) into <out-dir>; to have its archive uploaded as itself (not zipped again) it writes
+    # MACZIP=<file name in out-dir> to $GITHUB_ENV.
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: x64
+            runner: macos-15-intel
+          - arch: arm64
+            runner: macos-15
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version: '1.24'
+          cache: false
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.12'
+      - name: Build and check (source/ci/macos.sh)
+        run: |
+          if [ -f source/ci/macos.sh ]; then
+            bash source/ci/macos.sh "${{ matrix.arch }}" "$RUNNER_TEMP/macos-${{ matrix.arch }}"
+          else
+            echo "no source/ci/macos.sh yet: nothing to build for macOS"
+          fi
+      - name: Results of the run (screenshots, logs)
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: macos-${{ matrix.arch }}-results
+          path: ${{ runner.temp }}/macos-${{ matrix.arch }}
+          if-no-files-found: ignore
+          retention-days: 14
+      - name: The archive itself (not zipped again)
+        if: env.MACZIP != ''
+        uses: actions/upload-artifact@v7
+        with:
+          path: ${{ runner.temp }}/macos-${{ matrix.arch }}/${{ env.MACZIP }}
+          archive: false
+          retention-days: 14
+
+  android:
+    # Android, a feasibility prototype: android/ci.sh <out-dir> builds, checks (the emulator: Linux runners have
+    # hardware acceleration for it) and puts the results (a test APK, logs, screenshots) into <out-dir>.
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version: '1.24'
+          cache: false
+      - name: Build and check (android/ci.sh)
+        run: |
+          if [ -f android/ci.sh ]; then
+            bash android/ci.sh "$RUNNER_TEMP/android"
+          else
+            echo "no android/ci.sh yet: nothing to build for Android"
+          fi
+      - name: Results of the run (test APK, logs, screenshots)
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: android-results
+          path: ${{ runner.temp }}/android
+          if-no-files-found: ignore
           retention-days: 14
