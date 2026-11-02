@@ -309,6 +309,16 @@ class Page:
         if not self.js("(() => { const e = document.querySelector(%s); if (!e) return false; e.click(); return true; })()" % json.dumps(sel)):
             raise RuntimeError('no element ' + sel)
 
+    def real_click(self, sel):
+        """A click as by a finger: an input event of the DevTools protocol (the page gets a user action, which the
+        clipboard needs), not a click() from a script."""
+        x, y = self.js("(() => { const e = document.querySelector(%s); e.scrollIntoView({block: 'center'}); "
+                       "const b = e.getBoundingClientRect(); return [b.left + b.width / 2, b.top + b.height / 2]; })()" % json.dumps(sel))
+        time.sleep(0.4)
+        for kind in ('mouseMoved', 'mousePressed', 'mouseReleased'):
+            self.call('Input.dispatchMouseEvent', {'type': kind, 'x': x, 'y': y, 'button': 'left' if kind != 'mouseMoved' else 'none',
+                                                   'clickCount': 1 if kind != 'mouseMoved' else 0})
+
     def fill(self, sel, text):
         self.js("(() => { const e = document.querySelector(%s); e.focus(); e.value = %s; e.dispatchEvent(new Event('input', {bubbles: true})); return true; })()"
                 % (json.dumps(sel), json.dumps(text)))
@@ -390,7 +400,16 @@ def check_start():
             try:
                 page.wait_js("document.readyState === 'complete' && ['setupView', 'mainView'].some((id) => !document.getElementById(id).hidden)", 60)
                 time.sleep(1.5)
+                info('first-start screen: %s' % page.js(
+                    "JSON.stringify({phase: (typeof STATE !== 'undefined' && STATE) ? STATE.phase : null, "
+                    "setup: !document.getElementById('setupView').hidden, main: !document.getElementById('mainView').hidden, "
+                    "welcome: !document.getElementById('welcomeView').hidden, width: innerWidth, height: innerHeight, "
+                    "scrollWidth: document.documentElement.scrollWidth, bodyHeight: Math.round(document.body.getBoundingClientRect().height), "
+                    "scale: window.visualViewport ? visualViewport.scale : null})"))
                 shot('1-first-start')
+                page.screenshot('1-first-start-page')
+                time.sleep(4)
+                shot('1-first-start-later')
             finally:
                 page.close()
         step('the first-start screen', first_screen)
@@ -455,12 +474,13 @@ def check_page():
         time.sleep(0.5)
         page.screenshot('4-translation-page')
         shot('4-translation')
-        # the copy button of a variant
+        # the copy button of a variant, pressed as by a finger: the check mark means the text is in the clipboard
         if page.js("!!document.querySelector('.card [data-act=copy]')"):
-            page.click('.card [data-act=copy]')
-            time.sleep(0.8)
+            page.real_click('.card [data-act=copy]')
+            time.sleep(0.5)
+            copied = page.js("document.querySelector('.card [data-act=copy]').classList.contains('on')")
             toast = page.js("(document.querySelector('.toast.show') || {}).textContent || ''")
-            ok(toast, 'copy button: message %r' % toast)
+            ok(copied, 'copy button (pressed as by a finger): the text is in the clipboard%s' % ('; message %r' % toast if toast else ''))
         # the settings on a phone screen
         page.click('#settingsBtn')
         time.sleep(0.8)
