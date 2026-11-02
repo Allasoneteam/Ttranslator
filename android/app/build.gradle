@@ -1,0 +1,47 @@
+plugins {
+    id 'com.android.application'
+}
+
+android {
+    namespace = 'io.github.allasoneteam.ttranslator'
+    compileSdk = 36
+
+    defaultConfig {
+        applicationId = 'io.github.allasoneteam.ttranslator'
+        // the official llama.cpp build for Android is made for Android 9 (API 28) and newer
+        minSdk = 28
+        targetSdk = 36
+        // build.sh: the launcher's appVersion and the number of the CI run (a newer test APK installs over an older one)
+        versionCode = Integer.parseInt((project.findProperty('ttVersionCode') ?: '1').toString())
+        versionName = (project.findProperty('ttVersion') ?: 'dev').toString() + '-android-test'
+    }
+
+    signingConfigs {
+        // A test key, public on purpose (it is in the repository): every test APK is signed with it, so a newer test
+        // APK installs over an older one and the downloaded models stay. Not for publishing.
+        debug {
+            storeFile = file('debug.keystore')
+            storePassword = 'android'
+            keyAlias = 'androiddebugkey'
+            keyPassword = 'android'
+        }
+    }
+    buildTypes {
+        debug {
+            signingConfig = signingConfigs.debug
+        }
+    }
+    packaging {
+        jniLibs {
+            // The programs (the launcher, llama-server, the reading-aloud program) are files lib*.so: Android unpacks
+            // them into the app's library folder (nativeLibraryDir), the only place an app may start programs from.
+            useLegacyPackaging = true
+            // build.sh strips them already
+            keepDebugSymbols += '**/*.so'
+        }
+    }
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
+    }
+}

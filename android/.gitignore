@@ -1,0 +1,9 @@
+# made by android/build.sh and Gradle
+/app/src/main/jniLibs/
+/app/src/main/assets/
+/build/
+/app/build/
+/.gradle/
+/.kotlin/
+/local.properties
+/work/
