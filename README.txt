@@ -186,7 +186,8 @@ Uninstalling: exit the program and move Ttranslator.app to the Trash. Your
 data stay in ~/Library/Application Support/Ttranslator (the models take
 several GB): delete this folder too (Finder → Go → Go to Folder…, paste the
 path), and the data of the window:
-~/Library/WebKit/io.github.allasoneteam.ttranslator.
+~/Library/WebKit/io.github.allasoneteam.ttranslator and
+~/Library/Caches/io.github.allasoneteam.ttranslator.
 
 If the program does not open even after “Open Anyway”, run in Terminal
     xattr -dr com.apple.quarantine /Applications/Ttranslator.app
@@ -417,7 +418,8 @@ Intel. Чтение вслух работает в macOS 15.5 и новее (э�
 Удаление: закройте программу и перетащите Ttranslator.app в Корзину. Ваши
 данные остаются в ~/Library/Application Support/Ttranslator (модели
 занимают несколько гигабайт) — удалите и эту папку. Данные окна (память
-страницы) — ~/Library/WebKit/io.github.allasoneteam.ttranslator.
+страницы и кэш) — ~/Library/WebKit/io.github.allasoneteam.ttranslator и
+~/Library/Caches/io.github.allasoneteam.ttranslator.
 
 Если что-то не так:
 - Программа не открывается и после «Всё равно открыть» (или macOS пишет,
@@ -650,7 +652,8 @@ Deinstallieren: Beenden Sie das Programm und legen Sie Ttranslator.app in den
 Papierkorb. Ihre Daten bleiben in ~/Library/Application Support/Ttranslator
 (die Modelle belegen mehrere GB): Löschen Sie auch diesen Ordner (Finder →
 Gehe zu → Gehe zum Ordner …, Pfad einfügen) und die Daten des Fensters:
-~/Library/WebKit/io.github.allasoneteam.ttranslator.
+~/Library/WebKit/io.github.allasoneteam.ttranslator und
+~/Library/Caches/io.github.allasoneteam.ttranslator.
 
 Öffnet sich das Programm auch nach „Dennoch öffnen“ nicht, führen Sie im
 Terminal
@@ -872,7 +875,8 @@ Desinstalar: salga del programa y mueva Ttranslator.app a la Papelera. Sus
 datos se quedan en ~/Library/Application Support/Ttranslator (los modelos
 ocupan varios GB): elimine también esa carpeta (Finder → Ir → Ir a la
 carpeta…, pegue la ruta) y los datos de la ventana:
-~/Library/WebKit/io.github.allasoneteam.ttranslator.
+~/Library/WebKit/io.github.allasoneteam.ttranslator y
+~/Library/Caches/io.github.allasoneteam.ttranslator.
 
 Si el programa no se abre ni siquiera después de «Abrir igualmente», ejecute
 en Terminal
@@ -1053,7 +1057,8 @@ M…”即 Apple 芯片，“处理器 … Intel”即 Intel）。朗读功能�
 卸载：退出程序，把 Ttranslator.app 移到废纸篓。您的数据仍在
 ~/Library/Application Support/Ttranslator 中（模型占用数 GB）：也请删除这个文件
 夹（访达 →“前往”→“前往文件夹…”，粘贴路径），以及窗口数据：
-~/Library/WebKit/io.github.allasoneteam.ttranslator。
+~/Library/WebKit/io.github.allasoneteam.ttranslator 和
+~/Library/Caches/io.github.allasoneteam.ttranslator。
 
 如果点击“仍要打开”后程序仍无法打开，请在“终端”中运行
     xattr -dr com.apple.quarantine /Applications/Ttranslator.app
@@ -1679,7 +1684,8 @@ ttranslator-window внутри Ttranslator.app.
 - Данные окна WebView2 (хранилище страницы, кэш) лежат в data\webview — папка
   программы остаётся переносимой. В Linux такие данные WebKitGTK хранит в
   ~/.local/share/ttranslator, в macOS — в
-  ~/Library/WebKit/io.github.allasoneteam.ttranslator.
+  ~/Library/WebKit/io.github.allasoneteam.ttranslator (и кэш в
+  ~/Library/Caches/io.github.allasoneteam.ttranslator).
 - На Mac у окна своя строка меню: «Ttranslator» (О программе, Скрыть,
   Завершить — ⌘Q), «Правка» (Отменить, Вырезать, Скопировать, Вставить,
   Выбрать все — ⌘Z, ⌘X, ⌘C, ⌘V, ⌘A) и «Окно» (Свернуть, Изменить масштаб,

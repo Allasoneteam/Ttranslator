@@ -120,6 +120,26 @@ sys.exit(1 if bad else 0)
 PY
 check $? "every program inside runs on macOS 13.3 or newer (minos)"
 
+# The Intel Mac also builds the app for Apple Silicon (Go and clang build for both): a check of that build — signature,
+# architecture, minimum macOS — that does not depend on an arm64 machine of GitHub (on 02.11.2026 the jobs of macos-15
+# waited 15 minutes for one and were cancelled). It is not started here; the arm64 job starts and checks its own build.
+if [ "$ARCH" = x64 ]; then
+  say "the app for Apple Silicon, built on the Intel Mac (not started)"
+  X=$OUT/arm64-built-on-intel
+  if ENGINE_CACHE="$W/cache-arm64" sh source/release-macos.sh arm64 "$X" > "$X.log" 2>&1; then
+    rm -rf "$X/cache-arm64" "$W/x-arm64"; ditto -x -k "$X"/Ttranslator-*-macos-arm64.zip "$W/x-arm64"
+    XAPP=$W/x-arm64/Ttranslator/Ttranslator.app
+    codesign --verify --deep --strict "$XAPP" 2>/dev/null \
+      && lipo -archs "$XAPP/Contents/MacOS/Ttranslator" | grep -qx arm64 \
+      && lipo -archs "$XAPP/Contents/MacOS/ttranslator-window" | grep -qx arm64 \
+      && [ -x "$XAPP/Contents/Resources/engine/darwin-arm64/$(python3 -c 'import json, sys; print(json.load(open(sys.argv[1]))["server"])' "$XAPP/Contents/Resources/engine/darwin-arm64/engine.json")" ] \
+      && ! python3 -I .claude/tools/macho_minos.py "$XAPP" | grep -Eq 'minos (1[4-9]|[2-9][0-9])\.|minos 13\.([4-9]|[1-9][0-9])'
+    check $? "the arm64 app builds on the Intel Mac: signature, arm64 programs, the engine for Metal, minos ≤ 13.3 ($(ls "$X" | grep -m1 zip))"
+  else
+    tail -20 "$X.log"; fail "the arm64 app does not build on the Intel Mac"
+  fi
+fi
+
 say "the data folder and a tiny test model"
 pip install -q numpy gguf > /dev/null 2>&1
 rm -rf "$DATA"; mkdir -p "$DATA/models"

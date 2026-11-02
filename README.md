@@ -107,7 +107,7 @@ newer (the onnxruntime library of sherpa-onnx v1.13.7 requires it).
 The app itself is read only: models, voices, saved translations, glossaries, logs and settings are in
 `~/Library/Application Support/Ttranslator` (Settings → **Open the data folder**). To update, replace the app in
 Applications; to uninstall, move it to the Trash and delete that folder (and the window's data in
-`~/Library/WebKit/io.github.allasoneteam.ttranslator`). If the app still does not open,
+`~/Library/WebKit/io.github.allasoneteam.ttranslator` and `~/Library/Caches/io.github.allasoneteam.ttranslator`). If the app still does not open,
 `xattr -dr com.apple.quarantine /Applications/Ttranslator.app` in Terminal helps.
 
 ### Updating, uninstalling and moving to another computer
