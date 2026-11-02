@@ -1,0 +1,19 @@
+// Ttranslator for Android (feasibility prototype, 1.1 work): the Gradle project of the test APK.
+// Built by android/build.sh (it first puts the programs into app/src/main/jniLibs); only the Android Gradle Plugin,
+// no other libraries (the author's consent of 01.11.2026 covers the standard Android tools for this prototype).
+pluginManagement {
+    repositories {
+        google()
+        mavenCentral()
+        gradlePluginPortal()
+    }
+}
+dependencyResolutionManagement {
+    repositoriesMode = RepositoriesMode.FAIL_ON_PROJECT_REPOS
+    repositories {
+        google()
+        mavenCentral()
+    }
+}
+rootProject.name = 'Ttranslator'
+include ':app'

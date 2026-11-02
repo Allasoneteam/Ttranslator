@@ -1,0 +1,21 @@
+Ttranslator for Android (test APK) — programs of other projects inside the APK
+
+Ttranslator itself: MIT licence, Allasoneteam and Ttranslator authors (LICENSE.txt).
+
+llama.cpp, release b11435 (the engine, llama-server and its libraries)
+  MIT licence, The ggml authors. arm64: the official build for Android of the release
+  (github.com/ggml-org/llama.cpp/releases/tag/b11435, llama-b11435-bin-android-arm64.tar.gz);
+  x86_64 (only for the emulator): built from the same release. The licence text is below.
+
+sherpa-onnx, release v1.13.7 (reading aloud: libsherpa-onnx-c-api.so)
+  Apache License 2.0, Xiaomi Corporation and the sherpa-onnx authors.
+  The official libraries for Android of the release (github.com/k2-fsa/sherpa-onnx/releases/tag/v1.13.7,
+  sherpa-onnx-v1.13.7-android.tar.bz2). Licence: www.apache.org/licenses/LICENSE-2.0
+  The library contains espeak-ng (GPL-3.0-or-later; source: github.com/k2-fsa/sherpa-onnx at v1.13.7, which
+  builds it from github.com/csukuangfj/espeak-ng) and piper-phonemize (MIT).
+
+ONNX Runtime (libonnxruntime.so, the build of the sherpa-onnx release above)
+  MIT licence, Microsoft Corporation. github.com/microsoft/onnxruntime
+
+The voices (Piper, packed by sherpa-onnx) are not in the APK: they are downloaded when chosen, each with its own
+licence (shown in the menu of models).
