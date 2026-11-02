@@ -310,14 +310,17 @@ class Page:
             raise RuntimeError('no element ' + sel)
 
     def real_click(self, sel):
-        """A click as by a finger: an input event of the DevTools protocol (the page gets a user action, which the
-        clipboard needs), not a click() from a script."""
-        x, y = self.js("(() => { const e = document.querySelector(%s); e.scrollIntoView({block: 'center'}); "
-                       "const b = e.getBoundingClientRect(); return [b.left + b.width / 2, b.top + b.height / 2]; })()" % json.dumps(sel))
-        time.sleep(0.4)
-        for kind in ('mouseMoved', 'mousePressed', 'mouseReleased'):
-            self.call('Input.dispatchMouseEvent', {'type': kind, 'x': x, 'y': y, 'button': 'left' if kind != 'mouseMoved' else 'none',
-                                                   'clickCount': 1 if kind != 'mouseMoved' else 0})
+        """A press as by the user: Enter on the focused button, an input event of the DevTools protocol (the page gets
+        a user action, which the clipboard needs), not a click() from a script; no screen coordinates (on the phone
+        the page may be zoomed out)."""
+        if not self.js("(() => { const e = document.querySelector(%s); if (!e) return false; e.scrollIntoView({block: 'center'}); "
+                       "e.focus(); return document.activeElement === e; })()" % json.dumps(sel)):
+            raise RuntimeError('cannot focus ' + sel)
+        for kind in ('keyDown', 'keyUp'):
+            params = {'type': kind, 'key': 'Enter', 'code': 'Enter', 'windowsVirtualKeyCode': 13, 'nativeVirtualKeyCode': 13}
+            if kind == 'keyDown':
+                params['text'] = '\r'
+            self.call('Input.dispatchKeyEvent', params)
 
     def fill(self, sel, text):
         self.js("(() => { const e = document.querySelector(%s); e.focus(); e.value = %s; e.dispatchEvent(new Event('input', {bubbles: true})); return true; })()"
@@ -474,13 +477,16 @@ def check_page():
         time.sleep(0.5)
         page.screenshot('4-translation-page')
         shot('4-translation')
-        # the copy button of a variant, pressed as by a finger: the check mark means the text is in the clipboard
+        # the copy button of a variant, pressed as by the user: the check mark means the text is in the clipboard
         if page.js("!!document.querySelector('.card [data-act=copy]')"):
             page.real_click('.card [data-act=copy]')
-            time.sleep(0.5)
-            copied = page.js("document.querySelector('.card [data-act=copy]').classList.contains('on')")
+            # the check mark appears when Android's clipboard has taken the text (or a message, if it has not)
+            copied = page.wait_js("document.querySelector('.card [data-act=copy]').classList.contains('on') || "
+                                  "!!document.querySelector('.toast.show')", 5) and \
+                page.js("document.querySelector('.card [data-act=copy]').classList.contains('on')")
             toast = page.js("(document.querySelector('.toast.show') || {}).textContent || ''")
-            ok(copied, 'copy button (pressed as by a finger): the text is in the clipboard%s' % ('; message %r' % toast if toast else ''))
+            ok(copied, 'copy button (pressed as by the user): the text is in the clipboard%s' % ('; message %r' % toast if toast else ''))
+            shot('4-copied')  # Android 13+ shows what it has copied in a corner of the screen
         # the settings on a phone screen
         page.click('#settingsBtn')
         time.sleep(0.8)
