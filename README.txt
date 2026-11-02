@@ -146,6 +146,53 @@ If something goes wrong:
 - Linux on ARM processors (such as the Raspberry Pi) and 32-bit Linux are not
   supported yet.
 
+MAC
+
+macOS 13.3 Ventura or newer, on a Mac with Apple Silicon (M1 and newer) or
+with an Intel processor. There are two archives:
+Ttranslator-<version>-macos-arm64.zip for Apple Silicon and
+Ttranslator-<version>-macos-x64.zip for Intel (Apple menu → About This Mac:
+“Chip Apple M…” is Apple Silicon, “Processor … Intel” is Intel). Reading aloud
+needs macOS 15.5 or newer.
+
+1. Double-click the downloaded archive (Safari usually unpacks it by itself):
+   you get the folder Ttranslator with Ttranslator.app, README.txt and
+   LICENSE.txt. Drag Ttranslator.app into the Applications folder.
+2. The first start. The program has no Apple developer signature, so macOS
+   asks once whether to allow it:
+   - macOS 15 Sequoia and newer: double-click Ttranslator.app; macOS says it
+     could not verify the app — click “Done”. Then Apple menu → System
+     Settings → Privacy & Security: at the bottom, next to “Ttranslator was
+     blocked…”, click “Open Anyway”, confirm with your password and click
+     “Open”.
+   - macOS 13 Ventura and 14 Sonoma: Control-click Ttranslator.app (or
+     right-click it) → “Open”, and “Open” again in the question.
+   After that Ttranslator opens with a double-click, like any app.
+3. The translator window opens (maximized), and in it the welcome window. On
+   the first start press “Download” (the model, 3.35 GB, is downloaded once;
+   the engine is inside the app) or “Skip”. On Apple Silicon the engine
+   computes on the graphics cores (Metal), on an Intel Mac on the processor.
+4. To exit: “Exit” at the top right, ⌘Q, or close the window.
+
+The program writes nothing into Ttranslator.app. Models, voices, saved
+translations, glossaries, logs and settings are in the data folder
+~/Library/Application Support/Ttranslator (“Settings” → “Open the data
+folder”; the same button is in the model menu).
+
+Updating: exit the program, drag the new Ttranslator.app into Applications
+and confirm “Replace”. The data folder stays as it is.
+
+Uninstalling: exit the program and move Ttranslator.app to the Trash. Your
+data stay in ~/Library/Application Support/Ttranslator (the models take
+several GB): delete this folder too (Finder → Go → Go to Folder…, paste the
+path), and the data of the window:
+~/Library/WebKit/io.github.allasoneteam.ttranslator and
+~/Library/Caches/io.github.allasoneteam.ttranslator.
+
+If the program does not open even after “Open Anyway”, run in Terminal
+    xattr -dr com.apple.quarantine /Applications/Ttranslator.app
+and open it again.
+
 UPDATING AND MOVING TO ANOTHER COMPUTER
 
 Everything the program downloads and remembers is in its folder:
@@ -155,6 +202,8 @@ Everything the program downloads and remembers is in its folder:
                    engine/linux-amd64;
     data         — saved translations, glossaries, test reports, logs;
     config.json  — settings.
+On a Mac the same folders and config.json are in the data folder
+~/Library/Application Support/Ttranslator, not next to the program.
 - Updating: close the program and unpack the archive of the new version where
   the folder Ttranslator is (for example, on the desktop or in your home
   folder), replacing files. Models, voices, saved translations, glossaries and
@@ -316,6 +365,74 @@ WebKitGTK лежат в ~/.local/share/ttranslator и ~/.cache/ttranslator.
   не поддерживаются.
 
 
+MAC
+
+Подходит macOS 13.3 Ventura или новее на Mac с процессором Apple (Apple
+Silicon: M1 и новее) или Intel. Архивов два:
+Ttranslator-<версия>-macos-arm64.zip — для Apple Silicon,
+Ttranslator-<версия>-macos-x64.zip — для Intel. Какой у вас Mac: меню Apple
+→ «Об этом Mac»: «Чип Apple M…» — Apple Silicon, «Процессор … Intel» —
+Intel. Чтение вслух работает в macOS 15.5 и новее (этого требует программа
+озвучки sherpa-onnx).
+
+1. Дважды щёлкните скачанный архив (Safari обычно распаковывает его сам):
+   получится папка Ttranslator, в ней Ttranslator.app, README.txt и
+   LICENSE.txt. Перетащите Ttranslator.app в папку «Программы»
+   (Applications). Запустить можно и прямо из «Загрузок», но тогда macOS
+   запускает программу из временной копии — лучше перенести.
+2. Первый запуск. У программы нет подписи разработчика Apple, поэтому при
+   первом запуске macOS спросит разрешения — один раз:
+   - macOS 15 Sequoia и новее: дважды щёлкните Ttranslator.app. macOS
+     сообщит, что не может проверить программу, — нажмите «Готово».
+     Откройте меню Apple → «Системные настройки» → «Конфиденциальность и
+     безопасность», прокрутите вниз до строки о том, что «Ttranslator»
+     заблокирован, и нажмите «Всё равно открыть»; подтвердите паролем (или
+     Touch ID) и нажмите «Открыть».
+   - macOS 13 Ventura и 14 Sonoma: щёлкните Ttranslator.app, удерживая
+     клавишу Control (или правой кнопкой мыши), → «Открыть», и в вопросе
+     ещё раз «Открыть».
+   Потом Ttranslator открывается двойным щелчком, как любая программа; его
+   можно перетащить из «Программ» в Dock.
+3. Откроется окно переводчика (на весь экран), в нём — окно приветствия
+   (русский язык интерфейса — в списке «Interface language»). При первом
+   запуске нажмите «Скачать»: программа один раз скачает модель (3,35 ГБ);
+   движок llama.cpp уже внутри программы. Или «Пропустить» — и выберите
+   модель потом в меню моделей. На Mac с Apple Silicon движок считает на
+   графических ядрах (Metal), на Mac с Intel — на процессоре.
+4. Выход — «Выход» вверху справа, ⌘Q или красная кнопка окна: через
+   несколько секунд модель выгрузится из памяти. Копировать, вставлять,
+   вырезать и выделять всё — как обычно: ⌘C, ⌘V, ⌘X, ⌘A (меню «Правка»).
+
+Где лежат данные. В саму Ttranslator.app программа ничего не пишет. Модели,
+голоса, сохранённые переводы, словари, отчёты, журналы и настройки — в папке
+данных ~/Library/Application Support/Ttranslator (~ — ваша домашняя папка;
+папка «Библиотеки» (Library) в Finder скрыта). Открыть её проще всего из
+программы: «Настройки» → «Открыть папку данных» (та же кнопка — в меню
+моделей). Или в Finder: «Переход» → «Переход к папке…» — и вставьте путь.
+
+Обновление: закройте программу, перетащите новую Ttranslator.app в
+«Программы» и подтвердите «Заменить». Папка данных остаётся как есть:
+модели, голоса, сохранённые переводы, словари и настройки на месте. При
+первом запуске новой версии macOS снова спросит разрешения (пункт 2).
+
+Удаление: закройте программу и перетащите Ttranslator.app в Корзину. Ваши
+данные остаются в ~/Library/Application Support/Ttranslator (модели
+занимают несколько гигабайт) — удалите и эту папку. Данные окна (память
+страницы и кэш) — ~/Library/WebKit/io.github.allasoneteam.ttranslator и
+~/Library/Caches/io.github.allasoneteam.ttranslator.
+
+Если что-то не так:
+- Программа не открывается и после «Всё равно открыть» (или macOS пишет,
+  что она повреждена): в «Терминале» выполните
+    xattr -dr com.apple.quarantine /Applications/Ttranslator.app
+  и откройте программу снова.
+- Вместо окна программы открылось окно Chrome или вкладка браузера:
+  причина — в «Настройках» под видом окна.
+- Чтение вслух в macOS старше 15.5 не работает: программе озвучки
+  sherpa-onnx нужна macOS 15.5 или новее. Обновите macOS («Системные
+  настройки» → «Основные» → «Обновление ПО»).
+
+
 ОБНОВЛЕНИЕ И ПЕРЕНОС НА ДРУГОЙ КОМПЬЮТЕР
 
 Всё, что программа скачала и запомнила, лежит в её папке:
@@ -324,6 +441,8 @@ WebKitGTK лежат в ~/.local/share/ttranslator и ~/.cache/ttranslator.
                  для каждой системы: engine\windows-amd64, engine/linux-amd64;
   data         — сохранённые переводы, словари, отчёты теста, журналы;
   config.json  — настройки.
+На Mac те же папки и config.json лежат в папке данных
+~/Library/Application Support/Ttranslator, а не рядом с программой.
 - Обновление: закройте программу и распакуйте архив новой версии туда же,
   где лежит папка Ttranslator (например, на рабочий стол или в домашнюю
   папку), с заменой файлов. Модели, голоса, сохранённые переводы, словари и
@@ -489,6 +608,58 @@ Wenn etwas nicht klappt:
 - Linux auf ARM-Prozessoren (etwa dem Raspberry Pi) und 32-Bit-Linux werden
   noch nicht unterstützt.
 
+MAC
+
+macOS 13.3 Ventura oder neuer, auf einem Mac mit Apple Silicon (M1 und neuer)
+oder mit Intel-Prozessor. Es gibt zwei Archive:
+Ttranslator-<Version>-macos-arm64.zip für Apple Silicon und
+Ttranslator-<Version>-macos-x64.zip für Intel (Apple-Menü → Über diesen Mac:
+„Chip Apple M…“ ist Apple Silicon, „Prozessor … Intel“ ist Intel). Vorlesen
+braucht macOS 15.5 oder neuer.
+
+1. Doppelklicken Sie auf das heruntergeladene Archiv (Safari entpackt es
+   meist selbst): Es entsteht der Ordner Ttranslator mit Ttranslator.app,
+   README.txt und LICENSE.txt. Ziehen Sie Ttranslator.app in den Ordner
+   „Programme“.
+2. Der erste Start. Das Programm hat keine Signatur eines Apple-Entwicklers,
+   daher fragt macOS einmal, ob es geöffnet werden darf:
+   - macOS 15 Sequoia und neuer: Doppelklicken Sie auf Ttranslator.app; macOS
+     meldet, dass es die App nicht überprüfen konnte — klicken Sie auf
+     „Fertig“. Dann Apple-Menü → Systemeinstellungen → Datenschutz &
+     Sicherheit: unten, bei „Ttranslator wurde blockiert …“, auf „Dennoch
+     öffnen“ klicken, mit dem Passwort bestätigen und „Öffnen“ wählen.
+   - macOS 13 Ventura und 14 Sonoma: Ttranslator.app mit gedrückter
+     Control-Taste anklicken (oder Rechtsklick) → „Öffnen“, und in der Frage
+     noch einmal „Öffnen“.
+   Danach öffnet sich Ttranslator wie jede App mit einem Doppelklick.
+3. Das Übersetzerfenster öffnet sich (maximiert), darin das
+   Willkommensfenster. Klicken Sie beim ersten Start auf „Herunterladen“ (das
+   Modell, 3,35 GB, wird einmal heruntergeladen; die Engine ist in der App)
+   oder auf „Überspringen“. Auf Apple Silicon rechnet die Engine auf den
+   Grafikkernen (Metal), auf einem Intel-Mac auf dem Prozessor.
+4. Beenden: „Beenden“ oben rechts, ⌘Q oder das Fenster schließen.
+
+Das Programm schreibt nichts in Ttranslator.app. Modelle, Stimmen,
+gespeicherte Übersetzungen, Glossare, Protokolle und Einstellungen liegen im
+Datenordner ~/Library/Application Support/Ttranslator („Einstellungen“ →
+„Datenordner öffnen“; dieselbe Schaltfläche ist im Modellmenü).
+
+Aktualisieren: Beenden Sie das Programm, ziehen Sie die neue Ttranslator.app
+in „Programme“ und bestätigen Sie „Ersetzen“. Der Datenordner bleibt, wie er
+ist.
+
+Deinstallieren: Beenden Sie das Programm und legen Sie Ttranslator.app in den
+Papierkorb. Ihre Daten bleiben in ~/Library/Application Support/Ttranslator
+(die Modelle belegen mehrere GB): Löschen Sie auch diesen Ordner (Finder →
+Gehe zu → Gehe zum Ordner …, Pfad einfügen) und die Daten des Fensters:
+~/Library/WebKit/io.github.allasoneteam.ttranslator und
+~/Library/Caches/io.github.allasoneteam.ttranslator.
+
+Öffnet sich das Programm auch nach „Dennoch öffnen“ nicht, führen Sie im
+Terminal
+    xattr -dr com.apple.quarantine /Applications/Ttranslator.app
+aus und öffnen Sie es erneut.
+
 AKTUALISIEREN UND AUF EINEN ANDEREN COMPUTER ÜBERTRAGEN
 
 Alles, was das Programm herunterlädt und sich merkt, liegt in seinem Ordner:
@@ -496,6 +667,8 @@ models (Modelle; models\voices — Stimmen zum Vorlesen), engine (die Engine
 llama.cpp und das Sprachausgabe-Programm sherpa-onnx, für jedes System
 getrennt), data (gespeicherte Übersetzungen, Glossare, Testberichte,
 Protokolle) und config.json (Einstellungen).
+Auf dem Mac liegen dieselben Ordner und config.json im Datenordner
+~/Library/Application Support/Ttranslator, nicht neben dem Programm.
 - Aktualisieren: Schließen Sie das Programm und entpacken Sie das Archiv der
   neuen Version dorthin, wo der Ordner Ttranslator liegt, und ersetzen Sie
   dabei die Dateien. Modelle, Stimmen, gespeicherte Übersetzungen, Glossare
@@ -659,6 +832,57 @@ Si algo falla:
 - Linux en procesadores ARM (como la Raspberry Pi) y Linux de 32 bits todavía
   no son compatibles.
 
+MAC
+
+macOS 13.3 Ventura o posterior, en un Mac con Apple Silicon (M1 y posteriores)
+o con procesador Intel. Hay dos archivos:
+Ttranslator-<versión>-macos-arm64.zip para Apple Silicon y
+Ttranslator-<versión>-macos-x64.zip para Intel (menú Apple → Acerca de este
+Mac: «Chip Apple M…» es Apple Silicon, «Procesador … Intel» es Intel). La
+lectura en voz alta necesita macOS 15.5 o posterior.
+
+1. Haga doble clic en el archivo descargado (Safari suele descomprimirlo por
+   sí mismo): obtendrá la carpeta Ttranslator con Ttranslator.app, README.txt
+   y LICENSE.txt. Arrastre Ttranslator.app a la carpeta Aplicaciones.
+2. El primer inicio. El programa no tiene la firma de un desarrollador de
+   Apple, por lo que macOS pregunta una vez si se permite abrirlo:
+   - macOS 15 Sequoia y posteriores: haga doble clic en Ttranslator.app;
+     macOS indica que no pudo verificar la app: pulse «OK». Luego, menú Apple
+     → Ajustes del Sistema → Privacidad y seguridad: abajo, junto a
+     «Se ha bloqueado Ttranslator…», pulse «Abrir igualmente», confirme con
+     su contraseña y pulse «Abrir».
+   - macOS 13 Ventura y 14 Sonoma: haga clic en Ttranslator.app con la tecla
+     Control pulsada (o clic derecho) → «Abrir», y de nuevo «Abrir» en la
+     pregunta.
+   Después, Ttranslator se abre con doble clic, como cualquier app.
+3. Se abre la ventana del traductor (maximizada) y en ella la ventana de
+   bienvenida. En el primer inicio pulse «Descargar» (el modelo, 3,35 GB, se
+   descarga una sola vez; el motor está dentro de la app) u «Omitir». En
+   Apple Silicon el motor calcula en los núcleos gráficos (Metal); en un Mac
+   con Intel, en el procesador.
+4. Para salir: «Salir» arriba a la derecha, ⌘Q o cerrar la ventana.
+
+El programa no escribe nada dentro de Ttranslator.app. Los modelos, voces,
+traducciones guardadas, glosarios, registros y ajustes están en la carpeta
+de datos ~/Library/Application Support/Ttranslator («Ajustes» → «Abrir la
+carpeta de datos»; el mismo botón está en el menú de modelos).
+
+Actualizar: salga del programa, arrastre la nueva Ttranslator.app a
+Aplicaciones y confirme «Reemplazar». La carpeta de datos se conserva tal
+cual.
+
+Desinstalar: salga del programa y mueva Ttranslator.app a la Papelera. Sus
+datos se quedan en ~/Library/Application Support/Ttranslator (los modelos
+ocupan varios GB): elimine también esa carpeta (Finder → Ir → Ir a la
+carpeta…, pegue la ruta) y los datos de la ventana:
+~/Library/WebKit/io.github.allasoneteam.ttranslator y
+~/Library/Caches/io.github.allasoneteam.ttranslator.
+
+Si el programa no se abre ni siquiera después de «Abrir igualmente», ejecute
+en Terminal
+    xattr -dr com.apple.quarantine /Applications/Ttranslator.app
+y vuelva a abrirlo.
+
 ACTUALIZAR Y PASAR A OTRO ORDENADOR
 
 Todo lo que el programa descarga y recuerda está en su carpeta: models
@@ -666,6 +890,8 @@ Todo lo que el programa descarga y recuerda está en su carpeta: models
 llama.cpp y el programa de voz sherpa-onnx, por separado para cada sistema),
 data (traducciones guardadas, glosarios, informes de prueba, registros) y
 config.json (ajustes).
+En Mac, las mismas carpetas y config.json están en la carpeta de datos
+~/Library/Application Support/Ttranslator, no junto al programa.
 - Actualizar: cierre el programa y descomprima el archivo de la nueva versión
   donde está la carpeta Ttranslator, sustituyendo los archivos. Los modelos,
   las voces, las traducciones guardadas, los glosarios y los ajustes se
@@ -798,11 +1024,53 @@ EndeavourOS、Ubuntu 22.04 及更高版本、Debian 12 及更高版本、Linux M
 - NixOS：普通 Linux 程序只能通过 programs.nix-ld（或 steam-run）运行。
 - 暂不支持 ARM 处理器（例如树莓派）上的 Linux 和 32 位 Linux。
 
+MAC
+
+需要 macOS 13.3 Ventura 或更高版本，适用于 Apple 芯片（M1 及更新）或 Intel 处理
+器的 Mac。共有两个压缩包：Apple 芯片用 Ttranslator-<版本>-macos-arm64.zip，
+Intel 用 Ttranslator-<版本>-macos-x64.zip（苹果菜单 →“关于本机”：“芯片 Apple
+M…”即 Apple 芯片，“处理器 … Intel”即 Intel）。朗读功能需要 macOS 15.5 或更高
+版本。
+
+1. 双击下载的压缩包（Safari 通常会自动解压）：得到 Ttranslator 文件夹，其中有
+   Ttranslator.app、README.txt 和 LICENSE.txt。把 Ttranslator.app 拖到“应用
+   程序”文件夹。
+2. 首次启动。程序没有 Apple 开发者签名，因此 macOS 会询问一次是否允许打开：
+   - macOS 15 Sequoia 及更高版本：双击 Ttranslator.app；macOS 提示无法验证该
+     App——点击“完成”。然后打开苹果菜单 →“系统设置”→“隐私与安全性”：在底部
+     “已阻止 Ttranslator…”一行旁点击“仍要打开”，输入密码确认，再点击“打开”。
+   - macOS 13 Ventura 和 14 Sonoma：按住 Control 键点击 Ttranslator.app（或右
+     键点击）→“打开”，在询问中再点击一次“打开”。
+   此后，Ttranslator 和其他 App 一样，双击即可打开。
+3. 翻译器窗口会打开（最大化），其中显示欢迎窗口。首次启动时点击“下载”（模型
+   3.35 GB，只需下载一次；引擎已包含在 App 中）或“跳过”。在 Apple 芯片上，引擎
+   使用图形核心（Metal）计算；在 Intel Mac 上使用处理器计算。
+4. 退出：点击右上角的“退出”、按 ⌘Q 或关闭窗口。
+
+程序不会向 Ttranslator.app 内写入任何内容。模型、语音、已保存的翻译、术语表、
+日志和设置都在数据文件夹 ~/Library/Application Support/Ttranslator 中（“设置”
+→“打开数据文件夹”；模型菜单中也有同样的按钮）。
+
+更新：退出程序，把新的 Ttranslator.app 拖到“应用程序”并确认“替换”。数据文件夹
+保持不变。
+
+卸载：退出程序，把 Ttranslator.app 移到废纸篓。您的数据仍在
+~/Library/Application Support/Ttranslator 中（模型占用数 GB）：也请删除这个文件
+夹（访达 →“前往”→“前往文件夹…”，粘贴路径），以及窗口数据：
+~/Library/WebKit/io.github.allasoneteam.ttranslator 和
+~/Library/Caches/io.github.allasoneteam.ttranslator。
+
+如果点击“仍要打开”后程序仍无法打开，请在“终端”中运行
+    xattr -dr com.apple.quarantine /Applications/Ttranslator.app
+然后再次打开。
+
 更新与迁移到另一台电脑
 
 程序下载和记住的所有内容都在它的文件夹中：models（模型；models\voices 为朗读语
 音）、engine（llama.cpp 引擎和语音合成程序 sherpa-onnx，按系统分别存放）、data
 （已保存的译文、术语表、测试报告、日志）和 config.json（设置）。
+在 Mac 上，这些文件夹和 config.json 位于数据文件夹
+~/Library/Application Support/Ttranslator 中，而不在程序旁边。
 - 更新：关闭程序，把新版本的压缩包解压到 Ttranslator 文件夹所在的位置，并覆盖
   文件。模型、语音、已保存的译文、术语表和设置都会保留，因为压缩包中没有这些内
   容。您的文件中只有 ui\tests.txt（“测试”的句子）会被替换——如果您修改过它，请
@@ -840,6 +1108,11 @@ TTRANSLATOR — локальный переводчик, версия 1.0
 модель» и читает тексты вслух. Работает на процессоре, без видеокарты; текст
 никуда не отправляется. Модели запускает движок llama.cpp, голоса для чтения
 вслух — программа sherpa-onnx.
+
+Пути к папкам ниже (models, data, engine, config.json) — от папки программы
+(Windows, Linux). На Mac всё это лежит в папке данных
+~/Library/Application Support/Ttranslator (раздел 2, «Mac»; открыть —
+«Настройки» → «Открыть папку данных»).
 
 
 ЧТО НОВОГО В 1.0
@@ -1387,9 +1660,10 @@ models. Окно остаётся: текст, варианты, чат и «С�
 браузера: со своим значком на панели задач, без вкладок, адресной строки и
 расширений браузера. Внутри — веб-движок, который уже есть в системе:
 Microsoft Edge WebView2 в Windows (в Windows 11 встроен, в Windows 10 почти
-всегда уже установлен) и WebKitGTK 4.1 в Linux (пакет libwebkit2gtk-4.1-0).
-Окно — отдельная маленькая программа ttranslator-window.exe
-(ttranslator-window-linux) рядом с Ttranslator.exe.
+всегда уже установлен), WebKitGTK 4.1 в Linux (пакет libwebkit2gtk-4.1-0) и
+WKWebView в macOS. Окно — отдельная маленькая программа ttranslator-window.exe
+(ttranslator-window-linux) рядом с Ttranslator.exe; на Mac —
+ttranslator-window внутри Ttranslator.app.
 - При запуске окно развёрнуто на весь экран; кнопка «Восстановить» в его
   заголовке делает его обычного размера. Галочка «Окно приложения — на весь
   экран» в «Настройках» выключает это.
@@ -1409,7 +1683,15 @@ Microsoft Edge WebView2 в Windows (в Windows 11 встроен, в Windows 10 
   настройки из config.json общие.
 - Данные окна WebView2 (хранилище страницы, кэш) лежат в data\webview — папка
   программы остаётся переносимой. В Linux такие данные WebKitGTK хранит в
-  ~/.local/share/ttranslator.
+  ~/.local/share/ttranslator, в macOS — в
+  ~/Library/WebKit/io.github.allasoneteam.ttranslator (и кэш в
+  ~/Library/Caches/io.github.allasoneteam.ttranslator).
+- На Mac у окна своя строка меню: «Ttranslator» (О программе, Скрыть,
+  Завершить — ⌘Q), «Правка» (Отменить, Вырезать, Скопировать, Вставить,
+  Выбрать все — ⌘Z, ⌘X, ⌘C, ⌘V, ⌘A) и «Окно» (Свернуть, Изменить масштаб,
+  Закрыть). «На весь экран» на Mac — окно во весь экран без отдельного
+  полноэкранного режима; «Окно» → «Изменить масштаб» возвращает обычный
+  размер.
 - «Вкладка браузера» — интерфейс во вкладке браузера, выбранного в системе
   по умолчанию.
 
@@ -1475,7 +1757,8 @@ config.json (появляется после первого запуска):
 ЕСЛИ ЧТО-ТО НЕ РАБОТАЕТ
 
 - Справка в самой программе — кнопка «?» вверху справа.
-- Журналы: data\logs (launcher.log — программа, engine.log — движок).
+- Журналы: data\logs (launcher.log — программа, engine.log — движок); на Mac
+  — в папке данных: ~/Library/Application Support/Ttranslator/data/logs.
 - Если окно приложения не открывается: причина — в «Настройках» под видом
   окна и в launcher.log (строки «own window»); тогда открывается окно Edge
   или Chrome. Можно выбрать «Вкладка браузера».
@@ -1503,6 +1786,10 @@ config.json (появляется после первого запуска):
           распаковать в engine\windows-amd64
   программа озвучки для Linux: https://github.com/k2-fsa/sherpa-onnx/releases/download/v1.13.7/sherpa-onnx-v1.13.7-linux-x64-shared.tar.bz2
           распаковать в engine/linux-amd64
+  программа озвучки для Mac: https://github.com/k2-fsa/sherpa-onnx/releases/download/v1.13.7/sherpa-onnx-v1.13.7-osx-universal2-shared.tar.bz2
+          распаковать в ~/Library/Application Support/Ttranslator/engine/darwin-arm64
+          (Apple Silicon) или engine/darwin-amd64 (Intel); движок на Mac — внутри
+          Ttranslator.app
 
 
 ИСХОДНЫЙ КОД
@@ -1513,7 +1800,8 @@ config.json (появляется после первого запуска):
 над программой с Claude (source\CLAUDE.md) и автоматические тесты
 (source\tests). Сборка: source/build.sh (нужен Go 1.24 или новее; для окна
 приложения — компилятор C++, см. source\window\README.md), архивы для
-Windows и Linux — source/release.sh. README.md —
+Windows и Linux — source/release.sh, Ttranslator.app и архивы для Mac —
+source/release-macos.sh (на Mac). README.md —
 описание программы по-английски для GitHub (репозиторий
 github.com/Allasoneteam/Ttranslator). Лицензия — MIT (файл
 LICENSE.txt), правообладатели — Allasoneteam and Ttranslator authors; окно

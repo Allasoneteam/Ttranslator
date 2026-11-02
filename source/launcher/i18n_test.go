@@ -33,8 +33,14 @@ func TestTranslations(t *testing.T) {
 	for _, m := range modelSpecs {
 		keys[m.Note], keys[m.Group] = true, true
 	}
-	for _, s := range []string{groupCustom, "свой файл", "Тестовые модели", "Windows x64, процессор", "Linux x64, процессор"} {
+	for _, s := range []string{groupCustom, "свой файл", "Тестовые модели"} {
 		keys[s] = true
+	}
+	for _, p := range releasePlatforms {
+		goos, goarch, _ := strings.Cut(p, "/")
+		if pkg, err := enginePackageFor(goos, goarch); err == nil {
+			keys[pkg.Label] = true
+		}
 	}
 	verbs := regexp.MustCompile(`%[a-z]`)
 	for _, lang := range []struct {

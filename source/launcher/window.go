@@ -25,9 +25,14 @@ const (
 	windowSize         = "1180x780"
 )
 
-// windowHelper is the path of the own-window program, or "" if it is not in the program folder.
+// windowHelper is the path of the own-window program, or "" if it is not in the program folder (on macOS:
+// Contents/MacOS of Ttranslator.app, binDir).
 func (a *App) windowHelper() string {
-	p := filepath.Join(a.root, windowHelperName)
+	dir := a.binDir
+	if dir == "" {
+		dir = a.root
+	}
+	p := filepath.Join(dir, windowHelperName)
 	if st, err := os.Stat(p); err == nil && !st.IsDir() {
 		ensureExecutable(p, st)
 		return p
