@@ -6,8 +6,10 @@
     <!-- also needed for 127.0.0.1: the window talks to the launcher, the launcher to the engine -->
     <uses-permission android:name="android.permission.INTERNET" />
 
+    <!-- hasFragileUserData: when the app is removed, Android 10+ offers to keep its data (the models: gigabytes) -->
     <application
         android:allowBackup="false"
+        android:hasFragileUserData="true"
         android:icon="@mipmap/ic_launcher"
         android:label="Ttranslator"
         android:networkSecurityConfig="@xml/network_security_config"
