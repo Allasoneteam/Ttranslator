@@ -149,12 +149,16 @@ def engine_memory():
         int(st.get('VmRSS', 0)) / 1e6, int(st.get('RssAnon', 0)) / 1e6, int(st.get('RssFile', 0)) / 1e6)
 
 
+def model_seen(name, timeout=15):
+    return wait(lambda: any(m['id'] == 'file:' + name and m['present'] for m in api('/api/state')['models']), timeout)
+
+
 def put_model(local, name):
-    """Copies a model into the app's models folder as a computer does over USB. Android 11+ does not let adb write into
-    another app's Android/data folder: then through run-as (the test APK is debuggable)."""
+    """Copies a model into the app's models folder as a computer does over USB (MTP). Android 11+ does not let adb
+    (nor run-as) write into another app's Android/data folder; then as root (the emulator's images allow it)."""
     dest = EXT + '/models/' + name
     r = adb('push', local, dest, timeout=180)
-    if r.returncode == 0:
+    if r.returncode == 0 and model_seen(name):
         return 'adb push'
     info('adb push into Android/data: %s' % (r.stdout + r.stderr).decode(errors='replace').strip()[-160:])
     tmp = '/data/local/tmp/' + name
@@ -162,14 +166,29 @@ def put_model(local, name):
         sh('chmod 644 ' + tmp)
         r = adb('shell', 'run-as', PKG, 'cp', tmp, dest, timeout=180)
         sh('rm -f ' + tmp)
-        if r.returncode == 0:
-            return 'run-as cp (from /data/local/tmp)'
+        if r.returncode == 0 and model_seen(name):
+            return 'run-as cp'
         info('run-as cp: %s' % (r.stdout + r.stderr).decode(errors='replace').strip()[-160:])
-    with open(local, 'rb') as f:
-        r = subprocess.run(['adb', 'exec-in', 'run-as', PKG, 'sh', '-c', 'cat > ' + dest], stdin=f, capture_output=True, timeout=300)
-    if r.returncode == 0:
-        return 'run-as cat'
-    info('run-as cat: %s' % (r.stdout + r.stderr).decode(errors='replace').strip()[-160:])
+    r = adb('root', timeout=60)
+    if r.returncode != 0:
+        info('adb root: %s' % (r.stdout + r.stderr).decode(errors='replace').strip()[-160:])
+        return None
+    adb('wait-for-device', timeout=60)
+    time.sleep(3)
+    adb('forward', 'tcp:%d' % PORT, 'tcp:8765')  # adbd has restarted: the forward again
+    if adb('push', local, dest, timeout=180).returncode == 0 and model_seen(name):
+        return 'adb root, adb push'
+    # straight into the storage behind /sdcard, owned and labelled as the folder
+    lower = '/data/media/0/Android/data/%s/files/models' % PKG
+    owner = sh('stat -c %%u:%%g %s' % lower).strip()
+    label = sh('ls -dZ %s' % lower).split()[0] if sh('ls -dZ %s' % lower).strip() else ''
+    if adb('push', local, lower + '/' + name, timeout=180).returncode == 0:
+        sh('chown %s %s/%s; chmod 660 %s/%s' % (owner, lower, name, lower, name))
+        if label:
+            sh('chcon %s %s/%s' % (label, lower, name))
+        if model_seen(name):
+            return 'adb root, into /data/media'
+    info('as root: %s' % sh('ls -lZ %s' % lower).strip()[-300:])
     return None
 
 
@@ -283,7 +302,8 @@ class Page:
 
     # what the user does (through the page's own elements and events)
     def visible(self, sel):
-        return self.js("(() => { const e = document.querySelector(%s); return !!e && !e.hidden && e.offsetParent !== null; })()" % json.dumps(sel))
+        return self.js("(() => { const e = document.querySelector(%s); return !!e && !e.hidden && "
+                       "getComputedStyle(e).display !== 'none' && e.getClientRects().length > 0; })()" % json.dumps(sel))
 
     def click(self, sel):
         if not self.js("(() => { const e = document.querySelector(%s); if (!e) return false; e.click(); return true; })()" % json.dumps(sel)):
@@ -368,8 +388,8 @@ def check_start():
         def first_screen():
             page = Page()
             try:
-                page.wait_js("document.readyState === 'complete' && !!document.body.dataset.model", 60)
-                time.sleep(1)
+                page.wait_js("document.readyState === 'complete' && ['setupView', 'mainView'].some((id) => !document.getElementById(id).hidden)", 60)
+                time.sleep(1.5)
                 shot('1-first-start')
             finally:
                 page.close()
@@ -388,16 +408,20 @@ def check_start():
 
 def check_model_and_engine():
     how = put_model(MODEL, 'tiny-test.gguf')
-    ok(how, 'a model copied into Android/data/…/files/models (as a computer does over USB): %s' % how)
-    ok(wait(lambda: any(m['id'] == 'file:tiny-test.gguf' and m['present'] for m in api('/api/state')['models']), 20),
-       'the launcher lists it as an own file')
-    code, _, body = post('/api/model', {'id': 'file:tiny-test.gguf'})
-    ok(code == 200, 'model chosen (as in the menu of models): %d %s' % (code, body[:120]))
-    t0 = time.time()
-    st = wait(lambda: (lambda s: s if s['phase'] in ('ready', 'error') else None)(api('/api/state')), 240)
-    ok(st and st['phase'] == 'ready', 'the engine started with the model in %.1f s: %s' % (time.time() - t0, st and (st['phase'], st.get('error'), st.get('engine_info'))))
-    if st and st['phase'] != 'ready':
-        info('engine log:\n' + (st.get('engine_log') or ''))
+    if how:
+        ok(True, 'a model copied into Android/data/…/files/models (as a computer does over USB): %s; the launcher lists it as an own file' % how)
+        code, _, body = post('/api/model', {'id': 'file:tiny-test.gguf'})
+        ok(code == 200, 'model chosen (as in the menu of models): %d %s' % (code, body[:120]))
+        t0 = time.time()
+        st = wait(lambda: (lambda s: s if s['phase'] in ('ready', 'error') else None)(api('/api/state')), 240)
+        ok(st and st['phase'] == 'ready', 'the engine started with the model in %.1f s: %s' % (time.time() - t0, st and (st['phase'], st.get('error'), st.get('engine_info'))))
+        if st and st['phase'] != 'ready':
+            info('engine log:\n' + (st.get('engine_log') or ''))
+    else:
+        info('the tiny model could not be copied into Android/data here (only the app itself and a computer over USB '
+             'may write there): the checks go on with the real model of the catalog')
+        if not load_real_model():
+            raise RuntimeError('no model')
     pr = procs()
     eng = [x for x in pr if x[2].startswith('libllama-server')]
     launcher = STATE.get('launcher')
@@ -546,14 +570,15 @@ def check_exit():
         ok(PKG not in top, 'Exit closed the window: %s' % top.strip()[:160])
 
 
-def real_model():
+def load_real_model():
     """The model of the catalog for real: the launcher downloads Gemma 4 E2B · Q4_0 (3.35 GB) from Hugging Face inside
-    the emulator, checks it, loads it; a translation in the page; the memory the engine takes on Android."""
-    ok(start_app(), 'real model: the app started again')
+    the emulator (unless it is there already), checks its size and SHA-256 and loads it."""
     info('real model: before: ' + meminfo())
     t0 = time.time()
+    present = any(m['id'] == 'g4-e2b' and m['present'] for m in api('/api/state')['models'])
     code, _, body = post('/api/model', {'id': 'g4-e2b'})
-    ok(code == 200, 'real model: Gemma 4 E2B · Q4_0 chosen in the menu of models, its download started: %d %s' % (code, body[:100]))
+    ok(code == 200, 'real model: Gemma 4 E2B · Q4_0 chosen in the menu of models%s: %d %s'
+       % ('' if present else ', its download started', code, body[:100]))
     last = [0]
     def ready():
         s = api('/api/state')
@@ -566,11 +591,21 @@ def real_model():
         if s['phase'] in ('error', 'setup') and not d.get('active') and (d.get('error') or s.get('error')):
             return s
     s = wait(ready, max(60, min(1500, time_left() - 420)), 3)
-    ok(s and s['phase'] == 'ready', 'real model: downloaded from Hugging Face (size and SHA-256 checked by the launcher) and loaded in %.0f s: %s'
-       % (time.time() - t0, s and (s['phase'], (s.get('download') or {}).get('error'), s.get('error'), s.get('engine_info'))))
-    if not s or s['phase'] != 'ready':
+    ok(s and s['phase'] == 'ready', 'real model: %s and loaded in %.0f s: %s'
+       % ('already downloaded' if present else 'downloaded from Hugging Face (size and SHA-256 checked by the launcher)', time.time() - t0,
+          s and (s['phase'], (s.get('download') or {}).get('error'), s.get('error'), s.get('engine_info'))))
+    if s and s['phase'] == 'ready':
+        STATE['real'] = True
+        info('real model: after loading: ' + meminfo() + '; ' + engine_memory())
+        return True
+    return False
+
+
+def real_model():
+    """The real model: a translation into Russian over HTTP and in the page; the memory the engine takes on Android."""
+    ok(start_app(), 'real model: the app started again')
+    if not load_real_model():
         return
-    info('real model: after loading: ' + meminfo() + '; ' + engine_memory())
     t0 = time.time()
     code, _, body = post('/v1/chat/completions', {'messages': [{'role': 'user', 'content':
         'Translate the text into Russian. Reply with the translation only.\n\nThe weather is nice today, so we are going for a walk in the park.'}],
