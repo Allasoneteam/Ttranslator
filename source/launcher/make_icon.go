@@ -6,6 +6,8 @@
 //	rsrc_windows_amd64.syso  the Windows icon resource; "go build" links it into Ttranslator.exe by itself
 //	Ttranslator.ico          the same icon as a file (also the icon of ttranslator-window.exe, source/window)
 //	Ttranslator.png          256×256, the icon of the own window on Linux (embedded into the launcher)
+//	Ttranslator.icns         the icon of Ttranslator.app on macOS (1.1): 16…1024 px, the T within the middle 80 %
+//	                         of the square, as macOS app icons are drawn
 //
 // Only the Go standard library is used. Run it after the drawing changes:
 //
@@ -60,7 +62,46 @@ func main() {
 	check(os.WriteFile("Ttranslator.ico", ico(imgs, entries), 0o644))
 	check(os.WriteFile("rsrc_windows_amd64.syso", coff(resources(imgs, entries)), 0o644))
 	check(os.WriteFile("Ttranslator.png", entries[len(entries)-1], 0o644)) // 256×256: the own window on Linux
-	fmt.Println("wrote Ttranslator.ico, rsrc_windows_amd64.syso and Ttranslator.png:", sizes)
+	check(os.WriteFile("Ttranslator.icns", icns(poly), 0o644))
+	fmt.Println("wrote Ttranslator.ico, rsrc_windows_amd64.syso, Ttranslator.png:", sizes, "and Ttranslator.icns:", icnsSizes)
+}
+
+// The images of a macOS icon: the type of each entry and its size in pixels (PNG data in every entry; the
+// @2x entries are the double size of the point size).
+var icnsSizes = []struct {
+	typ  string
+	size int
+}{{"icp4", 16}, {"ic11", 32}, {"icp5", 32}, {"ic12", 64}, {"ic07", 128}, {"ic13", 256}, {"ic08", 256}, {"ic14", 512},
+	{"ic09", 512}, {"ic10", 1024}}
+
+// icns: the file "icns" (big-endian length) with one entry per image: type, length, PNG.
+func icns(poly []pt) []byte {
+	pngs := map[int][]byte{}
+	var body bytes.Buffer
+	for _, e := range icnsSizes {
+		if pngs[e.size] == nil {
+			inner := int(math.Round(float64(e.size) * 0.8)) // the T fills about 80 % of the square, as on macOS
+			im := image.NewNRGBA(image.Rect(0, 0, e.size, e.size))
+			t := render(poly, inner)
+			off := (e.size - inner) / 2
+			for y := 0; y < inner; y++ {
+				for x := 0; x < inner; x++ {
+					im.SetNRGBA(x+off, y+off, t.NRGBAAt(x, y))
+				}
+			}
+			var b bytes.Buffer
+			check(png.Encode(&b, im))
+			pngs[e.size] = b.Bytes()
+		}
+		body.WriteString(e.typ)
+		binary.Write(&body, binary.BigEndian, uint32(8+len(pngs[e.size])))
+		body.Write(pngs[e.size])
+	}
+	var out bytes.Buffer
+	out.WriteString("icns")
+	binary.Write(&out, binary.BigEndian, uint32(8+body.Len()))
+	out.Write(body.Bytes())
+	return out.Bytes()
 }
 
 func check(err error) {
@@ -154,6 +195,11 @@ func render(poly []pt, size int) *image.NRGBA {
 	im := image.NewNRGBA(image.Rect(0, 0, size, size))
 	for py := 0; py < size; py++ {
 		for px := 0; px < size; px++ {
+			// a pixel whose square is farther from the drawing than the outline stays transparent (no need to sample)
+			x0, y0 := ox+float64(px)*unit, oy+float64(py)*unit
+			if x0 > maxX+outline || x0+unit < minX-outline || y0 > maxY+outline || y0+unit < minY-outline {
+				continue
+			}
 			var np, nw int
 			for sy := 0; sy < n; sy++ {
 				for sx := 0; sx < n; sx++ {
