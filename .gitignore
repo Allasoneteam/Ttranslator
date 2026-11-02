@@ -9,6 +9,7 @@
 /ttranslator-linux
 /ttranslator-window.exe
 /ttranslator-window-linux
+/ttranslator-window
 
 # Build and test leftovers (dist/: archives of source/release.sh)
 /source/launcher/ui_fallback/

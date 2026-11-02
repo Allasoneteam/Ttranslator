@@ -7,11 +7,15 @@ import (
 	"testing"
 )
 
-// The engine archives of the release archives (source/release.sh): Windows and Linux, pinned size and checksum.
+// The platforms with an engine archive: Windows and Linux (source/release.sh), macOS Intel and Apple Silicon (1.1,
+// source/release-macos.sh).
+var releasePlatforms = []string{"windows/amd64", "linux/amd64", "darwin/amd64", "darwin/arm64"}
+
+// The engine archives of the release archives: pinned size and checksum.
 // TDOC_DUMP_RELEASE=<file>: also writes the version and those archives as JSON for source/release.sh.
 func TestDumpReleaseInfo(t *testing.T) {
 	engines := map[string]any{}
-	for _, p := range []string{"windows/amd64", "linux/amd64"} {
+	for _, p := range releasePlatforms {
 		goos, goarch, _ := strings.Cut(p, "/")
 		pkg, err := enginePackageFor(goos, goarch)
 		if err != nil || !strings.Contains(pkg.Asset, engineVersion) || pkg.Size < 1<<20 || !hex64.MatchString(pkg.SHA256) || pkg.Server == "" {

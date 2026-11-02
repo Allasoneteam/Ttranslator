@@ -557,6 +557,13 @@ footer.status {
             <div class="note">Для всех голосов.</div>
           </div>
         </div>
+        <div id="dataRow" class="set-row" hidden>
+          <div class="set-label">Папка данных</div>
+          <div class="set-ctl">
+            <button id="openDataBtn">Открыть папку данных</button>
+            <div id="dataRootNote" class="note"></div>
+          </div>
+        </div>
         <div id="settingsNote" class="note"></div>
         <div class="set-links"><button id="openHelpBtn">Справка</button><button id="openAboutBtn">О программе</button><button id="openWelcomeBtn" hidden>Окно приветствия</button></div>
         <div id="quitRow" class="set-row" hidden>
@@ -4976,6 +4983,14 @@ function renderModelMenu() {
     menu.appendChild(row);
   }
   menu.appendChild(el('div', 'foot', t('Скорость указана относительно Gemma 4 E2B. Свой файл .gguf можно положить в папку models — он появится в этом списке. Кнопка ⏏ рядом с названием модели выгружает её из памяти, не удаляя файл.')));
+  if (macData()) {   // Mac: папка models — в папке данных, скрытой в ~/Library
+    const row = el('div', 'mitem data-folder');
+    const pick = el('button', 'pick');
+    pick.appendChild(el('span', 'title', t('Открыть папку данных')));
+    pick.appendChild(el('span', 'sub', STATE.data_root || ''));
+    pick.onclick = () => { menu.hidden = true; openDataFolder(); };
+    row.appendChild(pick); menu.appendChild(row);
+  }
   renderVoiceMenu(menu);
 }
 
@@ -5050,10 +5065,19 @@ function renderSettings() {
   ts.value = (Math.round(Number(SETTINGS.chat_temperature) * 10) / 10 || ASK.sampling.temperature).toFixed(1);
   for (const b of $('#ansSeg').children) b.setAttribute('aria-pressed', String(b.dataset.v === (ASK.answers[SETTINGS.chat_answers] ? SETTINGS.chat_answers : 'normal')));
   for (const b of $('#speedSeg').children) b.setAttribute('aria-pressed', String(Number(b.dataset.v) === Number(SETTINGS.speech_speed)));
-  $('#settingsNote').textContent = MODE === 'launcher'
-    ? t('Настройки сохраняются сразу — в файле config.json в папке программы.')
-    : t('Настройки сохраняются в этом браузере: программа запущена без Ttranslator.exe.');
+  // macOS: настройки, модели и всё остальное — не рядом с программой, а в папке данных (кнопка «Открыть папку данных»)
+  const mac = macData();
+  $('#dataRow').hidden = !mac;
+  if (mac) $('#dataRootNote').textContent = t('Настройки, модели, голоса, сохранённые переводы, словари, отчёты и журналы: {p}. При обновлении и удалении Ttranslator.app папка остаётся.', { p: STATE.data_root || '' });
+  $('#settingsNote').textContent = MODE !== 'launcher' ? t('Настройки сохраняются в этом браузере: программа запущена без Ttranslator.exe.')
+    : mac ? t('Настройки сохраняются сразу — в файле config.json в папке данных.')
+    : t('Настройки сохраняются сразу — в файле config.json в папке программы.');
 }
+
+// Mac: данные программы — в отдельной папке (~/Library/Application Support/Ttranslator); в Windows и Linux они в
+// папке программы, которую пользователь сам распаковал, — там кнопки «Открыть папку данных» нет.
+function macData() { return MODE === 'launcher' && !!STATE && STATE.platform === 'darwin'; }
+function openDataFolder() { post('/api/open', { what: 'root' }).catch(e => toast(e.message)); }
 
 // Другой язык интерфейса: сохранить и перезагрузить окно; текст в поле и контекст остаются. how: 'welcome' — из
 // окна приветствия (после перезагрузки оно откроется снова), 'setup' — с экрана первого запуска; в обоих случаях
@@ -5820,6 +5844,10 @@ const I18N = {
   'Нажмите значок ещё раз, чтобы удалить файл ({s})': ['Click the icon again to delete the file ({s})', 'Klicken Sie noch einmal auf das Symbol, um die Datei zu löschen ({s})', 'Pulse el icono otra vez para eliminar el archivo ({s})', '再次点击图标即可删除文件（{s}）'],
   'Файл удалён': ['File deleted', 'Datei gelöscht', 'Archivo eliminado', '文件已删除'],
   'Скорость указана относительно Gemma 4 E2B. Свой файл .gguf можно положить в папку models — он появится в этом списке. Кнопка ⏏ рядом с названием модели выгружает её из памяти, не удаляя файл.': ['Speed is given relative to Gemma 4 E2B. You can put your own .gguf file into the models folder — it will appear in this list. The ⏏ button next to the model name unloads it from memory without deleting the file.', 'Die Geschwindigkeit ist relativ zu Gemma 4 E2B angegeben. Eine eigene .gguf-Datei können Sie in den Ordner models legen – sie erscheint dann in dieser Liste. Die Schaltfläche ⏏ neben dem Modellnamen entlädt das Modell aus dem Arbeitsspeicher, ohne die Datei zu löschen.', 'La velocidad se indica en relación con Gemma 4 E2B. Puede poner su propio archivo .gguf en la carpeta models: aparecerá en esta lista. El botón ⏏ junto al nombre del modelo lo libera de la memoria sin eliminar el archivo.', '速度以 Gemma 4 E2B 为参照。可以把自己的 .gguf 文件放进 models 文件夹——它会出现在此列表中。模型名称旁的 ⏏ 按钮可从内存中卸载模型，而不删除文件。'],
+  'Папка данных': ['Data folder', 'Datenordner', 'Carpeta de datos', '数据文件夹'],
+  'Открыть папку данных': ['Open the data folder', 'Datenordner öffnen', 'Abrir la carpeta de datos', '打开数据文件夹'],
+  'Настройки, модели, голоса, сохранённые переводы, словари, отчёты и журналы: {p}. При обновлении и удалении Ttranslator.app папка остаётся.': ['Settings, models, voices, saved translations, glossaries, reports and logs: {p}. The folder stays when Ttranslator.app is updated or deleted.', 'Einstellungen, Modelle, Stimmen, gespeicherte Übersetzungen, Glossare, Berichte und Protokolle: {p}. Der Ordner bleibt erhalten, wenn Ttranslator.app aktualisiert oder gelöscht wird.', 'Ajustes, modelos, voces, traducciones guardadas, glosarios, informes y registros: {p}. La carpeta se conserva al actualizar o eliminar Ttranslator.app.', '设置、模型、语音、已保存的翻译、术语表、报告和日志：{p}。更新或删除 Ttranslator.app 时，该文件夹会保留。'],
+  'Настройки сохраняются сразу — в файле config.json в папке данных.': ['Settings are saved at once — in the file config.json in the data folder.', 'Einstellungen werden sofort gespeichert – in der Datei config.json im Datenordner.', 'Los ajustes se guardan al instante, en el archivo config.json de la carpeta de datos.', '设置会立即保存到数据文件夹中的 config.json 文件。'],
   'Настройки сохраняются сразу — в файле config.json в папке программы.': ['Settings are saved at once — in the file config.json in the program folder.', 'Einstellungen werden sofort gespeichert – in der Datei config.json im Programmordner.', 'Los ajustes se guardan al instante, en el archivo config.json de la carpeta del programa.', '设置会立即保存到程序文件夹中的 config.json 文件。'],
   'Настройки сохраняются в этом браузере: программа запущена без Ttranslator.exe.': ['Settings are saved in this browser: the program was started without Ttranslator.exe.', 'Einstellungen werden in diesem Browser gespeichert: Das Programm wurde ohne Ttranslator.exe gestartet.', 'Los ajustes se guardan en este navegador: el programa se inició sin Ttranslator.exe.', '设置保存在此浏览器中：程序未通过 Ttranslator.exe 启动。'],
   'Версия {v}': ['Version {v}', 'Version {v}', 'Versión {v}', '版本 {v}'],
@@ -6087,6 +6115,7 @@ function init() {
   $('#runTestBtn').onclick = () => runTest('full');
   $('#quickTestBtn').onclick = () => runTest('quick');
   $('#errorOpenBtn').onclick = () => post('/api/open', { what: 'logs' }).catch(e => toast(e.message));
+  $('#openDataBtn').onclick = openDataFolder;
   $('#errorLogBtn').onclick = () => { errorLogOpen = !errorLogOpen; refreshState(); };
   $('#dlBtn').onclick = async () => { try { await post('/api/setup'); refreshState(); } catch (e) { $('#setupError').textContent = e.message; } };
   $('#setupSkipBtn').onclick = async () => { try { await post('/api/skip-setup'); menuAfterSkip = true; refreshState(); } catch (e) { $('#setupError').textContent = e.message; } };
