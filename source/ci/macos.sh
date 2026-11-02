@@ -108,8 +108,10 @@ r=$?; cat "$OUT/codesign-$ARCH.txt"; check $r "codesign --verify --deep --strict
 codesign -dv --verbose=2 "$APP" >> "$OUT/codesign-$ARCH.txt" 2>&1
 grep -q 'Signature=adhoc' "$OUT/codesign-$ARCH.txt"; check $? "ad-hoc signature of the app"
 plutil -p "$APP/Contents/Info.plist" > "$OUT/Info-$ARCH.plist.txt"
-grep -q '"LSMinimumSystemVersion" => "13.3"' "$OUT/Info-$ARCH.plist.txt" && grep -q '"LSUIElement" => true' "$OUT/Info-$ARCH.plist.txt"
-check $? "Info.plist: LSMinimumSystemVersion 13.3, LSUIElement"
+plist() { plutil -extract "$1" raw -o - "$APP/Contents/Info.plist" 2>/dev/null; }
+[ "$(plist LSMinimumSystemVersion)" = 13.3 ] && [ "$(plist LSUIElement)" = true ] && [ "$(plist CFBundleExecutable)" = Ttranslator ] \
+  && [ "$(plist CFBundleShortVersionString)" = "$(echo "$ZIP" | sed 's/^Ttranslator-//; s/-macos-.*//')" ]
+check $? "Info.plist: LSMinimumSystemVersion $(plist LSMinimumSystemVersion), LSUIElement $(plist LSUIElement), version $(plist CFBundleShortVersionString)"
 python3 -I .claude/tools/macho_minos.py "$APP" | tee "$OUT/minos-$ARCH.txt"
 python3 - "$OUT/minos-$ARCH.txt" <<'PY'
 import re, sys
@@ -141,7 +143,7 @@ check $? "a translation request goes through the launcher to the engine and back
 wait_until 60 's["window"]["pages"] >= 1 and s["window"]["error"] == ""'
 check $? "the own window opened and shows the page (pages $(st 's["window"]["pages"]'), error '$(st 's["window"]["error"]')')"
 running ttranslator-window; check $? "the window program runs"
-sleep 3; shot "window-$ARCH"
+sleep 5; shot "window-$ARCH"
 cat > "$W/windows.swift" <<'SWIFT'
 import AppKit
 import CoreGraphics
@@ -179,8 +181,15 @@ else
   echo "answer $code: $(head -c 600 "$OUT/voice-$ARCH.wav")"; mv "$OUT/voice-$ARCH.wav" "$OUT/voice-error-$ARCH.txt"
   fail "the voice did not read the phrase on macOS $MACOS"
 fi
+# «Открыть папку данных» (settings, model menu): Finder shows the data folder
+curl -s -m 10 -o /dev/null -X POST -H "Origin: $U" -H 'Content-Type: application/json' -d '{"what": "root"}' "$U/api/open"
+sleep 3; swift "$W/windows.swift" > "$W/windows-after-open.txt" 2>&1
+grep -q "^window	Finder	" "$W/windows-after-open.txt"; check $? "«Открыть папку данных» opens the data folder in Finder"
+shot "data-folder-$ARCH"
 save_logs "plain-$ARCH"
 quit_app; check $? "«Выход»: the launcher, the engine and the window program have ended"
+# where WKWebView keeps the data of the page (README.txt: uninstalling)
+ls -d "$HOME"/Library/WebKit/*ttranslator* "$HOME"/Library/Caches/*ttranslator* 2>/dev/null | tee "$OUT/webkit-data-$ARCH.txt"
 
 say "the voice program and the minimum macOS of its libraries (for the report: not a check)"
 TTSJSON=$(ls "$DATA"/engine/darwin-*/tts.json 2>/dev/null | head -1)
@@ -188,6 +197,15 @@ if [ -n "$TTSJSON" ]; then
   TTSEXE=$(dirname "$TTSJSON")/$(python3 -c 'import json, sys; print(json.load(open(sys.argv[1]))["exe"])' "$TTSJSON")
   TTSDIR=$(dirname "$(dirname "$TTSEXE")")
   python3 -I .claude/tools/macho_minos.py "$TTSDIR" | tee "$OUT/minos-sherpa-$ARCH.txt"
+  # what the onnxruntime of sherpa-onnx takes from macOS that macOS 13 does not have: CoreML classes and std::pmr of
+  # libc++ (strong imports — the library does not load without them); their availability, from the SDK
+  dyld_info -imports "$TTSDIR/lib/libonnxruntime.dylib" 2>/dev/null | grep -E "MLComputePlan|MLOptimizationHints|pmr" \
+    | tee "$OUT/onnxruntime-imports-$ARCH.txt"
+  SDK=$(xcrun --show-sdk-path 2>/dev/null)
+  grep -h -B3 -E "^@interface (MLComputePlan|MLOptimizationHints)\b" "$SDK"/System/Library/Frameworks/CoreML.framework/Headers/*.h 2>/dev/null \
+    | grep -E "@interface|API_AVAILABLE" | tee -a "$OUT/onnxruntime-imports-$ARCH.txt"
+  grep -h -E "AVAILABILITY_HAS_PMR|// LLVM 16|VERSION_MIN_REQUIRED__ < 140000" "$SDK"/usr/include/c++/v1/__configuration/availability.h \
+    2>/dev/null | head -6 | tee -a "$OUT/onnxruntime-imports-$ARCH.txt"
   # what dyld does with a library built for a newer macOS than the running one: the same library with its minimum
   # version set to 99.0 (vtool), signed again
   rm -rf "$W/sherpa-newer"; cp -R "$TTSDIR" "$W/sherpa-newer"
@@ -236,6 +254,8 @@ fi
   echo "spctl --assess (allowed):"; limit 30 spctl --assess --type execute -vv "$QAPP" 2>&1
 } | tee "$OUT/quarantine-$ARCH.txt"
 rm -f "$DATA/data/logs/launcher.log"
+# this time without the welcome window: the screenshot shows the main window
+printf '{"ui_language": "ru", "active_model": "file:tiny-test.gguf", "ui_port": %s, "show_welcome": false}\n' "$PORT" > "$DATA/config.json"
 open "$QAPP" || echo "open: exit code $?"
 for i in $(seq 1 60); do curl -sf -m 2 -o /dev/null "$U/api/ping" && break; sleep 1; done
 if curl -sf -m 5 -o /dev/null "$U/api/ping"; then

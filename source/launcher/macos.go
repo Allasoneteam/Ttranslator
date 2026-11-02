@@ -7,9 +7,6 @@ import (
 	"strings"
 )
 
-// The mark macOS puts on downloaded files (and Archive Utility on every file unpacked from them).
-const quarantineAttr = "com.apple.quarantine"
-
 // appBundle: the folder X.app when the program runs from X.app/Contents/MacOS, else "".
 func appBundle(exeDir string) string {
 	contents := filepath.Dir(exeDir)

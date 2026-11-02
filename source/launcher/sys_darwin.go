@@ -23,35 +23,18 @@ func programDirs(exeDir string) (root, res, bin string) {
 	return macDirs(exeDir, conf, os.Getenv("TDOC_ROOT"))
 }
 
-// platformInit: the files unpacked from the downloaded zip carry the quarantine mark (Archive Utility puts it on
-// every file). macOS asks the user once, for Ttranslator.app; the engine and the window program are started by the
-// launcher, and the mark is removed from them (from the whole app) so that macOS does not stop them one by one.
-// Not possible when macOS runs the app from a read-only copy (App Translocation: the app was not moved out of the
-// folder it was unpacked into) — README.txt asks to move Ttranslator.app into Applications first.
+// platformInit notes in the log when macOS runs the app from a read-only copy (App Translocation: the app has not been
+// moved out of the folder it was unpacked into). The program works there too — it writes nothing into the app — and
+// the engine and the window program start although every file of the app carries the quarantine mark of the
+// download: macOS asks the user once, for the whole app (checked in GitHub Actions, source/ci/macos.sh).
 func platformInit() {
 	exe, err := os.Executable()
 	if err != nil {
 		return
 	}
-	if p, err := filepath.EvalSymlinks(exe); err == nil {
-		exe = p
-	}
-	app := appBundle(filepath.Dir(exe))
-	if app == "" {
-		return
-	}
-	if strings.Contains(app, "/AppTranslocation/") {
+	if app := appBundle(filepath.Dir(exe)); strings.Contains(app, "/AppTranslocation/") {
 		logger.Printf("macOS runs the app from a read-only copy (App Translocation): %s", app)
 	}
-	if exec.Command("/usr/bin/xattr", "-p", quarantineAttr, exe).Run() != nil {
-		return // no mark (or it was removed already)
-	}
-	out, err := exec.Command("/usr/bin/xattr", "-d", "-r", quarantineAttr, app).CombinedOutput()
-	if err != nil {
-		logger.Printf("quarantine mark not removed from %s: %v %s", app, err, lastLine(string(out)))
-		return
-	}
-	logger.Printf("quarantine mark removed from the files of %s", app)
 }
 
 func setChildAttrs(cmd *exec.Cmd) {
