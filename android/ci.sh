@@ -44,13 +44,13 @@ rm -rf "$W/llama-x86_64" "$W/launcher" "$W/unpacked" "$HERE/app/build/intermedia
 df -h / "$W" | sed 's/^/   /'
 
 # ---------------------------------------------------------------- tools of the check
-note "python modules of the check (as the tests of source/tests: numpy, gguf, playwright)"
+note "python modules for the tiny model of the tests (source/tests/make_tiny_gguf.py: numpy, gguf)"
 if python3 -m venv "$W/venv" 2>/dev/null; then
   PY=$W/venv/bin/python
-  "$PY" -m pip install -q numpy gguf playwright || fail "pip install failed"
+  "$PY" -m pip install -q numpy gguf || fail "pip install failed"
 else
   PY=python3
-  python3 -m pip install -q --user --break-system-packages numpy gguf playwright || fail "pip install failed"
+  python3 -m pip install -q --user --break-system-packages numpy gguf || fail "pip install failed"
 fi
 # the tiny model of the tests (random weights: gibberish, enough for the plumbing)
 "$PY" "$REPO/source/tests/make_tiny_gguf.py" "$W/tiny-test.gguf" 1 6 || fail "no tiny model"

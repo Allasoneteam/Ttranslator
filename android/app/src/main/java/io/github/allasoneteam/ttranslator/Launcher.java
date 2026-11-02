@@ -89,6 +89,13 @@ final class Launcher {
         env.put("LD_LIBRARY_PATH", libDir);
         env.put("TMPDIR", cacheDir.getAbsolutePath());
         env.put("HOME", homeDir.getAbsolutePath());
+        // HTTPS of the downloads: Go reads the system's certificates from /system/etc/security/cacerts; since Android
+        // 14 the current ones (updated through Google Play) are in the Conscrypt module — both, the newer first
+        StringBuilder certs = new StringBuilder();
+        for (String d : new String[]{"/apex/com.android.conscrypt/cacerts", "/system/etc/security/cacerts"}) {
+            if (new File(d).isDirectory()) certs.append(certs.length() > 0 ? ":" : "").append(d);
+        }
+        if (certs.length() > 0) env.put("SSL_CERT_DIR", certs.toString());
         pb.directory(root);
         pb.redirectErrorStream(true);
         log("starting the launcher: " + libDir + "/libttranslator.so, folder " + root);

@@ -170,6 +170,17 @@ public class MainActivity extends Activity {
                 ui.post(() -> {
                     starting = false;
                     lang = launcher.uiLanguage();
+                    PackageInfo wv = WebView.getCurrentWebViewPackage();
+                    int major = webViewMajor(wv);
+                    if (major > 0 && major < MIN_WEBVIEW) {
+                        // the page's script needs Chromium 80+ (the operator ??): with an older WebView it does not run
+                        launcher.log("WebView " + wv.versionName + " is too old");
+                        showOverlay(Texts.oldWebView(lang, wv.versionName), false);
+                        retryBtn.setText(Texts.openPlay(lang));
+                        retryBtn.setVisibility(View.VISIBLE);
+                        retryBtn.setOnClickListener(v -> openPlay(wv.packageName));
+                        return;
+                    }
                     web.loadUrl(Launcher.URL);
                 });
             } catch (IOException e) {
@@ -185,8 +196,33 @@ public class MainActivity extends Activity {
     private void showOverlay(String text, boolean retry) {
         overlayText.setText(text);
         retryBtn.setText(Texts.retry(lang));
+        retryBtn.setOnClickListener(v -> start());
         retryBtn.setVisibility(retry ? View.VISIBLE : View.GONE);
         overlay.setVisibility(View.VISIBLE);
+    }
+
+    /** The oldest WebView (Chromium) the page's script runs in. */
+    private static final int MIN_WEBVIEW = 80;
+
+    private static int webViewMajor(PackageInfo wv) {
+        if (wv == null || wv.versionName == null) return 0;
+        try {
+            return Integer.parseInt(wv.versionName.split("\\.")[0]);
+        } catch (NumberFormatException e) {
+            return 0;
+        }
+    }
+
+    private void openPlay(String pkg) {
+        try {
+            openOutside("market://details?id=" + pkg);
+        } catch (ActivityNotFoundException e) {
+            try {
+                openOutside("https://play.google.com/store/apps/details?id=" + pkg);
+            } catch (ActivityNotFoundException e2) {
+                launcher.log("no app to open Google Play");
+            }
+        }
     }
 
     @Override
