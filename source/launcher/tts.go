@@ -29,34 +29,46 @@ import (
 )
 
 const (
-	ttsVersion   = "v1.13.7"
-	ttsRelease   = "https://github.com/k2-fsa/sherpa-onnx/releases/download/" + ttsVersion + "/"
-	voiceRelease = "https://github.com/k2-fsa/sherpa-onnx/releases/download/tts-models/"
-	voiceSamples = "https://rhasspy.github.io/piper-samples/"
-	ttsMaxChars  = 2000             // one request; the window sends sentences of a few hundred characters
-	ttsTimeout   = 60 * time.Second // one phrase normally takes about a second
+	ttsVersion = "v1.13.7" // Windows and Linux
+	// macOS (author's decision of 13.11.2026): v1.13.8, the last release before 2.0 (which removed espeak-ng). The
+	// onnxruntime of v1.13.7 for macOS needs macOS 14.4 (CoreML) and 14.0 (std::pmr) and is built for 15.5; that of
+	// v1.13.8 is built for macOS 11 (arm64) and 10.15 (x86_64), so the voices read on every macOS the app runs on
+	// (13.3+). Windows and Linux stay on v1.13.7 for now.
+	ttsVersionMac = "v1.13.8"
+	ttsReleases   = "https://github.com/k2-fsa/sherpa-onnx/releases/download/"
+	voiceRelease  = "https://github.com/k2-fsa/sherpa-onnx/releases/download/tts-models/"
+	voiceSamples  = "https://rhasspy.github.io/piper-samples/"
+	ttsMaxChars   = 2000             // one request; the window sends sentences of a few hundred characters
+	ttsTimeout    = 60 * time.Second // one phrase normally takes about a second
 )
 
 // ttsPackage is the sherpa-onnx release archive for this platform (shared build: the program, onnxruntime and
 // the sherpa-onnx libraries).
 type ttsPackage struct {
-	Asset  string
-	Size   int64
-	SHA256 string
+	Version string
+	Asset   string
+	Size    int64
+	SHA256  string
 }
 
-// Sizes and checksums of the official sherpa-onnx v1.13.7 release files.
-func currentTTSPackage() (ttsPackage, bool) {
-	switch runtime.GOOS + "/" + runtime.GOARCH {
+// URL of the archive in the official sherpa-onnx release of its version.
+func (p ttsPackage) URL() string { return ttsReleases + p.Version + "/" + p.Asset }
+
+func currentTTSPackage() (ttsPackage, bool) { return ttsPackageFor(runtime.GOOS, runtime.GOARCH) }
+
+// ttsPackageFor: sizes and checksums of the official sherpa-onnx release files (Windows and Linux v1.13.7, macOS
+// v1.13.8).
+func ttsPackageFor(goos, goarch string) (ttsPackage, bool) {
+	switch goos + "/" + goarch {
 	case "windows/amd64":
-		return ttsPackage{"sherpa-onnx-" + ttsVersion + "-win-x64-shared-MD-Release.tar.bz2", 20117803,
+		return ttsPackage{ttsVersion, "sherpa-onnx-" + ttsVersion + "-win-x64-shared-MD-Release.tar.bz2", 20117803,
 			"e78b44e0aa68f2fe4540ffa06994c586056d889beb70176801c7c62a338f769c"}, true
 	case "linux/amd64":
-		return ttsPackage{"sherpa-onnx-" + ttsVersion + "-linux-x64-shared.tar.bz2", 27884774,
+		return ttsPackage{ttsVersion, "sherpa-onnx-" + ttsVersion + "-linux-x64-shared.tar.bz2", 27884774,
 			"95b9f4358e2d5522a0bd987c3ee91128e31f8abf4340927cab32e438300f3c24"}, true
 	case "darwin/amd64", "darwin/arm64":
-		return ttsPackage{"sherpa-onnx-" + ttsVersion + "-osx-universal2-shared.tar.bz2", 43312926,
-			"a486bb987f9ccff182768bf75c39e81c2d3e4ba7143368e9e00139becc441cb5"}, true
+		return ttsPackage{ttsVersionMac, "sherpa-onnx-" + ttsVersionMac + "-osx-universal2-shared.tar.bz2", 43567145,
+			"2249f97f10df7d828af1b0d10e3d1eeaa2198b60b9a999a7ed853c150181ccfd"}, true
 	}
 	return ttsPackage{}, false
 }
@@ -371,7 +383,7 @@ func (a *App) ttsURL(pkg ttsPackage) string {
 	if pkg.Asset == "" {
 		return ""
 	}
-	return ttsRelease + pkg.Asset
+	return pkg.URL()
 }
 
 // ttsStateJSON describes read-aloud for /api/state. Caller holds a.mu.
@@ -399,7 +411,7 @@ func (a *App) ttsStateJSON() map[string]any {
 	}
 	return map[string]any{
 		"engine": map[string]any{
-			"present": exe != "", "supported": ok || ttsURLOverride != "", "version": ttsVersion,
+			"present": exe != "", "supported": ok || ttsURLOverride != "", "version": pkg.Version,
 			"url": u, "file": path.Base(u), "dir": a.engineDir, "size": pkg.Size,
 		},
 		"voices":     voices,
@@ -511,7 +523,7 @@ func (a *App) downloadTTS(ctx context.Context, pkg ttsPackage, voiceID string) e
 		_ = os.Chmod(exe, 0o755)
 	}
 	rel, _ := filepath.Rel(a.engineDir, exe)
-	meta, _ := json.MarshalIndent(ttsMeta{Version: ttsVersion, Exe: filepath.ToSlash(rel)}, "", "  ")
+	meta, _ := json.MarshalIndent(ttsMeta{Version: pkg.Version, Exe: filepath.ToSlash(rel)}, "", "  ")
 	if err := os.WriteFile(filepath.Join(a.engineDir, "tts.json"), meta, 0o644); err != nil {
 		return err
 	}

@@ -6,8 +6,9 @@
 //	rsrc_windows_amd64.syso  the Windows icon resource; "go build" links it into Ttranslator.exe by itself
 //	Ttranslator.ico          the same icon as a file (also the icon of ttranslator-window.exe, source/window)
 //	Ttranslator.png          256×256, the icon of the own window on Linux (embedded into the launcher)
-//	Ttranslator.icns         the icon of Ttranslator.app on macOS (1.1): 16…1024 px, the T within the middle 80 %
-//	                         of the square, as macOS app icons are drawn
+//	Ttranslator.icns         the icon of Ttranslator.app on macOS (1.1): 16…1024 px — the T on a white rounded
+//	                         square with a soft shadow, on the grid of macOS app icons (author's decision of
+//	                         13.11.2026: macOS 26 puts an icon of another shape into a grey square)
 //
 // Only the Go standard library is used. Run it after the drawing changes:
 //
@@ -80,17 +81,8 @@ func icns(poly []pt) []byte {
 	var body bytes.Buffer
 	for _, e := range icnsSizes {
 		if pngs[e.size] == nil {
-			inner := int(math.Round(float64(e.size) * 0.8)) // the T fills about 80 % of the square, as on macOS
-			im := image.NewNRGBA(image.Rect(0, 0, e.size, e.size))
-			t := render(poly, inner)
-			off := (e.size - inner) / 2
-			for y := 0; y < inner; y++ {
-				for x := 0; x < inner; x++ {
-					im.SetNRGBA(x+off, y+off, t.NRGBAAt(x, y))
-				}
-			}
 			var b bytes.Buffer
-			check(png.Encode(&b, im))
+			check(png.Encode(&b, macIcon(poly, e.size)))
 			pngs[e.size] = b.Bytes()
 		}
 		body.WriteString(e.typ)
@@ -102,6 +94,134 @@ func icns(poly []pt) []byte {
 	binary.Write(&out, binary.BigEndian, uint32(8+body.Len()))
 	out.Write(body.Bytes())
 	return out.Bytes()
+}
+
+// The grid of macOS app icons (since macOS 11): on a canvas of 1024 the rounded square is 824 wide, its corners have
+// a radius of about 185, and a soft shadow falls below it.
+const (
+	macBody   = 824.0 / 1024 // the rounded square
+	macRadius = 0.225        // corner radius, of the square's side
+	macT      = 0.62         // the drawing of the T (with its margin), of the canvas
+	macShadow = 0.012        // shadow: offset down and blur, of the canvas
+)
+
+// macIcon: the T on a white rounded square (a faint grey towards the bottom, so that it shows on white) with a soft
+// shadow below it, size×size pixels.
+func macIcon(poly []pt, size int) *image.NRGBA {
+	S := float64(size)
+	side := S * macBody
+	lo := (S - side) / 2
+	r := side * macRadius
+	// coverage of the rounded square in each pixel, 4×4 samples
+	cover := make([]float64, size*size)
+	const n = 4
+	for py := 0; py < size; py++ {
+		for px := 0; px < size; px++ {
+			c := 0
+			for sy := 0; sy < n; sy++ {
+				for sx := 0; sx < n; sx++ {
+					if inRoundRect(float64(px)+(float64(sx)+0.5)/n, float64(py)+(float64(sy)+0.5)/n, lo, lo+side, r) {
+						c++
+					}
+				}
+			}
+			cover[py*size+px] = float64(c) / (n * n)
+		}
+	}
+	// the shadow: the square moved down and blurred (three box blurs ≈ a Gaussian), black at 30 %
+	dy := int(math.Round(S * macShadow))
+	shadow := make([]float64, size*size)
+	for y := 0; y < size; y++ {
+		for x := 0; x < size; x++ {
+			if y-dy >= 0 {
+				shadow[y*size+x] = cover[(y-dy)*size+x]
+			}
+		}
+	}
+	blur := int(math.Round(S * macShadow))
+	for i := 0; i < 3 && blur > 0; i++ {
+		boxBlur(shadow, size, blur)
+	}
+	im := image.NewNRGBA(image.Rect(0, 0, size, size))
+	for y := 0; y < size; y++ {
+		// white at the top, a faint grey (#EDEDF2) at the bottom of the square
+		t := math.Min(1, math.Max(0, (float64(y)+0.5-lo)/side))
+		fill := [3]float64{255 - 18*t, 255 - 18*t, 255 - 13*t}
+		for x := 0; x < size; x++ {
+			a := cover[y*size+x]
+			sa := 0.3 * shadow[y*size+x] * (1 - a) // the shadow shows only outside the square
+			outA := a + sa
+			if outA <= 0 {
+				continue
+			}
+			var c [3]uint8
+			for k := 0; k < 3; k++ {
+				c[k] = uint8(math.Round(fill[k] * a / outA)) // black shadow: adds no colour
+			}
+			im.SetNRGBA(x, y, color.NRGBA{c[0], c[1], c[2], uint8(math.Round(255 * outA))})
+		}
+	}
+	// the T, centred, drawn over the square
+	inner := int(math.Round(S * macT))
+	t := render(poly, inner)
+	off := (size - inner) / 2
+	for y := 0; y < inner; y++ {
+		for x := 0; x < inner; x++ {
+			src := t.NRGBAAt(x, y)
+			if src.A == 0 {
+				continue
+			}
+			dst := im.NRGBAAt(x+off, y+off)
+			sa, da := float64(src.A)/255, float64(dst.A)/255
+			oa := sa + da*(1-sa)
+			mix := func(s, d uint8) uint8 { return uint8(math.Round((float64(s)*sa + float64(d)*da*(1-sa)) / oa)) }
+			im.SetNRGBA(x+off, y+off, color.NRGBA{mix(src.R, dst.R), mix(src.G, dst.G), mix(src.B, dst.B), uint8(math.Round(255 * oa))})
+		}
+	}
+	return im
+}
+
+// inRoundRect: (x, y) inside the square [lo, hi]² with corners of radius r.
+func inRoundRect(x, y, lo, hi, r float64) bool {
+	if x < lo || x > hi || y < lo || y > hi {
+		return false
+	}
+	cx := math.Min(math.Max(x, lo+r), hi-r)
+	cy := math.Min(math.Max(y, lo+r), hi-r)
+	return (x-cx)*(x-cx)+(y-cy)*(y-cy) <= r*r
+}
+
+// boxBlur: a box blur of radius k of a size×size image, rows then columns, in place.
+func boxBlur(v []float64, size, k int) {
+	tmp := make([]float64, size)
+	for pass := 0; pass < 2; pass++ {
+		for i := 0; i < size; i++ {
+			at := func(j int) *float64 {
+				if pass == 0 {
+					return &v[i*size+j]
+				}
+				return &v[j*size+i]
+			}
+			sum := 0.0
+			for j := -k; j <= k; j++ {
+				if j >= 0 && j < size {
+					sum += *at(j)
+				}
+			}
+			for j := 0; j < size; j++ {
+				tmp[j] = sum / float64(2*k+1)
+				if j-k >= 0 {
+					sum -= *at(j - k)
+				}
+				if j+k+1 < size {
+					sum += *at(j + k + 1)
+				}
+			}
+			for j := 0; j < size; j++ {
+				*at(j) = tmp[j]
+			}
+		}
+	}
 }
 
 func check(err error) {

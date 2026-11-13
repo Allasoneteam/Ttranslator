@@ -105,10 +105,23 @@ func TestVoiceCatalog(t *testing.T) {
 			t.Errorf("%s: no voice with a free licence", l)
 		}
 	}
-	if pkg, ok := currentTTSPackage(); ok {
-		if !strings.Contains(pkg.Asset, ttsVersion) || !strings.HasSuffix(pkg.Asset, ".tar.bz2") || pkg.Size < 1<<20 || !hex64.MatchString(pkg.SHA256) {
-			t.Errorf("sherpa-onnx package: %+v", pkg)
+	// every platform: the archive of its version (Windows and Linux v1.13.7, macOS v1.13.8 — author's decision of
+	// 13.11.2026), pinned size and checksum
+	for _, p := range []string{"windows/amd64", "linux/amd64", "darwin/amd64", "darwin/arm64"} {
+		goos, goarch, _ := strings.Cut(p, "/")
+		pkg, ok := ttsPackageFor(goos, goarch)
+		want := ttsVersion
+		if goos == "darwin" {
+			want = ttsVersionMac
 		}
+		if !ok || pkg.Version != want || !strings.Contains(pkg.Asset, "sherpa-onnx-"+want+"-") || !strings.HasSuffix(pkg.Asset, ".tar.bz2") ||
+			pkg.Size < 1<<20 || !hex64.MatchString(pkg.SHA256) ||
+			pkg.URL() != "https://github.com/k2-fsa/sherpa-onnx/releases/download/"+want+"/"+pkg.Asset {
+			t.Errorf("%s: sherpa-onnx package %+v", p, pkg)
+		}
+	}
+	if _, ok := ttsPackageFor("windows", "arm64"); ok {
+		t.Errorf("windows/arm64 must not have a sherpa-onnx package")
 	}
 }
 
@@ -166,7 +179,7 @@ func TestDumpVoiceCatalog(t *testing.T) {
 	}
 	pkg, _ := currentTTSPackage()
 	b, err := json.MarshalIndent(map[string]any{"tts": map[string]any{"asset": pkg.Asset, "size": pkg.Size, "sha256": pkg.SHA256,
-		"url": ttsRelease + pkg.Asset}, "voices": voiceSpecs}, "", "  ")
+		"url": pkg.URL()}, "voices": voiceSpecs}, "", "  ")
 	if err != nil {
 		t.Fatal(err)
 	}

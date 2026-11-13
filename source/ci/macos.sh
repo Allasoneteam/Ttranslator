@@ -235,24 +235,6 @@ if [ -n "$TTSJSON" ]; then
     echo "libonnxruntime.dylib with minos 99.0 on macOS $MACOS:" | tee "$OUT/dyld-newer-$ARCH.txt"
     "$W/sherpa-newer/bin/$(basename "$TTSEXE")" --help 2>&1 | head -5 | tee -a "$OUT/dyld-newer-$ARCH.txt"
   fi
-  # a candidate for the author (not used by the program): sherpa-onnx v1.13.8, the last release before 2.0 (which
-  # removed espeak-ng), whose onnxruntime is built for macOS 11 / 10.15 — does it read the same voice?
-  C=sherpa-onnx-v1.13.8-osx-universal2-shared
-  if curl -fsSL -o "$W/$C.tar.bz2" "https://github.com/k2-fsa/sherpa-onnx/releases/download/v1.13.8/$C.tar.bz2" \
-     && [ "$(shasum -a 256 "$W/$C.tar.bz2" | cut -d' ' -f1)" = 2249f97f10df7d828af1b0d10e3d1eeaa2198b60b9a999a7ed853c150181ccfd ]; then
-    tar -xjf "$W/$C.tar.bz2" -C "$W"
-    python3 -I .claude/tools/macho_minos.py "$W/$C/lib" | tee "$OUT/minos-sherpa-1.13.8-$ARCH.txt"
-    V=$DATA/models/voices/vits-piper-en_US-ljspeech-medium
-    (cd "$DATA/models/voices" && "$W/$C/bin/sherpa-onnx-offline-tts" --vits-model="$(basename "$V")/en_US-ljspeech-medium.onnx" \
-       --vits-tokens="$(basename "$V")/tokens.txt" --vits-data-dir="$(basename "$V")/espeak-ng-data" --num-threads=2 \
-       --output-filename="$OUT/voice-sherpa-1.13.8-$ARCH.wav" -- "Hello! The same voice with sherpa-onnx one point thirteen point eight.") \
-       > "$OUT/sherpa-1.13.8-$ARCH.log" 2>&1
-    if [ "$(head -c 4 "$OUT/voice-sherpa-1.13.8-$ARCH.wav" 2>/dev/null)" = RIFF ]; then
-      echo "INFO sherpa-onnx v1.13.8 reads the voice on macOS $MACOS too (voice-sherpa-1.13.8-$ARCH.wav)" | tee -a "$RES"
-    else
-      echo "INFO sherpa-onnx v1.13.8 did not read the voice: $(tail -3 "$OUT/sherpa-1.13.8-$ARCH.log")" | tee -a "$RES"
-    fi
-  fi
 fi
 
 say "macOS protection: the archive downloaded (quarantine), unpacked, the start allowed"
