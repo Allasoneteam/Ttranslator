@@ -63,10 +63,13 @@ run() {              # name command...
   else SUMMARY="$SUMMARY\n  ok    $name"; fi
 }
 
-say "launcher: vet, unit tests, Linux build"
+say "launcher: vet, unit tests, Linux build; the macOS launcher (Intel, Apple Silicon) vets and builds"
 rm -rf "$SRC/launcher/ui_fallback"; mkdir -p "$SRC/launcher/ui_fallback"
 cp "$UI/index.html" "$UI/tests.txt" "$SRC/launcher/ui_fallback/"
-(cd "$SRC/launcher" && go vet ./... && GOOS=windows go vet ./... && go test ./... \
+(cd "$SRC/launcher" && go vet ./... && GOOS=windows go vet ./... && GOOS=darwin GOARCH=amd64 go vet ./... \
+   && GOOS=darwin GOARCH=arm64 go vet ./... && go test ./... \
+   && CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 go build -trimpath -o /dev/null . \
+   && CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 go build -trimpath -o /dev/null . \
    && CGO_ENABLED=0 go build -trimpath -o "$W/ttranslator" . \
    && CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -trimpath -o "$W/ttranslator.exe" .) || { echo "ERROR: build failed"; exit 1; }
 

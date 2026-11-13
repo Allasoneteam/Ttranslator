@@ -224,7 +224,8 @@ func currentEnginePackage() (enginePackage, error) {
 }
 
 // enginePackageFor: the engine archive of a platform (also for source/release.sh, which puts the engine of Windows
-// and of Linux into the release archives — TestDumpReleaseInfo).
+// and of Linux into the release archives, and for source/release-macos.sh, Ttranslator.app — TestDumpReleaseInfo).
+// macOS (1.1): the Apple Silicon build computes on the GPU (Metal), the Intel one on the processor.
 func enginePackageFor(goos, goarch string) (enginePackage, error) {
 	switch goos + "/" + goarch {
 	case "windows/amd64":
@@ -233,6 +234,12 @@ func enginePackageFor(goos, goarch string) (enginePackage, error) {
 	case "linux/amd64":
 		return enginePackage{"llama-" + engineVersion + "-bin-ubuntu-x64.tar.gz", "Linux x64, процессор", "llama-server",
 			17692966, "ee617d7af304985e268fbc33bdd8fe44110f1dc2f599ecb27bdf08890e6e6e4c"}, nil
+	case "darwin/amd64":
+		return enginePackage{"llama-" + engineVersion + "-bin-macos-x64.tar.gz", "macOS x64 (Intel), процессор", "llama-server",
+			11487091, "41ee358ed26b426f2798f459b6b8607416db7e0fa472bae955210f1908627b1b"}, nil
+	case "darwin/arm64":
+		return enginePackage{"llama-" + engineVersion + "-bin-macos-arm64.tar.gz", "macOS arm64 (Apple Silicon), видеоядро (Metal)", "llama-server",
+			11971075, "65f564a94c328dee846a395796d060671fb64f4334a84857c222b2416f039545"}, nil
 	}
 	return enginePackage{}, fmt.Errorf(tr("платформа %s/%s пока не поддерживается"), goos, goarch)
 }
@@ -364,6 +371,9 @@ type Machine struct {
 
 type App struct {
 	root, uiDir, engineDir, modelsDir, dataDir, logsDir, reportsDir string
+	// binDir: the folder of the window program ("": root). appEngineDir: the engine of Ttranslator.app (macOS,
+	// read only; engineDir is then the folder for what is downloaded later), "" when the engine is in engineDir.
+	binDir, appEngineDir string
 
 	mu             sync.Mutex
 	cfg            Config
@@ -433,20 +443,23 @@ func main() {
 	if p, err := filepath.EvalSymlinks(exe); err == nil {
 		exe = p
 	}
-	root := filepath.Dir(exe)
-	if env := os.Getenv("TDOC_ROOT"); env != "" {
-		root = env
-	}
+	// the data folder (root), the interface and the engine of the archive (res), the window program (bin): one
+	// program folder on Windows and Linux; on macOS Ttranslator.app and ~/Library/Application Support (macos.go)
+	root, res, bin := programDirs(filepath.Dir(exe))
 
 	a := &App{
 		root:      root,
-		uiDir:     filepath.Join(root, "ui"),
+		binDir:    bin,
+		uiDir:     filepath.Join(res, "ui"),
 		engineDir: filepath.Join(root, "engine", runtime.GOOS+"-"+runtime.GOARCH),
 		modelsDir: filepath.Join(root, "models"),
 		dataDir:   filepath.Join(root, "data"),
 		engStatus: "stopped",
 		started:   time.Now(),
 		quit:      make(chan struct{}),
+	}
+	if d := filepath.Join(res, "engine", runtime.GOOS+"-"+runtime.GOARCH); d != a.engineDir {
+		a.appEngineDir = d
 	}
 	a.logsDir = filepath.Join(a.dataDir, "logs")
 	a.reportsDir = filepath.Join(a.dataDir, "reports")
@@ -463,6 +476,9 @@ func main() {
 		logger = log.New(os.Stderr, "", log.LstdFlags)
 	}
 	logger.Printf("Ttranslator %s, root %s, %s/%s", appVersion, root, runtime.GOOS, runtime.GOARCH)
+	if res != root {
+		logger.Printf("program files in %s", res)
+	}
 
 	a.cfg = a.loadConfig()
 	setUILang(a.cfg.UILanguage)
@@ -623,14 +639,10 @@ func (a *App) serverPath() string {
 		}
 		return ""
 	}
-	if b, err := os.ReadFile(filepath.Join(a.engineDir, "engine.json")); err == nil {
-		var m engineMeta
-		if json.Unmarshal(b, &m) == nil && m.Server != "" {
-			p := filepath.Join(a.engineDir, filepath.FromSlash(m.Server))
-			if st, err := os.Stat(p); err == nil && !st.IsDir() {
-				ensureExecutable(p, st)
-				return p
-			}
+	// macOS: the engine inside Ttranslator.app first (the version of this program), then a downloaded one
+	for _, dir := range []string{a.appEngineDir, a.engineDir} {
+		if p := engineFromMeta(dir); p != "" {
+			return p
 		}
 	}
 	// engine unpacked by hand: look for the server binary and remember it
@@ -654,6 +666,27 @@ func (a *App) serverPath() string {
 		}
 	}
 	return found
+}
+
+// engineFromMeta: the engine named in dir/engine.json, if it is there ("" for dir "").
+func engineFromMeta(dir string) string {
+	if dir == "" {
+		return ""
+	}
+	b, err := os.ReadFile(filepath.Join(dir, "engine.json"))
+	if err != nil {
+		return ""
+	}
+	var m engineMeta
+	if json.Unmarshal(b, &m) != nil || m.Server == "" {
+		return ""
+	}
+	p := filepath.Join(dir, filepath.FromSlash(m.Server))
+	if st, err := os.Stat(p); err == nil && !st.IsDir() {
+		ensureExecutable(p, st)
+		return p
+	}
+	return ""
 }
 
 // ensureExecutable gives a program back its execute permission when it was copied without it (some cloud folders
@@ -761,6 +794,8 @@ func (a *App) stateJSON() map[string]any {
 		"saved_dir":         a.savedDir(),
 		"settings":          a.settingsJSON(),
 		"data_dir":          a.dataDir,
+		"data_root":         a.root,       // config.json, data, models, engine (macOS: ~/Library/Application Support/Ttranslator)
+		"platform":          runtime.GOOS, // windows, linux, darwin
 		"tts":               a.ttsStateJSON(),
 		"window":            a.windowStateJSON(),
 	}
@@ -1663,6 +1698,8 @@ func (a *App) routes() http.Handler {
 		_ = json.NewDecoder(io.LimitReader(r.Body, 4096)).Decode(&req)
 		p := a.dataDir
 		switch req.What {
+		case "root": // «Открыть папку данных» (macOS: the data are not next to the program)
+			p = a.root
 		case "logs":
 			p = a.logsDir
 		case "glossary":

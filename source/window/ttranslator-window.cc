@@ -1,15 +1,16 @@
 // ttranslator-window — the own window of Ttranslator (launch_mode "window"). It shows the interface of the launcher
-// in a native window with the web engine of the system: WebView2 on Windows, WebKitGTK on Linux (WKWebView on macOS
-// later). Built on the webview library (https://github.com/webview/webview, MIT, version 0.12.0, in webview/ with
+// in a native window with the web engine of the system: WebView2 on Windows, WebKitGTK on Linux, WKWebView on macOS
+// (1.1). Built on the webview library (https://github.com/webview/webview, MIT, version 0.12.0, in webview/ with
 // one small patch, see README.md). The launcher stays on the Go standard library; it starts this program and, if
 // it cannot start (no WebView2 Runtime, no WebKitGTK), opens an Edge/Chrome window instead.
 //
-//   ttranslator-window URL [--title TEXT] [--size WxH] [--maximized] [--data DIR] [--icon FILE.png]
+//   ttranslator-window URL [--title TEXT] [--size WxH] [--maximized] [--data DIR] [--icon FILE.png] [--lang CODE]
 //
 //   URL      a page of the launcher: http://127.0.0.1:PORT/... or http://localhost:PORT/...
 //   --data   Windows: folder for the WebView2 profile (else WebView2 writes into %APPDATA%)
-//   --icon   Linux: window icon (PNG); on Windows the icon is a resource of this program
-//   --maximized  start maximized (the size of --size is the size after "restore")
+//   --icon   Linux: window icon (PNG); on Windows the icon is a resource of this program, on macOS of Ttranslator.app
+//   --lang   macOS: the language of the menu bar (en, ru, de, es, zh — the interface language)
+//   --maximized  start maximized (the size of --size is the size after "restore"; macOS: the window is zoomed)
 //
 // Prints "ready" on stdout when the window exists. Exit codes: 0 — the window was closed, 2 — wrong arguments,
 // 3 — the web engine is not available.
@@ -23,7 +24,11 @@
 // and window.TTW = { version } tells the page that it runs in this window.
 //
 // At start the window comes to the front (0.9.3): the launcher, started from Explorer, passes its right to take the
-// foreground to this program (AllowSetForegroundWindow); Linux: gtk_window_present.
+// foreground to this program (AllowSetForegroundWindow); Linux: gtk_window_present; macOS: the app activates itself.
+//
+// macOS (1.1): Cocoa through the Objective-C runtime, as in webview.h (no Objective-C compiler mode needed). The
+// program is a regular app with a menu bar — the Edit menu is what makes ⌘C, ⌘V, ⌘X, ⌘A and ⌘Z work in the page —
+// although Ttranslator.app itself is an agent (LSUIElement: the launcher has no window and no Dock icon).
 
 #if defined(_WIN32) && !defined(_WIN32_WINNT)
 #define _WIN32_WINNT 0x0A00   // Windows 10 (older MinGW headers default to XP and hide QueryFullProcessImageNameW)
@@ -42,7 +47,8 @@
 #include <commdlg.h>
 #include <shellapi.h>
 #elif defined(__APPLE__)
-#error "macOS: not yet (see README.md)"
+#include <objc/message.h>
+#include <objc/runtime.h>
 #else
 #include <gtk/gtk.h>
 #include <webkit2/webkit2.h>
@@ -392,6 +398,201 @@ void bring_to_front() {
   }
 }
 
+#elif defined(__APPLE__)   // macOS: Cocoa and WKWebView through the Objective-C runtime
+
+// A method call with its exact signature (objc_msgSend must be cast so on arm64).
+template <typename R = id, typename... A>
+R msg(id self, const char *sel, A... args) {
+  return reinterpret_cast<R (*)(id, SEL, A...)>(objc_msgSend)(self, sel_registerName(sel), args...);
+}
+
+id cls(const char *name) { return reinterpret_cast<id>(objc_getClass(name)); }
+
+id ns_string(const std::string &s) { return msg(cls("NSString"), "stringWithUTF8String:", s.c_str()); }
+
+std::string utf8(id s) {
+  const char *p = s ? msg<const char *>(s, "UTF8String") : nullptr;
+  return p ? p : "";
+}
+
+// Autoreleased objects made outside the run loop of the app go to a pool of our own.
+struct autorelease_pool {
+  id pool = msg(msg(cls("NSAutoreleasePool"), "alloc"), "init");
+  ~autorelease_pool() { msg<void>(pool, "drain"); }
+};
+
+id window() { return static_cast<id>(webview_get_window(g_wv)); }
+
+void open_external(const std::string &u) {
+  autorelease_pool arp;
+  id url = msg(cls("NSURL"), "URLWithString:", ns_string(u));
+  if (!url) {   // letters a URL may not have (the page gives addresses already encoded; just in case)
+    id esc = msg(ns_string(u), "stringByAddingPercentEncodingWithAllowedCharacters:", msg(cls("NSCharacterSet"), "URLQueryAllowedCharacterSet"));
+    url = esc ? msg(cls("NSURL"), "URLWithString:", esc) : nullptr;
+  }
+  if (!url || !msg<BOOL>(msg(cls("NSWorkspace"), "sharedWorkspace"), "openURL:", url)) {
+    std::fprintf(stderr, "cannot open %s\n", u.c_str());
+  }
+}
+
+// The "Save" panel of macOS, in the Downloads folder (as on Linux); the extension is added if the name has none.
+std::string save_dialog(const std::string &name, const std::string &ext, const std::string &title, const std::string &) {
+  autorelease_pool arp;
+  id panel = msg(cls("NSSavePanel"), "savePanel");
+  if (!title.empty()) msg<void>(panel, "setMessage:", ns_string(title));
+  msg<void>(panel, "setNameFieldStringValue:", ns_string(name));
+  msg<void>(panel, "setCanCreateDirectories:", (BOOL)YES);
+  msg<void>(panel, "setExtensionHidden:", (BOOL)NO);
+  msg<void>(panel, "setShowsTagField:", (BOOL)NO);
+  if (!ext.empty()) {
+    id type = cls("UTType") ? msg(cls("UTType"), "typeWithFilenameExtension:", ns_string(ext)) : nullptr;
+    if (type) msg<void>(panel, "setAllowedContentTypes:", msg(cls("NSArray"), "arrayWithObject:", type));
+    msg<void>(panel, "setAllowsOtherFileTypes:", (BOOL)YES);
+  }
+  id dirs = msg(msg(cls("NSFileManager"), "defaultManager"), "URLsForDirectory:inDomains:",
+                (NSUInteger)15 /* NSDownloadsDirectory */, (NSUInteger)1 /* NSUserDomainMask */);
+  if (dirs && msg<NSUInteger>(dirs, "count") > 0) msg<void>(panel, "setDirectoryURL:", msg(dirs, "firstObject"));
+  if (msg<NSInteger>(panel, "runModal") != 1 /* NSModalResponseOK */) return std::string();
+  return utf8(msg(msg(panel, "URL"), "path"));
+}
+
+bool write_file(const std::string &path, const std::string &data) {
+  FILE *f = std::fopen(path.c_str(), "wb");
+  if (!f) return false;
+  bool ok = std::fwrite(data.data(), 1, data.size(), f) == data.size();
+  return std::fclose(f) == 0 && ok;
+}
+
+void say_ready() {
+  std::fputs("ready\n", stdout);
+  std::fflush(stdout);
+}
+
+// The decision handler of WebKit is a block: called through its function (the layout of blocks is a fixed ABI).
+struct block_layout {
+  void *isa;
+  int flags;
+  int reserved;
+  void (*invoke)(void *, ...);
+};
+
+void decide(id handler, NSInteger policy) {
+  auto *b = reinterpret_cast<block_layout *>(handler);
+  reinterpret_cast<void (*)(void *, NSInteger)>(b->invoke)(b, policy);
+}
+
+// WKNavigationDelegate: pages of the launcher stay inside; links that want a new window (no target frame) and other
+// sites go to the default browser.
+void decide_policy(id, SEL, id, id action, id handler) {
+  std::string u = utf8(msg(msg(msg(action, "request"), "URL"), "absoluteString"));
+  bool allow = msg(action, "targetFrame") != nullptr && allowed_inside(u);
+  decide(handler, allow ? 1 /* WKNavigationActionPolicyAllow */ : 0 /* Cancel */);
+  if (!allow && is_external(u)) open_external(u);
+}
+
+void guard_navigation() {
+  id view = static_cast<id>(webview_get_native_handle(g_wv, WEBVIEW_NATIVE_HANDLE_KIND_UI_WIDGET));
+  if (!view) return;
+  Class c = objc_allocateClassPair(reinterpret_cast<Class>(cls("NSObject")), "TtwNavigationDelegate", 0);
+  if (!c) return;
+  class_addProtocol(c, objc_getProtocol("WKNavigationDelegate"));
+  class_addMethod(c, sel_registerName("webView:decidePolicyForNavigationAction:decisionHandler:"),
+                  reinterpret_cast<IMP>(decide_policy), "v@:@@@?");
+  objc_registerClassPair(c);
+  // kept as long as the program runs: the view holds its navigation delegate weakly
+  msg<void>(view, "setNavigationDelegate:", msg(reinterpret_cast<id>(c), "new"));
+}
+
+void set_icon(const std::string &) {}   // the icon of Ttranslator.app
+
+// Maximized = zoomed to the screen; the zoom button gives back the size of --size.
+void maximize() { msg<void>(window(), "zoom:", (id) nullptr); }
+
+void bring_to_front() {
+  id app = msg(cls("NSApplication"), "sharedApplication");
+  msg<void>(window(), "makeKeyAndOrderFront:", (id) nullptr);
+  msg<void>(window(), "orderFrontRegardless");
+  msg<void>(app, "activateIgnoringOtherApps:", (BOOL)YES);
+}
+
+// The menu bar in the interface language: the names macOS itself uses in these languages.
+struct menu_texts {
+  const char *about, *hide, *hide_others, *show_all, *quit, *edit, *undo, *redo, *cut, *copy, *paste, *select_all,
+      *window, *minimize, *zoom, *close;
+};
+
+const menu_texts &menu_for(const std::string &lang) {
+  static const menu_texts en = {"About Ttranslator", "Hide Ttranslator", "Hide Others", "Show All", "Quit Ttranslator",
+                                "Edit", "Undo", "Redo", "Cut", "Copy", "Paste", "Select All",
+                                "Window", "Minimize", "Zoom", "Close"};
+  static const menu_texts ru = {"О программе Ttranslator", "Скрыть Ttranslator", "Скрыть остальные", "Показать все",
+                                "Завершить Ttranslator", "Правка", "Отменить", "Повторить", "Вырезать", "Скопировать",
+                                "Вставить", "Выбрать все", "Окно", "Свернуть", "Изменить масштаб", "Закрыть"};
+  static const menu_texts de = {"Über Ttranslator", "Ttranslator ausblenden", "Andere ausblenden", "Alle einblenden",
+                                "Ttranslator beenden", "Bearbeiten", "Widerrufen", "Wiederholen", "Ausschneiden",
+                                "Kopieren", "Einsetzen", "Alles auswählen", "Fenster", "Im Dock ablegen", "Zoomen",
+                                "Schließen"};
+  static const menu_texts es = {"Acerca de Ttranslator", "Ocultar Ttranslator", "Ocultar otros", "Mostrar todo",
+                                "Salir de Ttranslator", "Edición", "Deshacer", "Rehacer", "Cortar", "Copiar", "Pegar",
+                                "Seleccionar todo", "Ventana", "Minimizar", "Zoom", "Cerrar"};
+  static const menu_texts zh = {"关于 Ttranslator", "隐藏 Ttranslator", "隐藏其他", "全部显示", "退出 Ttranslator",
+                                "编辑", "撤销", "重做", "剪切", "拷贝", "粘贴", "全选", "窗口", "最小化", "缩放", "关闭"};
+  if (lang == "ru") return ru;
+  if (lang == "de") return de;
+  if (lang == "es") return es;
+  if (lang == "zh") return zh;
+  return en;
+}
+
+id add_item(id menu, const char *title, const char *action, const char *key) {
+  id item = msg(msg(cls("NSMenuItem"), "alloc"), "initWithTitle:action:keyEquivalent:", ns_string(title),
+                action ? sel_registerName(action) : static_cast<SEL>(nullptr), ns_string(key));
+  msg<void>(menu, "addItem:", item);
+  return item;
+}
+
+void add_separator(id menu) { msg<void>(menu, "addItem:", msg(cls("NSMenuItem"), "separatorItem")); }
+
+id add_menu(id bar, const char *title) {
+  id menu = msg(msg(cls("NSMenu"), "alloc"), "initWithTitle:", ns_string(title));
+  msg<void>(add_item(bar, title, nullptr, ""), "setSubmenu:", menu);
+  return menu;
+}
+
+// A regular app (the Dock icon, the menu bar) with its menu, before the window is made. The menu items go to the
+// first responder: the page (copy, paste…), the window (close, minimize) or the app (hide, quit).
+void prepare_app(const std::string &lang) {
+  autorelease_pool arp;
+  const menu_texts &m = menu_for(lang);
+  id app = msg(cls("NSApplication"), "sharedApplication");
+  msg<void>(app, "setActivationPolicy:", (NSInteger)0 /* NSApplicationActivationPolicyRegular */);
+  id bar = msg(msg(cls("NSMenu"), "alloc"), "initWithTitle:", ns_string(""));
+  id appm = add_menu(bar, "Ttranslator");
+  add_item(appm, m.about, "orderFrontStandardAboutPanel:", "");
+  add_separator(appm);
+  add_item(appm, m.hide, "hide:", "h");
+  msg<void>(add_item(appm, m.hide_others, "hideOtherApplications:", "h"), "setKeyEquivalentModifierMask:",
+            (NSUInteger)((1 << 19) | (1 << 20)));   // ⌥⌘H
+  add_item(appm, m.show_all, "unhideAllApplications:", "");
+  add_separator(appm);
+  add_item(appm, m.quit, "terminate:", "q");
+  id edit = add_menu(bar, m.edit);
+  add_item(edit, m.undo, "undo:", "z");
+  add_item(edit, m.redo, "redo:", "Z");   // ⇧⌘Z
+  add_separator(edit);
+  add_item(edit, m.cut, "cut:", "x");
+  add_item(edit, m.copy, "copy:", "c");
+  add_item(edit, m.paste, "paste:", "v");
+  add_item(edit, m.select_all, "selectAll:", "a");
+  id win = add_menu(bar, m.window);
+  add_item(win, m.minimize, "performMiniaturize:", "m");
+  add_item(win, m.zoom, "performZoom:", "");
+  add_separator(win);
+  add_item(win, m.close, "performClose:", "w");
+  msg<void>(app, "setMainMenu:", bar);
+  msg<void>(app, "setWindowsMenu:", win);
+}
+
 #else   // Linux: GTK 3 and WebKitGTK
 
 void open_external(const std::string &u) {
@@ -537,7 +738,7 @@ bool parse_size(const std::string &s, int &w, int &h) {
 }
 
 int run(const std::vector<std::string> &args) {
-  std::string url, title = "Ttranslator", data, icon;
+  std::string url, title = "Ttranslator", data, icon, lang;
   int width = 1180, height = 780;
   bool maximized = false;
   for (size_t i = 0; i < args.size(); i++) {
@@ -546,6 +747,7 @@ int run(const std::vector<std::string> &args) {
     if (a == "--title" && has) title = args[++i];
     else if (a == "--data" && has) data = args[++i];
     else if (a == "--icon" && has) icon = args[++i];
+    else if (a == "--lang" && has) lang = args[++i];
     else if (a == "--maximized") maximized = true;
     else if (a == "--size" && has) {
       int w = 0, h = 0;
@@ -561,7 +763,7 @@ int run(const std::vector<std::string> &args) {
   }
   g_origin = local_origin(url);
   if (g_origin.empty()) {
-    std::fprintf(stderr, "usage: ttranslator-window http://127.0.0.1:PORT/ [--title TEXT] [--size WxH] [--maximized] [--data DIR] [--icon FILE.png]\n");
+    std::fprintf(stderr, "usage: ttranslator-window http://127.0.0.1:PORT/ [--title TEXT] [--size WxH] [--maximized] [--data DIR] [--icon FILE.png] [--lang CODE]\n");
     return 2;
   }
 #if defined(_WIN32)
@@ -569,6 +771,8 @@ int run(const std::vector<std::string> &args) {
     CreateDirectoryW(widen(data).c_str(), nullptr);
     SetEnvironmentVariableW(L"TTRANSLATOR_WEBVIEW_DATA", widen(data).c_str());
   }
+#elif defined(__APPLE__)
+  prepare_app(lang);   // macOS: a regular app with its menu bar (the language of the interface)
 #else
   g_set_prgname("ttranslator");   // Linux: the application id of the window (taskbar, .desktop file)
 #endif
@@ -577,15 +781,20 @@ int run(const std::vector<std::string> &args) {
     std::fprintf(stderr, "the web engine is not available (Windows: Microsoft Edge WebView2 Runtime; Linux: WebKitGTK 4.1)\n");
     return 3;
   }
-  webview_set_title(g_wv, title.c_str());
-  webview_set_size(g_wv, width, height, WEBVIEW_HINT_NONE);
-  if (maximized) maximize();
-  set_icon(icon);
-  bring_to_front();
-  bind_functions();
-  guard_navigation();
-  webview_navigate(g_wv, url.c_str());
-  say_ready();
+  {
+#if defined(__APPLE__)
+    autorelease_pool arp;   // what Cocoa makes before the run loop of the app runs
+#endif
+    webview_set_title(g_wv, title.c_str());
+    webview_set_size(g_wv, width, height, WEBVIEW_HINT_NONE);
+    if (maximized) maximize();
+    set_icon(icon);
+    bring_to_front();
+    bind_functions();
+    guard_navigation();
+    webview_navigate(g_wv, url.c_str());
+    say_ready();
+  }
   webview_run(g_wv);
   webview_destroy(g_wv);
   return 0;

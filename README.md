@@ -32,7 +32,8 @@ follows your own glossary, answers questions about a translation and can read te
 
 ## Requirements
 
-- Windows 10/11 or Linux, x86-64; a processor is enough (no graphics card needed); 8 GB of memory.
+- Windows 10/11 or Linux, x86-64; macOS 13.3 or newer on Apple Silicon or Intel (from 1.1; reading aloud needs
+  macOS 15.5 or newer); a processor is enough (no graphics card needed); 8 GB of memory.
 - About 4–9 GB of disk space for a model.
 - Internet only once, to download a model (and voices, if you want them); the release archives already contain the
   engine.
@@ -91,11 +92,29 @@ plugins from the table. GLIBC/GLIBCXX errors of the engine: the system is older 
 openSUSE Leap 15, RHEL/AlmaLinux/Rocky 9) — build llama.cpp yourself and set `engine_path` in `config.json`.
 NixOS needs `programs.nix-ld`. ARM and 32-bit Linux are not supported yet.
 
+### macOS
+
+From 1.1: macOS 13.3 Ventura or newer, `Ttranslator-<version>-macos-arm64.zip` for Apple Silicon (the engine computes
+on the graphics cores, Metal) or `…-macos-x64.zip` for Intel (on the processor). Reading aloud needs macOS 15.5 or
+newer (the onnxruntime library of sherpa-onnx v1.13.7 requires it).
+
+1. Double-click the archive (Safari usually unpacks it by itself) and drag `Ttranslator.app` into Applications.
+2. The app has no Apple developer signature, only an ad-hoc one, so macOS asks once: on macOS 15 Sequoia and newer
+   double-click the app, click **Done**, then **System Settings → Privacy & Security → Open Anyway**; on macOS 13–14
+   Control-click the app → **Open** → **Open**.
+3. The window opens with the welcome window; press **Download** (the model) or **Skip**, as on the other systems.
+
+The app itself is read only: models, voices, saved translations, glossaries, logs and settings are in
+`~/Library/Application Support/Ttranslator` (Settings → **Open the data folder**). To update, replace the app in
+Applications; to uninstall, move it to the Trash and delete that folder (and the window's data in
+`~/Library/WebKit/io.github.allasoneteam.ttranslator` and `~/Library/Caches/io.github.allasoneteam.ttranslator`). If the app still does not open,
+`xattr -dr com.apple.quarantine /Applications/Ttranslator.app` in Terminal helps.
+
 ### Updating, uninstalling and moving to another computer
 
-Everything the program downloads and remembers is in its folder: `models` (with the voices in `models/voices`),
-`engine` (llama.cpp and sherpa-onnx, one folder per system), `data` (saved translations, glossaries, test reports,
-logs) and `config.json`. None of these are in the release archive, so an update keeps them (only `ui/tests.txt`, the
+Everything the program downloads and remembers is in its folder (on a Mac — in
+`~/Library/Application Support/Ttranslator`): `models` (with the voices in `models/voices`), `engine` (llama.cpp and
+sherpa-onnx, one folder per system), `data` (saved translations, glossaries, test reports, logs) and `config.json`. None of these are in the release archive, so an update keeps them (only `ui/tests.txt`, the
 phrases of the full test, is replaced).
 
 - **Update on Windows:** close the program, unpack the new archive where the `Ttranslator` folder is (“Extract all”
@@ -142,10 +161,14 @@ not yet been reviewed by native speakers — corrections are welcome.
   same script when its tools are installed (Ubuntu/Debian):
   `g++ pkg-config libgtk-3-dev libwebkit2gtk-4.1-dev g++-mingw-w64-x86-64`.
 - The interface is a single file, `ui/index.html`, without external resources.
+- macOS (on a Mac with Xcode or its Command Line Tools): `sh source/release-macos.sh x64|arm64` builds
+  `Ttranslator.app` (the launcher, the app window on Cocoa and WKWebView, the engine inside, an ad-hoc signature) and
+  its zip archive.
 
 Release archives: `sh source/release.sh [out-dir]` after the build — the programs, the interface, the guides, the
 sources, the licences (`THIRD-PARTY.txt`) and the engine unpacked; SHA-256 in `SHA256SUMS.txt`. GitHub Actions makes
-them on every change as test builds (artifacts of the run).
+them on every change as test builds (artifacts of the run), the macOS archives too (`source/ci/macos.sh` on
+the Macs of GitHub Actions).
 
 ## Tests
 
@@ -160,6 +183,8 @@ a tiny stand-in model, the app window under a virtual screen). See [source/tests
 | `ui/tests.txt` | phrase pairs for the built-in test (`EN:` / `RU:` / `LA:` … lines) |
 | `source/launcher` | the launcher: downloads and runs the engine, serves the interface, files of the user |
 | `source/window` | the app window program (webview) |
+| `source/macos`, `source/release-macos.sh` | `Info.plist` and the build of `Ttranslator.app` (macOS) |
+| `source/ci` | the build and checks on the Macs of GitHub Actions |
 | `source/tests` | automated tests |
 | `source/docs` | architecture, development, roadmap and changelog (in Russian) |
 | `README.txt` | installation in five languages and the full user guide in Russian |
@@ -171,7 +196,8 @@ MIT, © 2026 Allasoneteam and Ttranslator authors — see [LICENSE](LICENSE) (th
 
 Third-party components:
 
-- [llama.cpp](https://github.com/ggml-org/llama.cpp) (MIT) — the engine, downloaded on the first start.
+- [llama.cpp](https://github.com/ggml-org/llama.cpp) (MIT) — the engine, in the release archives (and in
+  `Ttranslator.app`); downloaded on the first start when built from source.
 - Gemma 4 models (Google, Apache 2.0) — downloaded after confirmation; your own `.gguf` files work too.
 - [sherpa-onnx](https://github.com/k2-fsa/sherpa-onnx) (Apache 2.0, with espeak-ng inside, GPL-3.0) and Piper voices
   (the licence of each voice is shown in the program; some are for non-commercial use) — downloaded on demand from the
@@ -192,6 +218,11 @@ Third-party components:
    выберите «Русский» в списке «Interface language» в окне приветствия.
 3. Нажмите «Скачать»: программа покажет, что, откуда и в какую папку скачает (модель Gemma 4, 3,35 ГБ), и дальше
    работает без интернета. Или «Пропустить» — модель можно выбрать потом в меню моделей.
+
+Mac (с 1.1): `Ttranslator-<версия>-macos-arm64.zip` (Apple Silicon) или `…-macos-x64.zip` (Intel), macOS 13.3 и
+новее; перетащите `Ttranslator.app` в «Программы»; при первом запуске macOS спросит разрешения: в macOS 15 и новее —
+«Системные настройки → Конфиденциальность и безопасность → Всё равно открыть», в macOS 13–14 — щелчок с Control →
+«Открыть». Данные — в `~/Library/Application Support/Ttranslator` («Настройки» → «Открыть папку данных»).
 
 Windows может показать «Система Windows защитила ваш компьютер» (программа не подписана): «Подробнее» → «Выполнить в
 любом случае». Linux: пакеты для окна и звука — в таблице раздела [Linux](#linux) выше; `./ttranslator-linux
@@ -214,6 +245,12 @@ Windows может показать «Система Windows защитила в
 3. Klicken Sie auf „Herunterladen“: Das Programm zeigt, was es woher in welchen Ordner lädt (ein Gemma-4-Modell,
    3,35 GB), und arbeitet danach ohne Internet. Oder „Überspringen“ — das Modell wählen Sie später im Modellmenü.
 
+Mac (ab 1.1): `Ttranslator-<Version>-macos-arm64.zip` (Apple Silicon) oder `…-macos-x64.zip` (Intel), macOS 13.3
+und neuer; ziehen Sie `Ttranslator.app` in „Programme“; beim ersten Start fragt macOS nach: unter macOS 15 und neuer
+„Systemeinstellungen → Datenschutz & Sicherheit → Dennoch öffnen“, unter macOS 13–14 mit gedrückter Control-Taste
+klicken → „Öffnen“. Die Daten liegen in `~/Library/Application Support/Ttranslator` („Einstellungen“ → „Datenordner
+öffnen“).
+
 Windows zeigt eventuell „Der Computer wurde durch Windows geschützt“ (das Programm ist nicht signiert): „Weitere
 Informationen“ → „Trotzdem ausführen“. Linux: die Pakete für Fenster und Ton stehen in der Tabelle im Abschnitt
 [Linux](#linux) oben; `./ttranslator-linux --shortcut` legt das Programm ins Anwendungsmenü.
@@ -235,6 +272,11 @@ Fensterdaten, siehe [oben](#updating-uninstalling-and-moving-to-another-computer
 3. Pulse «Descargar»: el programa muestra qué descarga, de dónde y a qué carpeta (un modelo Gemma 4, 3,35 GB), y
    después funciona sin internet. O «Omitir»: el modelo se elige más tarde en el menú de modelos.
 
+Mac (desde 1.1): `Ttranslator-<versión>-macos-arm64.zip` (Apple Silicon) o `…-macos-x64.zip` (Intel), macOS 13.3 o
+posterior; arrastre `Ttranslator.app` a Aplicaciones; en el primer inicio macOS pide permiso: en macOS 15 y
+posteriores, «Ajustes del Sistema → Privacidad y seguridad → Abrir igualmente»; en macOS 13–14, clic con Control →
+«Abrir». Los datos están en `~/Library/Application Support/Ttranslator` («Ajustes» → «Abrir la carpeta de datos»).
+
 Windows puede mostrar «Windows protegió su PC» (el programa no está firmado): «Más información» → «Ejecutar de todas
 formas». Linux: los paquetes para la ventana y el sonido están en la tabla de la sección [Linux](#linux) de arriba;
 `./ttranslator-linux --shortcut` añade el programa al menú de aplicaciones.
@@ -254,6 +296,10 @@ programa y elimine su carpeta (en Linux, también el acceso directo y los datos 
    “Interface language” 列表中选择 “中文”。
 3. 点击“下载”：程序会显示要下载什么、从哪里下载、保存到哪个文件夹（一个 Gemma 4 模型，3.35 GB），之后无需联网即可使用。
    也可以点击“跳过”，之后再在模型菜单中选择模型。
+
+Mac（自 1.1 起）：`Ttranslator-<版本>-macos-arm64.zip`（Apple 芯片）或 `…-macos-x64.zip`（Intel），需要 macOS 13.3 或更高版本；
+把 `Ttranslator.app` 拖到“应用程序”；首次启动时 macOS 会请求许可：macOS 15 及更高版本为“系统设置 → 隐私与安全性 → 仍要打开”，
+macOS 13–14 为按住 Control 点击 →“打开”。数据位于 `~/Library/Application Support/Ttranslator`（“设置”→“打开数据文件夹”）。
 
 Windows 可能会显示“Windows 已保护你的电脑”（程序没有签名）：点击“更多信息”→“仍要运行”。Linux：窗口和声音所需的软件包见上方
 [Linux](#linux) 一节中的表格；`./ttranslator-linux --shortcut` 会把程序添加到应用程序菜单。

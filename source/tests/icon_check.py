@@ -1,6 +1,7 @@
 # The program's icon in Ttranslator.exe: the Windows build carries the icon resource (RT_GROUP_ICON with the
 # images 16…256 px), the same as Ttranslator.ico; and both are up to date with the drawing LOGO in ui/index.html
-# (make_icon.go run again on the current page gives the same files).
+# (make_icon.go run again on the current page gives the same files). The same for the icon of Ttranslator.app on
+# macOS (1.1): Ttranslator.icns, 16…1024 px.
 # Usage: icon_check.py <Ttranslator.exe> <source/launcher> <ui/index.html> <work dir>
 import sys, os, io, struct, shutil, subprocess
 import pefile
@@ -35,6 +36,16 @@ im.size = (32, 32); px = im.convert('RGBA')
 cols = {px.getpixel((x, y))[:3] for x in range(32) for y in range(32) if px.getpixel((x, y))[3] == 255}
 ok((117, 5, 117) in cols and (255, 255, 255) in cols, 'purple T with a white outline')
 
+# macOS: Ttranslator.icns — all the sizes of an app icon, the T in the middle with transparent edges
+from PIL.IcnsImagePlugin import IcnsFile
+icns = IcnsFile(open(os.path.join(LAUNCHER, 'Ttranslator.icns'), 'rb'))
+want = sorted((s, s, k) for s in (16, 32, 128, 256, 512) for k in (1, 2))
+ok(sorted(icns.itersizes()) == want, 'Ttranslator.icns (macOS): sizes %s' % sorted(icns.itersizes()))
+big = icns.getimage((512, 512, 2)).convert('RGBA')
+corner = all(big.getpixel(p)[3] == 0 for p in ((0, 0), (1023, 0), (0, 1023), (1023, 1023), (512, 40)))
+ok(big.size == (1024, 1024) and corner and big.getpixel((512, 512))[:3] == (117, 5, 117),
+   'Ttranslator.icns: 1024 px, the purple T in the middle, transparent around it')
+
 # up to date with the drawing: run the generator on a copy of the current page and compare
 tmp = os.path.join(W, 'icon-check'); shutil.rmtree(tmp, ignore_errors=True)
 os.makedirs(os.path.join(tmp, 'source', 'launcher')); os.makedirs(os.path.join(tmp, 'ui'))
@@ -42,7 +53,7 @@ shutil.copy(os.path.join(LAUNCHER, 'make_icon.go'), os.path.join(tmp, 'source', 
 shutil.copy(PAGE, os.path.join(tmp, 'ui', 'index.html'))
 r = subprocess.run(['go', 'run', 'make_icon.go'], cwd=os.path.join(tmp, 'source', 'launcher'), capture_output=True, text=True)
 same = r.returncode == 0 and all(open(os.path.join(tmp, 'source', 'launcher', f), 'rb').read() == open(os.path.join(LAUNCHER, f), 'rb').read()
-                                 for f in ('Ttranslator.ico', 'rsrc_windows_amd64.syso'))
-ok(same, 'Ttranslator.ico and rsrc_windows_amd64.syso match the drawing LOGO in ui/index.html (go run make_icon.go) %s' % (r.stderr.strip()[:200]))
+                                 for f in ('Ttranslator.ico', 'rsrc_windows_amd64.syso', 'Ttranslator.icns'))
+ok(same, 'Ttranslator.ico, rsrc_windows_amd64.syso and Ttranslator.icns match the drawing LOGO in ui/index.html (go run make_icon.go) %s' % (r.stderr.strip()[:200]))
 print('\n'.join(res))
 print('FAILS:', sum(1 for x in res if x.startswith('FAIL')), 'of', len(res))
