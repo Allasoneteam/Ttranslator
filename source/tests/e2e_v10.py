@@ -136,7 +136,8 @@ try:
       ok(hb.count('Hay voces para') == 1 and 'Si hay dos voces descargadas para un idioma' in hb, 'help: one line about the voices, the line about two voices')
       page.click('#aboutBtn'); page.wait_for_selector('#aboutView:not([hidden])')
       ab = page.inner_text('#aboutBody')
-      ok('Le presentamos Ttranslator, un traductor multifuncional' in ab and 'Versión 1.0' in ab, 'About in Spanish, version 1.0, «multifuncional»')
+      ver = page.evaluate('APP_VERSION')   # the version of the program (1.0 when this test was written)
+      ok('Le presentamos Ttranslator, un traductor multifuncional' in ab and 'Versión ' + ver in ab, 'About in Spanish, version %s, «multifuncional»' % ver)
       ok(page.locator('#aboutBody a[href="https://github.com/Allasoneteam"]').count() == 1 and page.locator('#aboutBody a[href="https://github.com/sponsors/Allasoneteam"]').count() == 1
          and 'GitHub Sponsors: github.com/Allasoneteam y github.com/sponsors/Allasoneteam' in ab, 'About: the links to GitHub and GitHub Sponsors')
       ok('Agradecimiento especial a Ivan Gonoskov y Claude Opus 5.5 (Anthropic).' in ab, 'About: the thanks')
