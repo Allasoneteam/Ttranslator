@@ -1,4 +1,4 @@
-﻿TTRANSLATOR 1.0 — AN OFFLINE TRANSLATOR
+﻿TTRANSLATOR 1.1 — AN OFFLINE TRANSLATOR
 
 Офлайн-переводчик · Offline-Übersetzer · Traductor sin conexión · 离线翻译器
 
@@ -8,7 +8,8 @@ It runs a local language model on your own computer — no cloud, no account, no
 telemetry — and shows several translation variants in different styles, edits
 text in the same language, follows your own glossary, answers questions about
 a translation and reads texts aloud. A processor is enough (no graphics card
-is needed), with 8 GB of memory and 4–9 GB of disk space for a model.
+is needed), with 8 GB of memory and 4–9 GB of disk space for a model. It runs
+on Windows 10/11, Linux and macOS 13.3 or newer.
 
 The interface is in English, Russian, German, Spanish and Chinese. This file
 has the installation and the first start in these five languages and then the
@@ -152,8 +153,7 @@ macOS 13.3 Ventura or newer, on a Mac with Apple Silicon (M1 and newer) or
 with an Intel processor. There are two archives:
 Ttranslator-<version>-macos-arm64.zip for Apple Silicon and
 Ttranslator-<version>-macos-x64.zip for Intel (Apple menu → About This Mac:
-“Chip Apple M…” is Apple Silicon, “Processor … Intel” is Intel). Reading aloud
-needs macOS 15.5 or newer.
+“Chip Apple M…” is Apple Silicon, “Processor … Intel” is Intel).
 
 1. Double-click the downloaded archive (Safari usually unpacks it by itself):
    you get the folder Ttranslator with Ttranslator.app, README.txt and
@@ -372,8 +372,7 @@ Silicon: M1 и новее) или Intel. Архивов два:
 Ttranslator-<версия>-macos-arm64.zip — для Apple Silicon,
 Ttranslator-<версия>-macos-x64.zip — для Intel. Какой у вас Mac: меню Apple
 → «Об этом Mac»: «Чип Apple M…» — Apple Silicon, «Процессор … Intel» —
-Intel. Чтение вслух работает в macOS 15.5 и новее (этого требует программа
-озвучки sherpa-onnx).
+Intel.
 
 1. Дважды щёлкните скачанный архив (Safari обычно распаковывает его сам):
    получится папка Ttranslator, в ней Ttranslator.app, README.txt и
@@ -428,9 +427,6 @@ Intel. Чтение вслух работает в macOS 15.5 и новее (э�
   и откройте программу снова.
 - Вместо окна программы открылось окно Chrome или вкладка браузера:
   причина — в «Настройках» под видом окна.
-- Чтение вслух в macOS старше 15.5 не работает: программе озвучки
-  sherpa-onnx нужна macOS 15.5 или новее. Обновите macOS («Системные
-  настройки» → «Основные» → «Обновление ПО»).
 
 
 ОБНОВЛЕНИЕ И ПЕРЕНОС НА ДРУГОЙ КОМПЬЮТЕР
@@ -614,8 +610,7 @@ macOS 13.3 Ventura oder neuer, auf einem Mac mit Apple Silicon (M1 und neuer)
 oder mit Intel-Prozessor. Es gibt zwei Archive:
 Ttranslator-<Version>-macos-arm64.zip für Apple Silicon und
 Ttranslator-<Version>-macos-x64.zip für Intel (Apple-Menü → Über diesen Mac:
-„Chip Apple M…“ ist Apple Silicon, „Prozessor … Intel“ ist Intel). Vorlesen
-braucht macOS 15.5 oder neuer.
+„Chip Apple M…“ ist Apple Silicon, „Prozessor … Intel“ ist Intel).
 
 1. Doppelklicken Sie auf das heruntergeladene Archiv (Safari entpackt es
    meist selbst): Es entsteht der Ordner Ttranslator mit Ttranslator.app,
@@ -838,8 +833,7 @@ macOS 13.3 Ventura o posterior, en un Mac con Apple Silicon (M1 y posteriores)
 o con procesador Intel. Hay dos archivos:
 Ttranslator-<versión>-macos-arm64.zip para Apple Silicon y
 Ttranslator-<versión>-macos-x64.zip para Intel (menú Apple → Acerca de este
-Mac: «Chip Apple M…» es Apple Silicon, «Procesador … Intel» es Intel). La
-lectura en voz alta necesita macOS 15.5 o posterior.
+Mac: «Chip Apple M…» es Apple Silicon, «Procesador … Intel» es Intel).
 
 1. Haga doble clic en el archivo descargado (Safari suele descomprimirlo por
    sí mismo): obtendrá la carpeta Ttranslator con Ttranslator.app, README.txt
@@ -1029,8 +1023,7 @@ MAC
 需要 macOS 13.3 Ventura 或更高版本，适用于 Apple 芯片（M1 及更新）或 Intel 处理
 器的 Mac。共有两个压缩包：Apple 芯片用 Ttranslator-<版本>-macos-arm64.zip，
 Intel 用 Ttranslator-<版本>-macos-x64.zip（苹果菜单 →“关于本机”：“芯片 Apple
-M…”即 Apple 芯片，“处理器 … Intel”即 Intel）。朗读功能需要 macOS 15.5 或更高
-版本。
+M…”即 Apple 芯片，“处理器 … Intel”即 Intel）。
 
 1. 双击下载的压缩包（Safari 通常会自动解压）：得到 Ttranslator 文件夹，其中有
    Ttranslator.app、README.txt 和 LICENSE.txt。把 Ttranslator.app 拖到“应用
@@ -1099,7 +1092,7 @@ M…”即 Apple 芯片，“处理器 … Intel”即 Intel）。朗读功能�
 6. ПОДРОБНАЯ ИНСТРУКЦИЯ (ПО-РУССКИ)
 ==============================================================================
 
-TTRANSLATOR — локальный переводчик, версия 1.0
+TTRANSLATOR — локальный переводчик, версия 1.1
 
 Локальный переводчик для девяти языков: русского, английского, немецкого,
 французского, испанского, греческого, китайского, латыни и шведского.
@@ -1107,13 +1100,32 @@ TTRANSLATOR — локальный переводчик, версия 1.0
 учитывает ваш словарь терминов, отвечает на вопросы в окне «Спросить
 модель» и читает тексты вслух. Работает на процессоре, без видеокарты; текст
 никуда не отправляется. Модели запускает движок llama.cpp, голоса для чтения
-вслух — программа sherpa-onnx.
+вслух — программа sherpa-onnx. Системы: Windows 10/11, Linux и (с версии 1.1)
+macOS 13.3 и новее.
 
 Пути к папкам ниже (models, data, engine, config.json) — от папки программы
 (Windows, Linux). На Mac всё это лежит в папке данных
 ~/Library/Application Support/Ttranslator (раздел 2, «Mac»; открыть —
 «Настройки» → «Открыть папку данных»).
 
+
+ЧТО НОВОГО В 1.1
+
+- Ttranslator для Mac: Ttranslator.app для macOS 13.3 Ventura и новее, два
+  архива — для Mac с процессором Apple (Apple Silicon: M1 и новее; движок
+  считает на графических ядрах, Metal) и для Mac с процессором Intel (на
+  процессоре). Движок llama.cpp — внутри программы; установка, первый запуск,
+  обновление и удаление — раздел 2, «Mac» (и на четырёх других языках).
+- На Mac программа ничего не пишет в Ttranslator.app: настройки, модели,
+  голоса, сохранённые переводы, словари, отчёты и журналы — в папке данных
+  ~/Library/Application Support/Ttranslator. Кнопка «Открыть папку данных» —
+  в «Настройках» и в меню моделей.
+- Окно программы на Mac — своё (WKWebView): меню «Ttranslator / Правка /
+  Окно» на языке интерфейса, ⌘C, ⌘V, ⌘X, ⌘A, «Сохранить» и «Открыть» — окна
+  macOS, ссылки — в браузере; на кнопке «Перевести» — ⌘+Enter.
+- Чтение вслух на Mac — во всех этих версиях macOS: для Mac программа
+  озвучки sherpa-onnx 1.13.8 (в Windows и Linux — прежняя 1.13.7).
+- В Windows и Linux всё работает как в 1.0.
 
 ЧТО НОВОГО В 1.0
 
@@ -1786,7 +1798,7 @@ config.json (появляется после первого запуска):
           распаковать в engine\windows-amd64
   программа озвучки для Linux: https://github.com/k2-fsa/sherpa-onnx/releases/download/v1.13.7/sherpa-onnx-v1.13.7-linux-x64-shared.tar.bz2
           распаковать в engine/linux-amd64
-  программа озвучки для Mac: https://github.com/k2-fsa/sherpa-onnx/releases/download/v1.13.7/sherpa-onnx-v1.13.7-osx-universal2-shared.tar.bz2
+  программа озвучки для Mac: https://github.com/k2-fsa/sherpa-onnx/releases/download/v1.13.8/sherpa-onnx-v1.13.8-osx-universal2-shared.tar.bz2
           распаковать в ~/Library/Application Support/Ttranslator/engine/darwin-arm64
           (Apple Silicon) или engine/darwin-amd64 (Intel); движок на Mac — внутри
           Ttranslator.app

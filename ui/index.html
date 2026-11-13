@@ -684,7 +684,7 @@ const UI_LANG = UI_LANGS[document.documentElement.lang] ? document.documentEleme
 const LOCALE = LOCALES[UI_LANG];
 // Кавычки языка интерфейса (для названий в тексте)
 const QUOTES = { ru: ['«', '»'], en: ['“', '”'], de: ['„', '“'], es: ['«', '»'], zh: ['“', '”'] }[UI_LANG];
-const APP_VERSION = '1.0';   // версия интерфейса — та же, что appVersion в source/launcher/main.go
+const APP_VERSION = '1.1';   // версия интерфейса — та же, что appVersion в source/launcher/main.go
 
 const I18N_COL = { en: 0, de: 1, es: 2, zh: 3 };   // столбец перевода в I18N
 
@@ -1211,41 +1211,36 @@ const ABOUT = {
 
 // «Что нового» в окне приветствия — главное в этой версии, на пяти языках.
 const WHATS_NEW = {
-  version: '1.0',
+  version: '1.1',
   ru: [
-    'Интерфейс — на пяти языках: к русскому, английскому и немецкому добавлены испанский и китайский. При первом запуске интерфейс английский; язык меняется прямо на экране первого запуска, в окне приветствия или в «Настройках».',
-    'Латынь вслух: итальянский голос Paola читает латинский текст с «церковным» или «классическим» произношением (на выбор, голос скачивается один раз), а ударения программа расставляет по правилам латыни (меню моделей → голоса).',
-    '«Тест»: «Быстрый тест» — две латинские крылатые фразы с переводом на язык интерфейса и обратно, около минуты; «Подробный тест» — пары фраз на любых двух языках из файла ui\\tests.txt. У каждого задания видны исходный текст, перевод модели и Ваш вариант.',
-    'В «Настройках»: температура и длина ответов для «Спросить модель», скорость чтения вслух.',
-    'README.txt: установка, обновление и удаление — на английском, русском, немецком, испанском и китайском.',
+    'Ttranslator для Mac: Ttranslator.app для macOS 13.3 и новее — для Mac с процессором Apple (M1 и новее; модель работает на видеоядре, Metal) и с процессором Intel. Чтение вслух на Mac тоже работает.',
+    'На Mac настройки, модели, голоса и сохранённые переводы лежат в папке данных ~/Library/Application Support/Ttranslator: кнопка «Открыть папку данных» — в «Настройках» и в меню моделей.',
+    'На Mac: ⌘+Enter — «Перевести», ⌘C и ⌘V — как обычно, меню программы — на языке интерфейса.',
+    'Справка и README.txt: установка, обновление и удаление на Mac — на пяти языках. В Windows и Linux всё работает как в 1.0.',
   ],
   en: [
-    'The interface is in five languages: Spanish and Chinese join Russian, English and German. On the first start the interface is English; you can change the language right on the first-start screen, in the welcome window or in “Settings”.',
-    'Latin read aloud: the Italian voice Paola reads Latin text with the church or the classical pronunciation (your choice; the voice is downloaded once), and the program puts the stress where the rules of Latin say (model menu → voices).',
-    '“Test”: the “Quick test” — two Latin sayings translated into the interface language and back, about a minute; the “Full test” — phrase pairs in any two languages from ui\\tests.txt. Each task shows the source text, the model translation and your version.',
-    'In “Settings”: the temperature and the length of the answers for “Ask the model”, the speed of reading aloud.',
-    'README.txt: installing, updating and uninstalling in English, Russian, German, Spanish and Chinese.',
+    'Ttranslator for Mac: Ttranslator.app for macOS 13.3 or newer, on Macs with Apple silicon (M1 and newer; the model runs on the graphics cores, Metal) and with Intel processors. Reading aloud works on the Mac too.',
+    'On a Mac, settings, models, voices and saved translations are in the data folder ~/Library/Application Support/Ttranslator: the “Open the data folder” button is in “Settings” and in the model menu.',
+    'On a Mac: ⌘+Enter translates, ⌘C and ⌘V work as usual, and the app menu is in the interface language.',
+    'Help and README.txt: installing, updating and uninstalling on a Mac, in five languages. On Windows and Linux everything works as in 1.0.',
   ],
   de: [
-    'Die Oberfläche gibt es in fünf Sprachen: Zu Russisch, Englisch und Deutsch kommen Spanisch und Chinesisch hinzu. Beim ersten Start ist die Oberfläche englisch; die Sprache lässt sich direkt auf dem Bildschirm des ersten Starts, im Begrüßungsfenster oder unter „Einstellungen“ ändern.',
-    'Latein vorlesen: Die italienische Stimme Paola liest lateinischen Text mit der kirchlichen oder der klassischen Aussprache (nach Wahl; die Stimme wird nur einmal heruntergeladen), und die Betonung setzt das Programm nach den Regeln des Lateins (Modellmenü → Stimmen).',
-    '„Test“: der „Schnelltest“ – zwei lateinische Redewendungen, übersetzt in die Sprache der Oberfläche und zurück, etwa eine Minute; der „Ausführliche Test“ – Satzpaare in zwei beliebigen Sprachen aus ui\\tests.txt. Jede Aufgabe zeigt Ausgangstext, Übersetzung des Modells und Ihre Fassung.',
-    'Unter „Einstellungen“: Temperatur und Länge der Antworten für „Modell fragen“, Geschwindigkeit des Vorlesens.',
-    'README.txt: Installation, Aktualisierung und Deinstallation auf Englisch, Russisch, Deutsch, Spanisch und Chinesisch.',
+    'Ttranslator für den Mac: Ttranslator.app für macOS 13.3 oder neuer, auf Macs mit Apple-Chip (M1 und neuer; das Modell rechnet auf den Grafikkernen, Metal) und mit Intel-Prozessor. Auch das Vorlesen funktioniert auf dem Mac.',
+    'Auf dem Mac liegen Einstellungen, Modelle, Stimmen und gespeicherte Übersetzungen im Datenordner ~/Library/Application Support/Ttranslator: Die Schaltfläche „Datenordner öffnen“ gibt es unter „Einstellungen“ und im Modellmenü.',
+    'Auf dem Mac: ⌘+Enter übersetzt, ⌘C und ⌘V funktionieren wie gewohnt, und das Menü des Programms ist in der Sprache der Oberfläche.',
+    'Hilfe und README.txt: Installation, Aktualisierung und Deinstallation auf dem Mac, in fünf Sprachen. Unter Windows und Linux funktioniert alles wie in 1.0.',
   ],
   es: [
-    'La interfaz está en cinco idiomas: al ruso, el inglés y el alemán se suman el español y el chino. En el primer inicio la interfaz está en inglés; el idioma se cambia en la misma pantalla del primer inicio, en la ventana de bienvenida o en «Ajustes».',
-    'Latín en voz alta: la voz italiana Paola lee textos latinos con la pronunciación eclesiástica o la clásica (a elegir; la voz se descarga una sola vez), y el programa pone el acento según las reglas del latín (menú de modelos → voces).',
-    '«Prueba»: la «Prueba rápida» —dos locuciones latinas traducidas al idioma de la interfaz y de vuelta, alrededor de un minuto— y la «Prueba completa» —pares de frases en dos idiomas cualesquiera del archivo ui\\tests.txt—. Cada tarea muestra el texto original, la traducción del modelo y su versión.',
-    'En «Ajustes»: la temperatura y la longitud de las respuestas de «Preguntar al modelo» y la velocidad de la lectura en voz alta.',
-    'README.txt: instalación, actualización y desinstalación en inglés, ruso, alemán, español y chino.',
+    'Ttranslator para Mac: Ttranslator.app para macOS 13.3 o posterior, en Mac con chip de Apple (M1 y posteriores; el modelo se ejecuta en los núcleos gráficos, Metal) y con procesador Intel. La lectura en voz alta también funciona en el Mac.',
+    'En el Mac, los ajustes, los modelos, las voces y las traducciones guardadas están en la carpeta de datos ~/Library/Application Support/Ttranslator: el botón «Abrir la carpeta de datos» está en «Ajustes» y en el menú de modelos.',
+    'En el Mac: ⌘+Enter traduce, ⌘C y ⌘V funcionan como siempre y el menú del programa está en el idioma de la interfaz.',
+    'Ayuda y README.txt: instalación, actualización y desinstalación en el Mac, en cinco idiomas. En Windows y Linux todo funciona como en la 1.0.',
   ],
   zh: [
-    '界面支持五种语言：在俄语、英语和德语之外，新增西班牙语和中文。首次启动时界面为英语；可以直接在首次启动界面、欢迎窗口或“设置”中更改语言。',
-    '拉丁语朗读：意大利语语音 Paola 以教会式或古典式发音（任选其一；语音只需下载一次）朗读拉丁语文本，程序按拉丁语规则标出重音（模型菜单 → 语音）。',
-    '“测试”：“快速测试”——两句拉丁语名言译成界面语言再译回，约一分钟；“详细测试”——ui\\tests.txt 中任意两种语言的句子对。每项任务都会显示原文、模型译文和您的译文。',
-    '“设置”中新增：“询问模型”的温度和回答长度，以及朗读语速。',
-    'README.txt：安装、更新和卸载说明提供英语、俄语、德语、西班牙语和中文版本。',
+    'Mac 版 Ttranslator：适用于 macOS 13.3 或更高版本的 Ttranslator.app，支持搭载 Apple 芯片（M1 及更新；模型在图形核心上运行，Metal）和 Intel 处理器的 Mac。朗读功能在 Mac 上同样可用。',
+    '在 Mac 上，设置、模型、语音和已保存的译文都位于数据文件夹 ~/Library/Application Support/Ttranslator：“打开数据文件夹”按钮位于“设置”和模型菜单中。',
+    '在 Mac 上：⌘+Enter 即可翻译，⌘C 和 ⌘V 照常使用，程序菜单与界面语言一致。',
+    '帮助和 README.txt：提供 Mac 上的安装、更新和卸载说明，共五种语言。在 Windows 和 Linux 上，一切与 1.0 相同。',
   ],
 };
 

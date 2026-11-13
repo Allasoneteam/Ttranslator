@@ -4,11 +4,10 @@ A free, open-source **offline translator** that runs a local language model on y
 account, no telemetry. It shows several translation variants in different styles, edits text in the same language,
 follows your own glossary, answers questions about a translation and can read texts aloud.
 
-> **Version 1.0** for Windows and Linux (macOS is planned for 1.1) — download it from
-> [Releases](https://github.com/Allasoneteam/Ttranslator/releases/latest). The interface is in English, Russian, German,
-> Spanish and Chinese; the program has its full guide (Help) in each of them. [README.txt](README.txt) has the
-> installation in these five languages and the full guide in Russian; the installation is also
-> [below](#installation-in-other-languages) in Russian, German, Spanish and Chinese.
+> **Version 1.1** for **Windows, Linux and macOS** — [download](#download). Android is in the works. The interface
+> is in English, Russian, German, Spanish and Chinese; the program has its full guide (Help) in each of them.
+> [README.txt](README.txt) has the installation in these five languages and the full guide in Russian; the
+> installation is also [below](#installation-in-other-languages) in Russian, German, Spanish and Chinese.
 
 ## Features
 
@@ -32,15 +31,32 @@ follows your own glossary, answers questions about a translation and can read te
 
 ## Requirements
 
-- Windows 10/11 or Linux, x86-64; macOS 13.3 or newer on Apple Silicon or Intel (from 1.1; reading aloud needs
-  macOS 15.5 or newer); a processor is enough (no graphics card needed); 8 GB of memory.
+- Windows 10/11 or Linux, x86-64; macOS 13.3 or newer on Apple Silicon or Intel; a processor is enough (no graphics
+  card needed); 8 GB of memory.
 - About 4–9 GB of disk space for a model.
 - Internet only once, to download a model (and voices, if you want them); the release archives already contain the
   engine.
 
+## Download
+
+| System | Download |
+|---|---|
+| **Windows** 10/11, x64 | [⬇ Download for Windows](https://github.com/Allasoneteam/Ttranslator/releases/download/v1.1/Ttranslator-1.1-windows-x64.zip) |
+| **Linux**, x86-64 | [⬇ Download for Linux](https://github.com/Allasoneteam/Ttranslator/releases/download/v1.1/Ttranslator-1.1-linux-x64.tar.gz) |
+| **macOS** 13.3+, Apple Silicon (M1 and newer) | [⬇ Download for Mac (Apple Silicon)](https://github.com/Allasoneteam/Ttranslator/releases/download/v1.1/Ttranslator-1.1-macos-arm64.zip) |
+| **macOS** 13.3+, Intel | [⬇ Download for Mac (Intel)](https://github.com/Allasoneteam/Ttranslator/releases/download/v1.1/Ttranslator-1.1-macos-x64.zip) |
+| Android | in the works |
+
+Which Mac: Apple menu → About This Mac — “Chip Apple M…” is Apple Silicon, “Processor … Intel” is Intel. Checksums:
+[SHA256SUMS.txt](https://github.com/Allasoneteam/Ttranslator/releases/download/v1.1/SHA256SUMS.txt). All versions and what is new in each:
+[Releases](https://github.com/Allasoneteam/Ttranslator/releases). The archives contain the program and the engine;
+the model (3.35 GB) is downloaded on the first start, after your confirmation. Installation: Windows — below,
+[Linux](#linux), [macOS](#macos).
+
 ## Getting started
 
-1. Unpack the release archive (`Ttranslator-<version>-windows-x64.zip` or `…-linux-x64.tar.gz`) into any folder:
+1. Unpack the release archive (`Ttranslator-<version>-windows-x64.zip` or `…-linux-x64.tar.gz`; for a Mac see
+   [macOS](#macos)) into any folder:
    nothing is installed into the system, the folder `Ttranslator` is portable. The
    [llama.cpp](https://github.com/ggml-org/llama.cpp) engine is already inside.
 2. Start `Ttranslator.exe` (Windows) or `ttranslator-linux` (Linux). The welcome window lets you choose the interface
@@ -94,9 +110,9 @@ NixOS needs `programs.nix-ld`. ARM and 32-bit Linux are not supported yet.
 
 ### macOS
 
-From 1.1: macOS 13.3 Ventura or newer, `Ttranslator-<version>-macos-arm64.zip` for Apple Silicon (the engine computes
-on the graphics cores, Metal) or `…-macos-x64.zip` for Intel (on the processor). Reading aloud needs macOS 15.5 or
-newer (the onnxruntime library of sherpa-onnx v1.13.7 requires it).
+macOS 13.3 Ventura or newer: `Ttranslator-<version>-macos-arm64.zip` for Apple Silicon (the engine computes on the
+graphics cores, Metal) or `…-macos-x64.zip` for Intel (on the processor). Reading aloud works on all these versions
+(sherpa-onnx v1.13.8 on the Mac).
 
 1. Double-click the archive (Safari usually unpacks it by itself) and drag `Ttranslator.app` into Applications.
 2. The app has no Apple developer signature, only an ad-hoc one, so macOS asks once: on macOS 15 Sequoia and newer
@@ -211,6 +227,10 @@ Third-party components:
 <details>
 <summary>Русский</summary>
 
+Скачать: [Windows](https://github.com/Allasoneteam/Ttranslator/releases/download/v1.1/Ttranslator-1.1-windows-x64.zip) · [Linux](https://github.com/Allasoneteam/Ttranslator/releases/download/v1.1/Ttranslator-1.1-linux-x64.tar.gz) ·
+[Mac — Apple Silicon](https://github.com/Allasoneteam/Ttranslator/releases/download/v1.1/Ttranslator-1.1-macos-arm64.zip) · [Mac — Intel](https://github.com/Allasoneteam/Ttranslator/releases/download/v1.1/Ttranslator-1.1-macos-x64.zip)
+(все версии — [Releases](https://github.com/Allasoneteam/Ttranslator/releases)); Android — в работе.
+
 1. Распакуйте архив `Ttranslator-<версия>-windows-x64.zip` (Windows) или `…-linux-x64.tar.gz` (Linux) в любую папку,
    куда можно писать (не в Program Files): получится переносная папка `Ttranslator`, в систему ничего не
    устанавливается. Движок llama.cpp уже внутри.
@@ -219,7 +239,7 @@ Third-party components:
 3. Нажмите «Скачать»: программа покажет, что, откуда и в какую папку скачает (модель Gemma 4, 3,35 ГБ), и дальше
    работает без интернета. Или «Пропустить» — модель можно выбрать потом в меню моделей.
 
-Mac (с 1.1): `Ttranslator-<версия>-macos-arm64.zip` (Apple Silicon) или `…-macos-x64.zip` (Intel), macOS 13.3 и
+Mac: `Ttranslator-<версия>-macos-arm64.zip` (Apple Silicon) или `…-macos-x64.zip` (Intel), macOS 13.3 и
 новее; перетащите `Ttranslator.app` в «Программы»; при первом запуске macOS спросит разрешения: в macOS 15 и новее —
 «Системные настройки → Конфиденциальность и безопасность → Всё равно открыть», в macOS 13–14 — щелчок с Control →
 «Открыть». Данные — в `~/Library/Application Support/Ttranslator` («Настройки» → «Открыть папку данных»).
@@ -237,6 +257,10 @@ Windows может показать «Система Windows защитила в
 <details>
 <summary>Deutsch</summary>
 
+Herunterladen: [Windows](https://github.com/Allasoneteam/Ttranslator/releases/download/v1.1/Ttranslator-1.1-windows-x64.zip) · [Linux](https://github.com/Allasoneteam/Ttranslator/releases/download/v1.1/Ttranslator-1.1-linux-x64.tar.gz) ·
+[Mac – Apple Silicon](https://github.com/Allasoneteam/Ttranslator/releases/download/v1.1/Ttranslator-1.1-macos-arm64.zip) · [Mac – Intel](https://github.com/Allasoneteam/Ttranslator/releases/download/v1.1/Ttranslator-1.1-macos-x64.zip)
+(alle Versionen: [Releases](https://github.com/Allasoneteam/Ttranslator/releases)); Android ist in Arbeit.
+
 1. Entpacken Sie das Archiv `Ttranslator-<Version>-windows-x64.zip` (Windows) oder `…-linux-x64.tar.gz` (Linux) in
    einen Ordner, in den Sie schreiben dürfen (nicht nach „Programme“): Es entsteht der portable Ordner `Ttranslator`,
    im System wird nichts installiert. Die Engine llama.cpp ist schon enthalten.
@@ -245,7 +269,7 @@ Windows может показать «Система Windows защитила в
 3. Klicken Sie auf „Herunterladen“: Das Programm zeigt, was es woher in welchen Ordner lädt (ein Gemma-4-Modell,
    3,35 GB), und arbeitet danach ohne Internet. Oder „Überspringen“ — das Modell wählen Sie später im Modellmenü.
 
-Mac (ab 1.1): `Ttranslator-<Version>-macos-arm64.zip` (Apple Silicon) oder `…-macos-x64.zip` (Intel), macOS 13.3
+Mac: `Ttranslator-<Version>-macos-arm64.zip` (Apple Silicon) oder `…-macos-x64.zip` (Intel), macOS 13.3
 und neuer; ziehen Sie `Ttranslator.app` in „Programme“; beim ersten Start fragt macOS nach: unter macOS 15 und neuer
 „Systemeinstellungen → Datenschutz & Sicherheit → Dennoch öffnen“, unter macOS 13–14 mit gedrückter Control-Taste
 klicken → „Öffnen“. Die Daten liegen in `~/Library/Application Support/Ttranslator` („Einstellungen“ → „Datenordner
@@ -264,6 +288,10 @@ Fensterdaten, siehe [oben](#updating-uninstalling-and-moving-to-another-computer
 <details>
 <summary>Español</summary>
 
+Descargar: [Windows](https://github.com/Allasoneteam/Ttranslator/releases/download/v1.1/Ttranslator-1.1-windows-x64.zip) · [Linux](https://github.com/Allasoneteam/Ttranslator/releases/download/v1.1/Ttranslator-1.1-linux-x64.tar.gz) ·
+[Mac — Apple Silicon](https://github.com/Allasoneteam/Ttranslator/releases/download/v1.1/Ttranslator-1.1-macos-arm64.zip) · [Mac — Intel](https://github.com/Allasoneteam/Ttranslator/releases/download/v1.1/Ttranslator-1.1-macos-x64.zip)
+(todas las versiones: [Releases](https://github.com/Allasoneteam/Ttranslator/releases)); Android, en preparación.
+
 1. Descomprima el archivo `Ttranslator-<versión>-windows-x64.zip` (Windows) o `…-linux-x64.tar.gz` (Linux) en una
    carpeta en la que pueda escribir (no en Archivos de programa): obtendrá la carpeta portátil `Ttranslator`; no se
    instala nada en el sistema. El motor llama.cpp ya está dentro.
@@ -272,7 +300,7 @@ Fensterdaten, siehe [oben](#updating-uninstalling-and-moving-to-another-computer
 3. Pulse «Descargar»: el programa muestra qué descarga, de dónde y a qué carpeta (un modelo Gemma 4, 3,35 GB), y
    después funciona sin internet. O «Omitir»: el modelo se elige más tarde en el menú de modelos.
 
-Mac (desde 1.1): `Ttranslator-<versión>-macos-arm64.zip` (Apple Silicon) o `…-macos-x64.zip` (Intel), macOS 13.3 o
+Mac: `Ttranslator-<versión>-macos-arm64.zip` (Apple Silicon) o `…-macos-x64.zip` (Intel), macOS 13.3 o
 posterior; arrastre `Ttranslator.app` a Aplicaciones; en el primer inicio macOS pide permiso: en macOS 15 y
 posteriores, «Ajustes del Sistema → Privacidad y seguridad → Abrir igualmente»; en macOS 13–14, clic con Control →
 «Abrir». Los datos están en `~/Library/Application Support/Ttranslator` («Ajustes» → «Abrir la carpeta de datos»).
@@ -290,6 +318,10 @@ programa y elimine su carpeta (en Linux, también el acceso directo y los datos 
 <details>
 <summary>中文</summary>
 
+下载：[Windows](https://github.com/Allasoneteam/Ttranslator/releases/download/v1.1/Ttranslator-1.1-windows-x64.zip) · [Linux](https://github.com/Allasoneteam/Ttranslator/releases/download/v1.1/Ttranslator-1.1-linux-x64.tar.gz) ·
+[Mac（Apple 芯片）](https://github.com/Allasoneteam/Ttranslator/releases/download/v1.1/Ttranslator-1.1-macos-arm64.zip) · [Mac（Intel）](https://github.com/Allasoneteam/Ttranslator/releases/download/v1.1/Ttranslator-1.1-macos-x64.zip)
+（所有版本：[Releases](https://github.com/Allasoneteam/Ttranslator/releases)）；Android 版正在开发中。
+
 1. 把压缩包 `Ttranslator-<版本>-windows-x64.zip`（Windows）或 `…-linux-x64.tar.gz`（Linux）解压到您有写入权限的文件夹
    （不要放进 Program Files）：得到可随意移动的 `Ttranslator` 文件夹，不会向系统安装任何东西。llama.cpp 引擎已包含在内。
 2. 运行 `Ttranslator.exe`（Windows）或 `./ttranslator-linux`（Linux）。首次启动时界面为英语：在欢迎窗口的
@@ -297,7 +329,7 @@ programa y elimine su carpeta (en Linux, también el acceso directo y los datos 
 3. 点击“下载”：程序会显示要下载什么、从哪里下载、保存到哪个文件夹（一个 Gemma 4 模型，3.35 GB），之后无需联网即可使用。
    也可以点击“跳过”，之后再在模型菜单中选择模型。
 
-Mac（自 1.1 起）：`Ttranslator-<版本>-macos-arm64.zip`（Apple 芯片）或 `…-macos-x64.zip`（Intel），需要 macOS 13.3 或更高版本；
+Mac：`Ttranslator-<版本>-macos-arm64.zip`（Apple 芯片）或 `…-macos-x64.zip`（Intel），需要 macOS 13.3 或更高版本；
 把 `Ttranslator.app` 拖到“应用程序”；首次启动时 macOS 会请求许可：macOS 15 及更高版本为“系统设置 → 隐私与安全性 → 仍要打开”，
 macOS 13–14 为按住 Control 点击 →“打开”。数据位于 `~/Library/Application Support/Ttranslator`（“设置”→“打开数据文件夹”）。
 

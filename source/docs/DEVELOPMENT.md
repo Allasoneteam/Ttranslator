@@ -25,10 +25,10 @@
 
 1. Изменения в коде (`source/launcher`, `ui/index.html`, при необходимости `start.bat` / `start.sh`).
 2. Номер версии: `appVersion` в `source/launcher/main.go`.
-3. `README.txt`: раздел «Что нового», описание новых функций; `source/docs/CHANGELOG.md`; при изменении устройства — `ARCHITECTURE.md`; выполненное — убрать из `ROADMAP.md`. Новые файлы `.go` и тесты — в списки ниже и в `source/tests/README.md`.
+3. `README.txt`: раздел «Что нового», описание новых функций; `README.md`: номер версии и ссылки раздела «Download» (и строки «Скачать…» в разделах на других языках) — на файлы нового выпуска `releases/download/vX.Y/…`; `source/docs/CHANGELOG.md`; при изменении устройства — `ARCHITECTURE.md`; выполненное — убрать из `ROADMAP.md`. Новые файлы `.go` и тесты — в списки ниже и в `source/tests/README.md`.
 4. `run_all.sh` — все наборы проверок проходят.
 5. Сборка обеих версий.
-6. Архивы: `sh source/release.sh` (проверяет `release_check.py` в `run_all.sh`; в GitHub Actions они собираются сами — для проверки на другом компьютере их можно скачать со страницы запуска).
+6. Архивы: `sh source/release.sh` (проверяет `release_check.py` в `run_all.sh`; в GitHub Actions они собираются сами — для проверки на другом компьютере их можно скачать со страницы запуска). Архивы для Mac (`Ttranslator-<версия>-macos-{x64,arm64}.zip`) — только из GitHub Actions (шаг `macos`); `SHA256SUMS.txt` выпуска — по всем четырём архивам. Выпуск публикует автор в браузере: Releases → Draft a new release → метка `vX.Y` (Create new tag on publish), цель — `main`, файлы — четыре архива и `SHA256SUMS.txt`; имена файлов должны совпасть со ссылками в `README.md`.
 7. Доставка в папку программы: только файлы программы — `Ttranslator.exe`, `ttranslator-linux`, `ttranslator-window.exe`, `ttranslator-window-linux`, `ui/index.html`, `README.txt`, `README.md`, `LICENSE.txt`, `start.bat`, `start.sh`, `.gitignore`, `.gitattributes`, `CLAUDE.md`, `source/...` (без `source/launcher/ui_fallback`). Папки `.github` (настройки GitHub Actions) и `.claude` (задания и инструменты облачных сессий) — только в репозитории: на компьютер пользователя инструменты Claude их не записывают. Не трогать `config.json`, `data/`, `models/`, `engine/`, `ui/tests.txt`.
 8. Проверка: SHA-256 доставленных файлов совпадают с собранными. Исключение — картинки PNG (`source/launcher/Ttranslator.png`): при передаче на компьютер пользователя они перекодируются (картинка та же, байты другие), их сверять по пикселям.
 
