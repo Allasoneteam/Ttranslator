@@ -16,3 +16,12 @@
 /dist/
 __pycache__/
 *.part
+
+# Signing keys and their text copies: never in the repository. The Android release key lives with the author and in
+# the GitHub environment android-signing (secrets); the open test key android/app/debug.keystore is tracked on purpose.
+# On Windows the author's folder Tdoc\Android is the same folder as android\ here (letter case does not count).
+*.p12
+*.jks
+*.pem
+*.base64.txt
+signing-key/
