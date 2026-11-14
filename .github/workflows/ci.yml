@@ -1,6 +1,7 @@
 # Tests and builds on every push to any branch (main, dev and the branches of Claude's cloud sessions, claude/...).
-# Builds and the ready-to-run archives for Windows and Linux (the engine inside; source/release.sh) go to the run's
-# artifacts — test builds; releases are made separately, only after the author's "yes". On a failure the last lines
+# Builds and the ready-to-run archives for Windows and Linux (the engine inside; source/release.sh) and the Mac go to
+# the run's artifacts — test builds. Releases only after the author's "yes": main gets only releases, and a push to
+# main makes a DRAFT release (the release job) that the author publishes in the browser. On a failure the last lines
 # of the output are also shown as annotations of the run.
 # The macos and android jobs only run scripts of the repository (source/ci/macos.sh, android/ci.sh): the work on
 # macOS (1.1) and the Android prototype change those scripts, not this file. Until a script exists its job only
@@ -193,3 +194,58 @@ jobs:
           path: ${{ runner.temp }}/android
           if-no-files-found: ignore
           retention-days: 14
+
+  release:
+    # The release, after the author's "yes" (main gets only releases). A push to main makes a DRAFT release v<version>
+    # (appVersion in source/launcher/main.go) with the four archives of this run, SHA256SUMS.txt and the text of
+    # source/docs/RELEASE.md; the tag is made at this commit when the author publishes the draft in the browser
+    # (Releases → the draft → Edit → Publish release). A published release is never touched; an older draft of the same
+    # version is replaced. A push to dev rehearses it: the draft v<version>-rehearsal is made and deleted at once
+    # (checks the archives, the text and the right to make releases).
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev')
+    needs: [tests, build, macos]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v7
+      - name: Version and the text of the release
+        run: |
+          v=$(sed -n 's/^[[:space:]]*appVersion[[:space:]]*=[[:space:]]*"\([^"]*\)".*/\1/p' source/launcher/main.go | head -n 1)
+          [ -n "$v" ] || { echo "::error::no appVersion in source/launcher/main.go"; exit 1; }
+          grep -q "Ttranslator $v" source/docs/RELEASE.md || { echo "::error::source/docs/RELEASE.md is not the text of $v"; exit 1; }
+          sed '/^<!--/,/-->$/d' source/docs/RELEASE.md > "$RUNNER_TEMP/notes.md"   # without the comment at the top
+          echo "V=$v" >> "$GITHUB_ENV"
+      # the archives were uploaded as themselves (archive: false): download-artifact v8 puts them here as they are
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: Ttranslator-*
+          path: dist
+          merge-multiple: true
+      - name: The archives and SHA256SUMS.txt
+        run: |
+          cd dist && ls -la
+          files="Ttranslator-$V-windows-x64.zip Ttranslator-$V-linux-x64.tar.gz Ttranslator-$V-macos-arm64.zip Ttranslator-$V-macos-x64.zip"
+          for f in $files; do [ -s "$f" ] || { echo "::error::no $f among the artifacts of this run"; exit 1; }; done
+          sha256sum $files > SHA256SUMS.txt && cat SHA256SUMS.txt
+          while IFS= read -r l; do echo "::notice title=SHA-256::$l"; done < SHA256SUMS.txt
+          echo "FILES=$files SHA256SUMS.txt" >> "$GITHUB_ENV"
+      - name: The draft release
+        run: |
+          if [ "$GITHUB_REF" = refs/heads/main ]; then tag=v$V; else tag=v$V-rehearsal; fi
+          state=$(gh release view "$tag" --repo "$GITHUB_REPOSITORY" --json isDraft --jq .isDraft 2>/dev/null || echo none)
+          if [ "$state" = false ]; then echo "::notice::the release $tag is already published: left as it is"; exit 0; fi
+          if [ "$state" = true ]; then gh release delete "$tag" --repo "$GITHUB_REPOSITORY" --yes; fi
+          cd dist
+          gh release create "$tag" --repo "$GITHUB_REPOSITORY" --draft --target "$GITHUB_SHA" --title "Ttranslator $V" \
+            --notes-file "$RUNNER_TEMP/notes.md" $FILES
+          n=$(gh release view "$tag" --repo "$GITHUB_REPOSITORY" --json assets --jq '.assets | length')
+          [ "$n" = 5 ] || { echo "::error::the draft $tag has $n files, not 5"; exit 1; }
+          if [ "$GITHUB_REF" = refs/heads/main ]; then
+            echo "::notice::the draft release $tag is ready: Releases → $tag → Edit → Publish release"
+          else
+            gh release delete "$tag" --repo "$GITHUB_REPOSITORY" --yes && echo "::notice::rehearsal: the draft $tag was made with 5 files and deleted"
+          fi

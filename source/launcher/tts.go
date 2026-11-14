@@ -176,7 +176,12 @@ var espeakPart = VoicePart{URL: voiceRelease + "espeak-ng-data.tar.bz2", File: "
 	SHA256: "4135ccf82e1f40613491c0874d4945ae9e9c7840933d8e25a6f9e003d9ebf533"}
 
 // The voices chosen by the author (21.10.2026; Chinese 22.10.2026, Spanish 22.10.2026 — see below) and, for
-// Russian and English, a voice with a free licence. Licences are those of the voices' training data (MODEL_CARD
+// Russian and English, a voice with a free licence. 1.1 (13–14.11.2026, the author's request after listening to
+// 25 voices of an experiment: "the especially good ones, without repeats"): French gets two voices, and English,
+// German, Spanish and Swedish a male voice next to the female one — each read the eight phrases of voice_check.py
+// well (word errors of Whisper: Siwis 13 %, Pierre 13 %, Ryan 0 %, Thorsten 6 %, Davefx 3 %, NST 13 %). Left out:
+// the Greek Rapunzelina (the only Greek Piper voice: short phrases come out as mush), the Russian Irina (good, but
+// its RHVoice data has no stated licence), voices of languages the program does not translate. Licences are those of the voices' training data (MODEL_CARD
 // of each voice). Before a voice goes into the catalogue: source/tests/voice_check.py (does it read the text?).
 //
 // Spanish: es_ES-mls_9972-low (0.9.3) read short phrases as invented words, two to five times too long — a flaw of
@@ -192,12 +197,27 @@ var voiceSpecs = []VoiceSpec{
 		"3fffdceb0c65bd9415a085d09c3cb88cc82f9d74a6ca453f8ce7fc5eaee81ff8"),
 	piperVoice("en-ljspeech", "en", "LJSpeech", "female", "public domain", false, "en_US-ljspeech-medium", 67169893,
 		"3dfb4b759d8be032a4903a9538d128b0fda2a06ab1de6cbc2d93a97e2dd83dba"),
+	// the only good male English voice with a stated licence; the quality "high" (larger, 116 MB)
+	piperVoice("en-ryan", "en", "Ryan", "male", "CC BY-NC-SA 4.0", true, "en_US-ryan-high", 115630708,
+		"6a71edf4d308b9cb2eaeadc8d1f3c6bf96120ecb7fe52c29a2b6e139c59760ed"),
 	piperVoice("de-kerstin", "de", "Kerstin", "female", "CC0", false, "de_DE-kerstin-low", 67107768,
 		"4bfe121d5f690a3b87acecd7ae1e70b48f4589ce6ae9f45a1809e6eb19fad97b"),
+	piperVoice("de-thorsten", "de", "Thorsten", "male", "CC0", false, "de_DE-thorsten-medium", 67214254,
+		"50487d9c95fdf2191f31d2588569381063ba1591dcd4c7d4bdd30f12b2191714"),
 	piperVoice("sv-alma", "sv", "Alma", "female", "CC BY 4.0", false, "sv_SE-alma-medium", 67154700,
 		"4ab8212595575e52595bc95c37d0b4f79450c0f00b63496346cdc5941d913edc"),
+	piperVoice("sv-nst", "sv", "NST", "male", "CC0", false, "sv_SE-nst-medium", 67144884,
+		"5aed0f5ab75135fc3ba6a4f3567e171d72df753305b08a01ca42f79411587f67"),
 	speaker(piperVoice("es-sharvard-f", "es", "Sharvard", "female", "CC BY 3.0", false, "es_ES-sharvard-medium", 80318184,
 		"b30a7a83df0518f0ee1c7039506648cade99f1f9b498fc49ed2ced2e2536bb5a"), 1),
+	piperVoice("es-davefx", "es", "Davefx", "male", "CC0", false, "es_ES-davefx-medium", 67184952,
+		"a3f6beb54a9cb893279f72978a22f807a4d9fc9c7848157b524d5cc7b7f58b22"),
+	// French: the female Siwis and the male speaker Pierre (sid 1) of the two-speaker UPMC voice (the female
+	// speaker 0, Jessica, is not in the catalogue)
+	piperVoice("fr-siwis", "fr", "Siwis", "female", "CC BY 4.0", false, "fr_FR-siwis-medium", 67207459,
+		"375909aa30842b3a4efa10b1beb1d761af792960ae6873b4d53889f96c66195b"),
+	speaker(piperVoice("fr-upmc-pierre", "fr", "Pierre", "male", "CC BY-SA 4.0", false, "fr_FR-upmc-medium", 80422639,
+		"e9830a331a16f6cc5ef3116a287065e015d3495c3f56b974889a266da7f89a7f"), 1),
 	lexiconVoice(piperVoice("zh-chaowen", "zh", "Chaowen", "male", "CC0", false, "zh_CN-chaowen-medium", 60443846,
 		"1b69bdcf10bb6331c7f8a7591940febeb175c6bb86caa3802d96531f8e4ad211"), "lexicon.txt", "phone.fst", "date.fst", "number.fst"),
 	// Latin (author's choice by samples, 24.10.2026): no Piper voice reads Latin, so the Italian voice Paola does,

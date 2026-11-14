@@ -18,8 +18,8 @@ follows your own glossary, answers questions about a translation and can read te
 - **Your glossary:** term tables (TSV, editable in Excel) whose terms are passed to the model when they occur.
 - **LaTeX formulas** (`$…$`, `$$…$$`) are never translated or damaged.
 - **Ask the model:** a chat about translations, terms and grammar; mini lessons and exercises with checking.
-- **Reading aloud:** Piper voices for Russian, English, German, Spanish, Chinese and Swedish through the sherpa-onnx
-  program, downloaded on demand; Latin is read by the Italian voice Paola with the church or the classical
+- **Reading aloud:** Piper voices for Russian, English, German, French, Spanish, Chinese and Swedish (a female and a
+  male one for English, German, French, Spanish and Swedish) through the sherpa-onnx program, downloaded on demand; Latin is read by the Italian voice Paola with the church or the classical
   pronunciation (your choice; the voice is downloaded once), the stress marked by the rules of Latin.
 - **Saved translations** in plain files, import and export (TSV, TXT).
 - A built-in **test** that checks a model on your computer and writes a report: a quick one (two Latin sayings,
