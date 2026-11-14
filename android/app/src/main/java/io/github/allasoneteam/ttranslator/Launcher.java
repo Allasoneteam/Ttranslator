@@ -1,6 +1,8 @@
 package io.github.allasoneteam.ttranslator;
 
 import android.content.Context;
+import android.content.pm.ApplicationInfo;
+import android.os.Build;
 import android.os.SystemClock;
 import android.util.Log;
 
@@ -20,6 +22,7 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.security.SecureRandom;
 import java.text.SimpleDateFormat;
 import java.util.ArrayDeque;
 import java.util.Date;
@@ -34,34 +37,70 @@ import java.util.Map;
  *
  * The program folder (TDOC_ROOT) is the app's folder on the shared storage, Android/data/&lt;app&gt;/files: config.json,
  * data/ (saved translations, glossaries, test reports, logs), models/ (models and voices) and engine/. A computer
- * connected by USB sees it, so models can also be copied there instead of being downloaded.
+ * connected by USB sees it. On Android 9 and 10 other apps with the storage permission could read Android/data, so
+ * there the folder is in the app's own internal storage (files/Ttranslator).
+ *
+ * Access (1.2): other apps of the phone can reach 127.0.0.1 too. At every start of the launcher the app makes a random
+ * key and gives it to the launcher (TDOC_ACCESS_KEY), which then answers only requests with it: the window gets it in
+ * a cookie, the app's own requests in the header X-Tdoc-Key. The launcher writes the port it really listens on into a
+ * file in the app's private folder (TDOC_PORT_FILE): the window opens exactly this launcher.
  */
 final class Launcher {
     static final String TAG = "Ttranslator";
+    /** the port of config.json; another one only when it is taken (the port file says which) */
     static final int PORT = 8765;
-    static final String URL = "http://127.0.0.1:" + PORT + "/";
+    /** the cookie of the window with the access key (source/launcher/android.go) */
+    static final String ACCESS_COOKIE = "tdoc_key";
     /** the version of sherpa-onnx whose libraries are in the APK (android/build.sh) */
     static final String TTS_VERSION = "v1.13.7";
 
     private static Process process; // the launcher started by this app process
     private static final ArrayDeque<String> lastOutput = new ArrayDeque<>();
+    private static int port = PORT;          // the port of that launcher
+    private static String accessKey = "";    // ...and its access key
 
     final File root;
     final String libDir;
-    private final File cacheDir, homeDir;
+    private final File cacheDir, homeDir, portFile, keyFile;
+    /** the test APK: keeps a copy of the access key in its private folder for the check in the emulator (run-as) */
+    private final boolean debuggable;
 
     Launcher(Context c) {
-        File ext = c.getExternalFilesDir(null);
+        File ext = Build.VERSION.SDK_INT >= 30 ? c.getExternalFilesDir(null) : null;
         root = ext != null ? ext : new File(c.getFilesDir(), "Ttranslator");
         libDir = c.getApplicationInfo().nativeLibraryDir;
         cacheDir = c.getCacheDir();
         homeDir = c.getFilesDir();
+        portFile = new File(homeDir, "launcher.port");
+        keyFile = new File(homeDir, "launcher.key");
+        debuggable = (c.getApplicationInfo().flags & ApplicationInfo.FLAG_DEBUGGABLE) != 0;
     }
 
-    /** Does a Ttranslator launcher answer on the port (started now or before the window was opened again)? */
+    /** The address of the launcher's page. */
+    static synchronized String url() {
+        return "http://127.0.0.1:" + port + "/";
+    }
+
+    static synchronized int port() {
+        return port;
+    }
+
+    static synchronized String accessKey() {
+        return accessKey;
+    }
+
+    /** Opens a request to the launcher of this app, with the access key. */
+    static HttpURLConnection open(String path) throws IOException {
+        HttpURLConnection c = (HttpURLConnection) new URL(url() + path).openConnection();
+        c.setRequestProperty("X-Tdoc-Key", accessKey());
+        return c;
+    }
+
+    /** Does the launcher started by this app answer (with our key)? */
     static boolean alive() {
+        if (accessKey().isEmpty()) return false;
         try {
-            HttpURLConnection c = (HttpURLConnection) new URL(URL + "api/ping").openConnection();
+            HttpURLConnection c = open("api/ping");
             c.setConnectTimeout(1000);
             c.setReadTimeout(2000);
             try {
@@ -78,13 +117,30 @@ final class Launcher {
         return process != null && process.isAlive();
     }
 
-    /** Prepares the program folder and starts the launcher unless one answers; waits until it answers. */
+    /** Prepares the program folder and starts the launcher unless ours answers; waits until it answers. */
     synchronized void ensureRunning() throws IOException {
-        if (alive()) return;
+        if (ownProcessAlive() && alive()) return;
+        synchronized (Launcher.class) {
+            if (process != null && process.isAlive()) {
+                log("the launcher does not answer: stopping it");
+                process.destroy();
+            }
+        }
         prepare();
+        String key = newKey();
+        for (File f : new File[]{portFile, keyFile}) {
+            if (f.exists() && !f.delete()) throw new IOException("cannot remove " + f);
+        }
         ProcessBuilder pb = new ProcessBuilder(libDir + "/libttranslator.so", "--no-window");
         Map<String, String> env = pb.environment();
         env.put("TDOC_ROOT", root.getAbsolutePath());
+        env.put("TDOC_ACCESS_KEY", key);
+        env.put("TDOC_PORT_FILE", portFile.getAbsolutePath());
+        // the device for the test reports (the launcher would see only "Linux" and no processor name)
+        env.put("TDOC_OS", "Android " + Build.VERSION.RELEASE + " (" + Build.MANUFACTURER + " " + Build.MODEL + ")");
+        String soc = Build.HARDWARE;
+        if (Build.VERSION.SDK_INT >= 31) soc = (Build.SOC_MANUFACTURER + " " + Build.SOC_MODEL).trim();
+        if (soc != null && !soc.isEmpty() && !soc.toLowerCase(Locale.ROOT).contains("unknown")) env.put("TDOC_CPU", soc);
         // the engine's and the reading-aloud program's libraries are next to them (the launcher adds the folder too)
         env.put("LD_LIBRARY_PATH", libDir);
         env.put("TMPDIR", cacheDir.getAbsolutePath());
@@ -103,12 +159,28 @@ final class Launcher {
         synchronized (Launcher.class) {
             process = p;
             lastOutput.clear();
+            accessKey = key;
+            port = PORT;
         }
+        if (debuggable) writeAtomically(keyFile, key);
         Thread t = new Thread(() -> drain(p), "launcher-output");
         t.setDaemon(true);
         t.start();
         long until = SystemClock.elapsedRealtime() + 30_000;
-        while (!alive()) {
+        boolean havePort = false;
+        while (!havePort || !alive()) {
+            if (!havePort && portFile.isFile()) {
+                try {
+                    int n = Integer.parseInt(readAll(Files.newInputStream(portFile.toPath())).trim());
+                    synchronized (Launcher.class) {
+                        port = n;
+                    }
+                    havePort = true;
+                    if (n != PORT) log("the port " + PORT + " is taken: the launcher listens on " + n);
+                } catch (NumberFormatException | IOException e) {
+                    // written whole by the launcher (rename): read again
+                }
+            }
             if (!p.isAlive()) {
                 throw new IOException("exit code " + p.exitValue() + "\n" + lastLines());
             }
@@ -117,13 +189,23 @@ final class Launcher {
             }
             SystemClock.sleep(150);
         }
-        log("the launcher answers at " + URL);
+        log("the launcher answers at " + url());
+    }
+
+    /** A new random access key: 24 bytes, as hex. */
+    private static String newKey() {
+        byte[] b = new byte[24];
+        new SecureRandom().nextBytes(b);
+        StringBuilder s = new StringBuilder();
+        for (byte x : b) s.append(String.format(Locale.ROOT, "%02x", x & 0xff));
+        return s.toString();
     }
 
     /**
      * config.json: the engine is llama-server in the app's library folder (engine_path; the folder changes with every
-     * update of the app, so it is written at every start). A new config.json gets "ui_language": "en" — the
-     * launcher reads a config.json without it as one of a version before 0.6 (Russian).
+     * update of the app, so it is written at every start). A new config.json gets the phone's language as
+     * "ui_language" if it is one of the five of the interface, else English (the author's decision of 14.11.2026) —
+     * the launcher reads a config.json without it as one of a version before 0.6 (Russian).
      * engine/android-&lt;arch&gt;/tts.json: the reading-aloud program, with a path relative to that folder (as the
      * launcher reads it).
      */
@@ -133,7 +215,7 @@ final class Launcher {
         try {
             JSONObject o = cfg.isFile() ? new JSONObject(readAll(Files.newInputStream(cfg.toPath()))) : new JSONObject();
             if (!cfg.isFile()) {
-                o.put("ui_language", "en");
+                o.put("ui_language", phoneLanguage());
                 // llama.cpp takes all cores by default; on a phone the small ones slow the generation down
                 int big = bigCores();
                 if (big > 0) o.put("threads", big);
@@ -186,6 +268,17 @@ final class Launcher {
         }
         if (all == 0) return 0; // not ARM (the emulator): the engine decides
         return all - small > 0 ? all - small : all;
+    }
+
+    /** The interface language of a new installation: the phone's, if it is one of the five of the interface. */
+    static String phoneLanguage() {
+        String l = Locale.getDefault().getLanguage();
+        switch (l) {
+            case "ru": case "de": case "es": case "zh":
+                return l;
+            default:
+                return "en";
+        }
     }
 
     /** The architecture name of Go (runtime.GOARCH) for the app's library folder: lib/arm64 or lib/x86_64. */

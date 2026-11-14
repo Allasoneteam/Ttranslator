@@ -8,6 +8,8 @@
 # the engine — over HTTP and in the page itself; the page has the window functions; Chinese fonts; reading aloud (a
 # voice downloaded from GitHub inside the emulator: DNS and HTTPS of the launcher on Android); the launcher keeps
 # running in the background; it ends with the app; «Выход» closes the window. Screenshots and logs go to <out-dir>.
+# Access (1.2): the launcher answers only requests with the app's access key (other apps of the phone get 403); the
+# test APK keeps a copy of the key and the launcher's port in its private folder, read here with run-as.
 # The page is driven over the DevTools protocol of the WebView (the test APK enables WebView debugging) with a small
 # client below: Playwright cannot attach to a WebView (it needs browser contexts, which WebView does not have).
 # Python standard library only.
@@ -22,6 +24,7 @@ ACT = PKG + '/.MainActivity'
 EXT = '/sdcard/Android/data/%s/files' % PKG
 PORT, CDP_PORT = 18765, 19222
 BASE = 'http://127.0.0.1:%d' % PORT
+KEY, LPORT, SDK = '', 8765, 0  # the access key and the port of the launcher on the device; the API level
 os.makedirs(OUT, exist_ok=True)
 results = []
 
@@ -70,8 +73,9 @@ def shot(name):
     info('screenshot %s (%d bytes)' % (os.path.basename(p), os.path.getsize(p)))
 
 
-def get(path, timeout=5, base=BASE):
-    with urllib.request.urlopen(base + path, timeout=timeout) as r:
+def get(path, timeout=5, base=BASE, key=True):
+    req = urllib.request.Request(base + path, headers={'X-Tdoc-Key': KEY} if base == BASE and key and KEY else {})
+    with urllib.request.urlopen(req, timeout=timeout) as r:
         return r.status, r.headers.get('Content-Type', ''), r.read()
 
 
@@ -81,7 +85,7 @@ def api(path):
 
 def post(path, body, timeout=30):
     req = urllib.request.Request(BASE + path, data=json.dumps(body).encode(), method='POST',
-                                 headers={'Content-Type': 'application/json'})
+                                 headers={'Content-Type': 'application/json', 'X-Tdoc-Key': KEY})
     try:
         with urllib.request.urlopen(req, timeout=timeout) as r:
             return r.status, r.headers.get('Content-Type', ''), r.read()
@@ -129,10 +133,40 @@ def procs():
     return out
 
 
+def app_file(rel):
+    """A file of the app's private folder (files/…), read with run-as (the test APK is debuggable)."""
+    return adb('exec-out', 'run-as', PKG, 'cat', 'files/' + rel, timeout=30).stdout.decode(errors='replace').strip()
+
+
+def root_dir():
+    """The program folder on the device: Android/data/…/files (Android 11+) or the app's internal files/Ttranslator
+    (Android 9 and 10, where other apps with the storage permission could read Android/data)."""
+    return EXT if SDK >= 30 else 'files/Ttranslator'
+
+
 def start_app():
+    """Starts the app and finds its launcher: the port (port file) and the access key (run-as)."""
+    global KEY, LPORT
+    adb('shell', 'run-as', PKG, 'rm', '-f', 'files/launcher.port', 'files/launcher.key', timeout=30)
     adb('shell', 'am', 'start', '-W', '-n', ACT, timeout=60)
-    adb('forward', 'tcp:%d' % PORT, 'tcp:8765', check=True)
-    return wait(alive, 90)
+    def found():
+        p, k = app_file('launcher.port'), app_file('launcher.key')
+        return (int(p), k) if p.isdigit() and re.fullmatch('[0-9a-f]{48}', k) else None
+    r = wait(found, 90, 0.5)
+    if not r:
+        info('no port file or key of the launcher: %r %r' % (app_file('launcher.port')[:80], app_file('launcher.key')[:20]))
+        return False
+    LPORT, KEY = r
+    adb('forward', 'tcp:%d' % PORT, 'tcp:%d' % LPORT, check=True)
+    return wait(alive, 60)
+
+
+def status_without_key(path):
+    """What another app of the phone gets: the same request without the access key."""
+    try:
+        return get(path, key=False)[0]
+    except urllib.error.HTTPError as e:
+        return e.code
 
 
 def meminfo():
@@ -155,7 +189,18 @@ def model_seen(name, timeout=15):
 
 def put_model(local, name):
     """Copies a model into the app's models folder as a computer does over USB (MTP). Android 11+ does not let adb
-    (nor run-as) write into another app's Android/data folder; then as root (the emulator's images allow it)."""
+    (nor run-as) write into another app's Android/data folder; then as root (the emulator's images allow it). On
+    Android 9 and 10 the folder is the app's internal one: run-as."""
+    if SDK < 30:
+        tmp = '/data/local/tmp/' + name
+        if adb('push', local, tmp, timeout=180).returncode == 0:
+            sh('chmod 644 ' + tmp)
+            r = adb('shell', 'run-as', PKG, 'cp', tmp, root_dir() + '/models/' + name, timeout=180)
+            sh('rm -f ' + tmp)
+            if r.returncode == 0 and model_seen(name):
+                return 'run-as cp (internal folder)'
+            info('run-as cp: %s' % (r.stdout + r.stderr).decode(errors='replace').strip()[-160:])
+        return None
     dest = EXT + '/models/' + name
     r = adb('push', local, dest, timeout=180)
     if r.returncode == 0 and model_seen(name):
@@ -175,7 +220,7 @@ def put_model(local, name):
         return None
     adb('wait-for-device', timeout=60)
     time.sleep(3)
-    adb('forward', 'tcp:%d' % PORT, 'tcp:8765')  # adbd has restarted: the forward again
+    adb('forward', 'tcp:%d' % PORT, 'tcp:%d' % LPORT)  # adbd has restarted: the forward again
     if adb('push', local, dest, timeout=180).returncode == 0 and model_seen(name):
         return 'adb root, adb push'
     # straight into the storage behind /sdcard, owned and labelled as the folder
@@ -205,7 +250,7 @@ class Page:
         adb('forward', 'tcp:%d' % CDP_PORT, 'localabstract:' + sock, check=True)
         def target():
             for t in json.loads(get('/json/list', 5, 'http://127.0.0.1:%d' % CDP_PORT)[2]):
-                if t.get('type') == 'page' and t.get('url', '').startswith('http://127.0.0.1:8765'):
+                if t.get('type') == 'page' and t.get('url', '').startswith('http://127.0.0.1:%d' % LPORT):
                     return t
         t = wait(target, 30)
         if not t:
@@ -367,6 +412,8 @@ STATE = {}
 
 
 def check_device():
+    global SDK
+    SDK = int(sh('getprop ro.build.version.sdk').strip() or 0)
     info('Android %s (API %s), %s, ABI %s' % (sh('getprop ro.build.version.release').strip(), sh('getprop ro.build.version.sdk').strip(),
                                             sh('getprop ro.product.model').strip(), sh('getprop ro.product.cpu.abi').strip()))
     wv = re.search(r'Current WebView package \(name, version\): \((.*?)\)', sh('dumpsys webviewupdate'))
@@ -386,12 +433,19 @@ def check_start():
     t0 = time.time()
     if not ok(start_app(), 'the window starts the launcher from the app\'s library folder; it answers in %.1f s' % (time.time() - t0)):
         raise RuntimeError('the launcher does not answer')
+    codes = {p: status_without_key(p) for p in ('/api/state', '/api/saved-files', '/')}
+    ok(all(c == 403 for c in codes.values()), 'without the access key the launcher answers nothing (another app of the phone): %s' % codes)
     st = api('/api/state')
     ok(st['phase'] in ('setup', 'nomodel'), 'first start: phase %s (no model yet)' % st['phase'])
     ok(st['engine']['present'], 'the engine is found: llama-server in the library folder (config.json engine_path)')
     ok(st['tts']['engine']['present'], 'the reading-aloud program is found (tts.json)')
     info('machine: %s' % json.dumps(st.get('machine'), ensure_ascii=False))
-    ok(st['models_dir'].startswith('/storage/emulated/0/Android/data/' + PKG), 'program folder on the shared storage: %s' % st['models_dir'])
+    if SDK >= 30:
+        ok(st['models_dir'].startswith('/storage/emulated/0/Android/data/' + PKG), 'program folder on the shared storage: %s' % st['models_dir'])
+    else:
+        ok(re.match(r'/data/(user/0|data)/%s/files/Ttranslator/' % re.escape(PKG), st['models_dir']),
+           'Android 9–10: the program folder is the app\'s internal one (not readable by other apps): %s' % st['models_dir'])
+    ok(st['platform'] == 'android' and 'Android' in (st.get('machine') or {}).get('os', ''), 'the device in the reports: %s' % st.get('machine'))
     pr = procs()
     app_pid = [x[0] for x in pr if x[2] == PKG]
     launcher = [x for x in pr if x[2].startswith('libttranslator')]
@@ -431,7 +485,7 @@ def check_start():
 def check_model_and_engine():
     how = put_model(MODEL, 'tiny-test.gguf')
     if how:
-        ok(True, 'a model copied into Android/data/…/files/models (as a computer does over USB): %s; the launcher lists it as an own file' % how)
+        ok(True, 'a model copied into the models folder (as a computer does over USB): %s; the launcher lists it as an own file' % how)
         code, _, body = post('/api/model', {'id': 'file:tiny-test.gguf'})
         ok(code == 200, 'model chosen (as in the menu of models): %d %s' % (code, body[:120]))
         t0 = time.time()
@@ -694,8 +748,14 @@ finally:
         pass
     logs = os.path.join(OUT, 'device-logs')
     os.makedirs(logs, exist_ok=True)
-    adb('pull', EXT + '/data/logs/.', logs, timeout=120)
-    adb('pull', EXT + '/config.json', logs, timeout=60)
+    if SDK >= 30:
+        adb('pull', EXT + '/data/logs/.', logs, timeout=120)
+        adb('pull', EXT + '/config.json', logs, timeout=60)
+    else:  # the internal folder: file by file with run-as
+        names = adb('exec-out', 'run-as', PKG, 'ls', root_dir() + '/data/logs', timeout=30).stdout.decode(errors='replace').split()
+        for n in [root_dir() + '/data/logs/' + x for x in names] + [root_dir() + '/config.json']:
+            with open(os.path.join(logs, os.path.basename(n)), 'wb') as f:
+                f.write(adb('exec-out', 'run-as', PKG, 'cat', n, timeout=60).stdout)
     with open(os.path.join(OUT, 'logcat.txt'), 'wb') as f:
         f.write(adb('logcat', '-d', '-v', 'time', timeout=120).stdout)
     fails = [x for x in results if x.startswith('FAIL')]

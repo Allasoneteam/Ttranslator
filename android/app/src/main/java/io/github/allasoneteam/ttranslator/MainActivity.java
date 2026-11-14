@@ -21,6 +21,7 @@ import android.view.ViewGroup;
 import android.view.WindowInsets;
 import android.view.WindowInsetsController;
 import android.webkit.ConsoleMessage;
+import android.webkit.CookieManager;
 import android.webkit.JavascriptInterface;
 import android.webkit.RenderProcessGoneDetail;
 import android.webkit.ValueCallback;
@@ -43,7 +44,6 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
-import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
@@ -181,7 +181,7 @@ public class MainActivity extends Activity {
                         retryBtn.setOnClickListener(v -> openPlay(wv.packageName));
                         return;
                     }
-                    web.loadUrl(Launcher.URL);
+                    openPage();
                 });
             } catch (IOException e) {
                 launcher.log("start failed: " + e.getMessage());
@@ -191,6 +191,20 @@ public class MainActivity extends Activity {
                 });
             }
         });
+    }
+
+    /**
+     * Opens the launcher's page with the access key in a cookie (the launcher answers nothing without it). A cookie
+     * of 127.0.0.1 goes to every port of it: the window only ever talks to our launcher.
+     */
+    private void openPage() {
+        CookieManager cm = CookieManager.getInstance();
+        cm.setAcceptCookie(true);
+        cm.setCookie(Launcher.url(), Launcher.ACCESS_COOKIE + "=" + Launcher.accessKey() + "; Path=/; HttpOnly; SameSite=Strict",
+            ok -> {
+                cm.flush();
+                if (web != null) web.loadUrl(Launcher.url());
+            });
     }
 
     private void showOverlay(String text, boolean retry) {
@@ -271,7 +285,7 @@ public class MainActivity extends Activity {
 
     private static boolean isOurs(Uri u) {
         return u != null && "http".equals(u.getScheme()) && ("127.0.0.1".equals(u.getHost()) || "localhost".equals(u.getHost()))
-            && u.getPort() == Launcher.PORT;
+            && u.getPort() == Launcher.port();
     }
 
     private class Client extends WebViewClient {
@@ -333,7 +347,9 @@ public class MainActivity extends Activity {
     /** The launcher's index.html with the window functions put in before the page's own scripts. */
     private WebResourceResponse pageWithWindowFunctions(Uri u) {
         try {
-            HttpURLConnection c = (HttpURLConnection) new URL(u.toString()).openConnection();
+            String path = u.getEncodedPath() == null ? "" : u.getEncodedPath().replaceFirst("^/", "");
+            if (u.getEncodedQuery() != null) path += "?" + u.getEncodedQuery();
+            HttpURLConnection c = Launcher.open(path);
             c.setConnectTimeout(3000);
             c.setReadTimeout(15000);
             try {
