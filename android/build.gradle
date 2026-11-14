@@ -1,0 +1,4 @@
+// The version of the Android Gradle Plugin is pinned here; the Gradle version — in android/build.sh.
+plugins {
+    id 'com.android.application' version '9.5.0' apply false
+}

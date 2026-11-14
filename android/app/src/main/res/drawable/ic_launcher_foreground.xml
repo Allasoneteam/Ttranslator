@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- LOGO of ui/index.html (viewBox 53 45 272 272), scaled into the safe zone of an adaptive icon (66 of 108 dp). -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="272"
+    android:viewportHeight="272">
+    <group
+        android:pivotX="136"
+        android:pivotY="136"
+        android:scaleX="0.58"
+        android:scaleY="0.58">
+        <group
+            android:translateX="-53"
+            android:translateY="-45">
+            <path
+                android:fillColor="@color/logo"
+                android:pathData="M67 88.5 115 50v19h148V50l48 38.5-48 38.5v-19h-51.5v177l14.5 27h-74l14.5-27V108H115v19z" />
+        </group>
+    </group>
+</vector>

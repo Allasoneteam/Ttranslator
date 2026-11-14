@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- the colours of ui/index.html (light theme): the variables bg and logo -->
+    <color name="background">#f5f4ef</color>
+    <color name="logo">#750575</color>
+    <color name="icon_background">#ffffff</color>
+</resources>
