@@ -126,6 +126,11 @@ with sync_playwright() as p:
     got = page.evaluate("[document.querySelector('#src').value, document.querySelector('#srcSel').value, document.querySelector('#tgtSel').value]")
     ok(r is True and got == ['Guten Morgen! Wie geht es Ihnen?', 'auto', 'auto'], 'text from another app: in the field, «Авто» → «Авто», translated at once: %s' % got)
     ok(page.evaluate("window.ttwSetText('   ')") is False, 'empty text from another app: nothing happens')
+    # a phone with little memory (Android sees under 5 GB: a "4 GB" phone): a warning in the menu of models
+    notes = page.evaluate("""() => { const was = STATE.machine.ram_gb, out = [];
+      for (const gb of [3.6, 7.4]) { STATE.machine.ram_gb = gb; renderModelMenu(); const n = document.querySelector('#modelMenu .warn-note'); out.push(n ? n.textContent : ''); }
+      STATE.machine.ram_gb = was; renderModelMenu(); return out; }""")
+    ok('3,6' in notes[0] and '6 ГБ' in notes[0] and notes[1] == '', 'a phone with 3.6 GB: a warning in the menu of models; with 7.4 GB none: %s' % notes)
     page.click('#modelBtn'); time.sleep(0.3)
     ok(page.is_visible('#modelMenu'), 'the model menu opens')
     ok(page.evaluate('window.ttwBack()') is True and not page.is_visible('#modelMenu'), '«Назад» closes the model menu')

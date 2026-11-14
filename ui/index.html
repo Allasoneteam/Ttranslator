@@ -4875,9 +4875,17 @@ async function loadModel() {
   refreshState();
 }
 
+// Android: на телефоне с малой памятью (меньше 5 ГБ видит система — это телефоны на 4 ГБ) модель может не поместиться:
+// Android будет закрывать приложение. Предупреждение — на экране первого запуска и в меню моделей.
+function lowMemoryNote() {
+  const gb = STATE && STATE.machine && STATE.machine.ram_gb;
+  return ANDROID && gb && gb < 5 ? t('Памяти на этом устройстве мало ({n} ГБ): модели может не хватить места, и Android будет закрывать приложение. Рекомендуется телефон или планшет с 6 ГБ памяти и больше.', { n: fmtNum(gb) }) : '';
+}
+
 function renderSetup(s) {
   const dl = s.download || {};
   const items = $('#dlItems'); items.innerHTML = '';
+  if (lowMemoryNote()) items.appendChild(el('div', 'note warn-note', lowMemoryNote()));
   const need = [];
   const am = activeModel() || {};
   const rows = [
@@ -5075,6 +5083,7 @@ async function openModelMenu() {
 function renderModelMenu() {
   const menu = $('#modelMenu'); menu.innerHTML = '';
   if (!STATE) return;
+  if (lowMemoryNote()) menu.appendChild(el('div', 'foot warn-note', lowMemoryNote()));
   const busyDl = STATE.download && STATE.download.active;
   let group = null;
   for (const m of (STATE.models || [])) {
@@ -5479,6 +5488,7 @@ const I18N = {
   'Меню': ['Menu', 'Menü', 'Menú', '菜单'],
   'Сохранить отчёт в файл…': ['Save the report to a file…', 'Bericht in Datei speichern…', 'Guardar el informe en un archivo…', '将报告保存到文件…'],
   'Отчёт': ['Report', 'Bericht', 'Informe', '报告'],
+  'Памяти на этом устройстве мало ({n} ГБ): модели может не хватить места, и Android будет закрывать приложение. Рекомендуется телефон или планшет с 6 ГБ памяти и больше.': ['This device has little memory ({n} GB): the model may not fit, and Android will close the app. A phone or tablet with 6 GB of memory or more is recommended.', 'Dieses Gerät hat wenig Arbeitsspeicher ({n} GB): Das Modell passt womöglich nicht hinein, und Android wird die App schließen. Empfohlen wird ein Telefon oder Tablet mit 6 GB Arbeitsspeicher oder mehr.', 'Este dispositivo tiene poca memoria ({n} GB): puede que el modelo no quepa y Android cierre la aplicación. Se recomienda un teléfono o una tableta con 6 GB de memoria o más.', '此设备内存较少（{n} GB）：模型可能放不下，Android 会关闭应用。建议使用 6 GB 及以上内存的手机或平板。'],
   'Лицензии программ внутри приложения': ['Licences of the programs inside the app', 'Lizenzen der Programme in der App', 'Licencias de los programas incluidos en la aplicación', '应用内程序的许可证'],
   'Не удалось открыть файл лицензий: {e}': ['Could not open the licence file: {e}', 'Die Lizenzdatei konnte nicht geöffnet werden: {e}', 'No se pudo abrir el archivo de licencias: {e}', '无法打开许可证文件：{e}'],
   'Добро пожаловать! Переводчик работает на вашем устройстве, без интернета.': ['Welcome! The translator runs on your device, without the internet.', 'Willkommen! Der Übersetzer läuft auf Ihrem Gerät, ohne Internet.', '¡Bienvenido! El traductor funciona en su dispositivo, sin internet.', '欢迎！翻译器在您的设备上运行，无需联网。'],
