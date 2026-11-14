@@ -52,9 +52,12 @@ say() { echo "== $*"; }
 die() { echo "ERROR: $*" >&2; exit 1; }
 
 # the launcher and these files must use the same versions of the engine and of sherpa-onnx
-grep -q "engineVersion = \"$LLAMA_TAG\"" "$REPO/source/launcher/main.go" || die "the launcher's engineVersion is not $LLAMA_TAG: update android/build.sh"
-grep -q "ttsVersion   = \"$SHERPA_TAG\"" "$REPO/source/launcher/tts.go" || die "the launcher's ttsVersion is not $SHERPA_TAG: update android/build.sh"
-APP_VERSION=$(sed -n 's/^\tappVersion = "\(.*\)"$/\1/p' "$REPO/source/launcher/main.go")
+grep -Eq "^[[:space:]]*engineVersion[[:space:]]*=[[:space:]]*\"$LLAMA_TAG\"" "$REPO/source/launcher/main.go" \
+  || die "the launcher's engineVersion is not $LLAMA_TAG: update android/build.sh"
+# (whitespace-tolerant: gofmt realigns the const block; macOS has its own ttsVersionMac)
+grep -Eq "^[[:space:]]*ttsVersion[[:space:]]*=[[:space:]]*\"$SHERPA_TAG\"" "$REPO/source/launcher/tts.go" \
+  || die "the launcher's ttsVersion is not $SHERPA_TAG: update android/build.sh"
+APP_VERSION=$(sed -n 's/^[[:space:]]*appVersion[[:space:]]*=[[:space:]]*"\([^"]*\)".*/\1/p' "$REPO/source/launcher/main.go" | head -n 1)
 [ -n "$APP_VERSION" ] || die "no appVersion in source/launcher/main.go"
 
 # ---------------------------------------------------------------- tools
