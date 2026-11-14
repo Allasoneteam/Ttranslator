@@ -397,6 +397,7 @@ footer.status {
 @media (max-width: 360px) { .brand { font-size: 0; gap: 0; } }
 /* Android: нет папок для «Открыть папку», вида окна и клавиатурных подсказок */
 html.android .kbd, html.android #errorOpenBtn, html.android #modeRow, html.android #welcomeModeRow { display: none !important; }
+details.licenses pre { max-height: 60vh; overflow: auto; white-space: pre-wrap; font-size: .7857rem; }
 </style>
 </head>
 <body>
@@ -5274,6 +5275,20 @@ function renderAbout() {
   box.appendChild(el('p', '', A.thanks));
   box.appendChild(el('p', 'note', A.license));
   box.appendChild(el('p', 'note', A.credits));
+  // Android: программы других проектов внутри приложения, их лицензии (полные тексты, в том числе GPL-3.0 у espeak-ng)
+  // и адреса исходников — файл THIRD-PARTY.txt (приложение кладёт его рядом со страницей)
+  if (ANDROID) {
+    const d = el('details', 'licenses');
+    d.appendChild(el('summary', '', t('Лицензии программ внутри приложения')));
+    const pre = el('pre', 'log');
+    d.appendChild(pre);
+    d.addEventListener('toggle', async () => {
+      if (!d.open || pre.textContent) return;
+      try { const r = await fetch('THIRD-PARTY.txt', { cache: 'no-store' }); if (!r.ok) throw new Error(r.status); pre.textContent = await r.text(); }
+      catch (e) { pre.textContent = t('Не удалось открыть файл лицензий: {e}', { e: errText(e) }); }
+    });
+    box.appendChild(d);
+  }
 }
 
 // Неизменяемая разметка (тексты и подсказки из HTML) — на язык интерфейса, один раз при запуске.
@@ -5464,6 +5479,8 @@ const I18N = {
   'Меню': ['Menu', 'Menü', 'Menú', '菜单'],
   'Сохранить отчёт в файл…': ['Save the report to a file…', 'Bericht in Datei speichern…', 'Guardar el informe en un archivo…', '将报告保存到文件…'],
   'Отчёт': ['Report', 'Bericht', 'Informe', '报告'],
+  'Лицензии программ внутри приложения': ['Licences of the programs inside the app', 'Lizenzen der Programme in der App', 'Licencias de los programas incluidos en la aplicación', '应用内程序的许可证'],
+  'Не удалось открыть файл лицензий: {e}': ['Could not open the licence file: {e}', 'Die Lizenzdatei konnte nicht geöffnet werden: {e}', 'No se pudo abrir el archivo de licencias: {e}', '无法打开许可证文件：{e}'],
   'Добро пожаловать! Переводчик работает на вашем устройстве, без интернета.': ['Welcome! The translator runs on your device, without the internet.', 'Willkommen! Der Übersetzer läuft auf Ihrem Gerät, ohne Internet.', '¡Bienvenido! El traductor funciona en su dispositivo, sin internet.', '欢迎！翻译器在您的设备上运行，无需联网。'],
   'Языки': ['Languages', 'Sprachen', 'Idiomas', '语言'],
   'Язык исходного текста': ['Language of the source text', 'Sprache des Ausgangstextes', 'Idioma del texto original', '原文语言'],

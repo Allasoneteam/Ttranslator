@@ -2,6 +2,7 @@ package io.github.allasoneteam.ttranslator;
 
 import android.content.Context;
 import android.content.pm.ApplicationInfo;
+import android.content.res.AssetManager;
 import android.os.Build;
 import android.os.SystemClock;
 import android.util.Log;
@@ -62,6 +63,7 @@ final class Launcher {
     final File root;
     final String libDir;
     private final File cacheDir, homeDir, portFile, keyFile;
+    private final AssetManager assets;
     /** the test APK: keeps a copy of the access key in its private folder for the check in the emulator (run-as) */
     private final boolean debuggable;
 
@@ -74,6 +76,7 @@ final class Launcher {
         portFile = new File(homeDir, "launcher.port");
         keyFile = new File(homeDir, "launcher.key");
         debuggable = (c.getApplicationInfo().flags & ApplicationInfo.FLAG_DEBUGGABLE) != 0;
+        assets = c.getAssets();
     }
 
     /** The address of the launcher's page. */
@@ -225,6 +228,18 @@ final class Launcher {
         } catch (JSONException e) {
             // a damaged config.json: the launcher itself falls back to the defaults and rewrites it
             log("config.json: " + e.getMessage());
+        }
+        // ui/tests.txt (the pairs of «Подробный тест») and ui/THIRD-PARTY.txt (the licences, «О программе»): from the APK
+        // next to the page, where the launcher serves them (the page itself is inside the launcher); every start, so
+        // an update of the app brings its own
+        File ui = new File(root, "ui");
+        if (!ui.isDirectory() && !ui.mkdirs()) throw new IOException("cannot create " + ui);
+        for (String name : new String[]{"tests.txt", "THIRD-PARTY.txt"}) {
+            try (InputStream in = assets.open(name)) {
+                writeAtomically(new File(ui, name), readAll(in));
+            } catch (IOException e) {
+                log("asset " + name + ": " + e.getMessage());
+            }
         }
         File engineDir = new File(root, "engine/android-" + goArch());
         if (!engineDir.isDirectory() && !engineDir.mkdirs()) throw new IOException("cannot create " + engineDir);

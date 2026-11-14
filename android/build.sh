@@ -197,11 +197,21 @@ for abi in $ABIS; do
   du -sh "$JNI/$abi" | sed "s|$JNI/||"
 done
 
-# ---------------------------------------------------------------- licences (assets of the APK)
+# ---------------------------------------------------------------- licences and the test pairs (assets of the APK)
+# THIRD-PARTY.txt: what is inside the APK, where its source is, and the full texts of the licences (the app copies it
+# and ui/tests.txt into the program folder, where the window shows them: «О программе», «Тест»)
 ASSETS=$HERE/app/src/main/assets
 rm -rf "$ASSETS"; mkdir -p "$ASSETS"
 cp "$REPO/LICENSE.txt" "$ASSETS/LICENSE.txt"
-{ cat "$HERE/THIRD-PARTY.txt"; echo; echo "---- llama.cpp ($LLAMA_TAG) — LICENSE"; echo; cat "$LLAMA_ARM64/LICENSE"; } > "$ASSETS/THIRD-PARTY.txt"
+cp "$REPO/ui/tests.txt" "$ASSETS/tests.txt"
+L=$HERE/licenses
+{ cat "$HERE/THIRD-PARTY.txt"
+  for part in "1. llama.cpp — MIT licence|$LLAMA_ARM64/LICENSE" "2. sherpa-onnx — Apache License 2.0|$L/Apache-2.0.txt" \
+              "3. espeak-ng — GNU General Public License, version 3|$L/GPL-3.0.txt" "4. piper-phonemize — MIT licence|$L/piper-phonemize-MIT.txt" \
+              "5. ONNX Runtime — MIT licence|$L/onnxruntime-MIT.txt" "6. The Go standard library — BSD-style licence|$L/Go-BSD-3-Clause.txt"; do
+    [ -s "${part#*|}" ] || die "no licence text ${part#*|}"
+    printf '\n\n==================== %s\n\n' "${part%%|*}"; cat "${part#*|}"
+  done; } > "$ASSETS/THIRD-PARTY.txt"
 
 # ---------------------------------------------------------------- the test APK
 VERSION_CODE=${GITHUB_RUN_NUMBER:-$(git -C "$REPO" rev-list --count HEAD 2>/dev/null || echo 1)}

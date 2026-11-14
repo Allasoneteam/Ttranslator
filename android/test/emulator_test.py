@@ -533,6 +533,11 @@ def check_page():
         lay = json.loads(lay)
         ok(lay['android'] and lay['sw'] <= lay['w'] + 1 and lay['more'] and not lay['settings'],
            'phone layout: as wide as the screen, the header menu «⋮», html.android: %s' % lay)
+        # next to the page (copied from the APK): the pairs of «Подробный тест» and the licences («О программе»)
+        files = json.loads(page.js("Promise.all(['tests.txt', 'THIRD-PARTY.txt'].map(f => fetch(f, {cache: 'no-store'}).then(r => r.ok ? r.text() : ''))).then(a => JSON.stringify(a))"))
+        ok('EN:' in files[0] and 'GNU GENERAL PUBLIC LICENSE' in files[1] and 'ed530aa113046142eb5115cf2fc9157854d0ffe1' in files[1],
+           'the test pairs (tests.txt, %d characters) and the licences with the source of espeak-ng (THIRD-PARTY.txt, %d characters)'
+           % (len(files[0]), len(files[1])))
         # a translation in the page, as the user does it
         texts, dt = translate(page, 'Good morning! The weather is nice today.')
         ok(texts, 'the page translated through the engine in %.1f s: %d variants (the first: %r)' % (dt, len(texts), (texts or [''])[0][:50]))
