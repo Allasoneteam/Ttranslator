@@ -38,6 +38,9 @@ if ! bash "$HERE/build.sh" "$OUT" 2>&1 | tee "$OUT/build.log"; then
 fi
 cp "$W/gradle.log" "$OUT/" 2>/dev/null
 APK=$(ls "$OUT"/Ttranslator-*-android-test.apk)
+# the APK for phones, not signed: its own artifact, for the job that signs it (android-sign in ci.yml)
+REL=$(cd "$OUT" && ls Ttranslator-*-android-arm64-unsigned.apk 2>/dev/null | head -n 1)
+if [ -n "$REL" ] && [ -n "${GITHUB_ENV:-}" ]; then echo "APKUNSIGNED=$REL" >> "$GITHUB_ENV"; fi
 [ -z "$APIS" ] && exit 0
 # space for the emulators: the build folders are not needed any more
 rm -rf "$W/llama-x86_64" "$W/launcher" "$W/unpacked" "$HERE/app/build/intermediates"

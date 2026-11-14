@@ -11,9 +11,10 @@ android {
         // the official llama.cpp build for Android is made for Android 9 (API 28) and newer
         minSdk = 28
         targetSdk = 36
-        // build.sh: the launcher's appVersion and the number of the CI run (a newer test APK installs over an older one)
+        // build.sh: the launcher's appVersion; the code — of the version for the APK for phones (1.2 → 10200: an update
+        // always has a larger one), the number of the CI run for the test APK (a newer one installs over an older one)
         versionCode = Integer.parseInt((project.findProperty('ttVersionCode') ?: '1').toString())
-        versionName = (project.findProperty('ttVersion') ?: 'dev').toString() + '-android-test'
+        versionName = (project.findProperty('ttVersion') ?: 'dev').toString()
     }
 
     signingConfigs {
@@ -27,9 +28,19 @@ android {
         }
     }
     buildTypes {
+        // the test APK for the emulator of the CI: phones and the emulator (x86_64), WebView debugging (MainActivity)
         debug {
             signingConfig = signingConfigs.debug
+            versionNameSuffix = '-android-test'
         }
+        // the APK for phones (arm64 only, build.sh): not signed here — the CI signs it with the app's own key, which
+        // only the author and the GitHub environment android-signing have (.github/workflows/ci.yml, android-sign)
+        release {
+        }
+    }
+    lint {
+        // the APK is checked in the emulator; a lint finding must not stop the build of the CI (the report stays)
+        abortOnError = false
     }
     packaging {
         jniLibs {

@@ -4,8 +4,9 @@
 # main makes a DRAFT release (the release job) that the author publishes in the browser. On a failure the last lines
 # of the output are also shown as annotations of the run.
 # The macos and android jobs only run scripts of the repository (source/ci/macos.sh, android/ci.sh): the work on
-# macOS (1.1) and the Android prototype change those scripts, not this file. Until a script exists its job only
-# says so and passes.
+# macOS (1.1) and Android (1.2) change those scripts, not this file. Until a script exists its job only says so and
+# passes. The APK for phones is signed by android-sign with the app's own key — a secret of the GitHub environment
+# android-signing, which only main and dev may use (Settings → Environments).
 name: CI
 on:
   push:
@@ -169,8 +170,9 @@ jobs:
           retention-days: 14
 
   android:
-    # Android, a feasibility prototype: android/ci.sh <out-dir> builds, checks (the emulator: Linux runners have
-    # hardware acceleration for it) and puts the results (a test APK, logs, screenshots) into <out-dir>.
+    # Android (1.2): android/ci.sh <out-dir> builds the test APK and the APK for phones (not signed), checks the test APK
+    # in the emulator (Linux runners have hardware acceleration for it) and puts the results (the APKs, logs,
+    # screenshots) into <out-dir>; the name of the APK for phones goes to $GITHUB_ENV as APKUNSIGNED.
     runs-on: ubuntu-24.04
     timeout-minutes: 60
     steps:
@@ -194,16 +196,69 @@ jobs:
           path: ${{ runner.temp }}/android
           if-no-files-found: ignore
           retention-days: 14
+      - name: The APK for phones, not signed (for android-sign)
+        if: env.APKUNSIGNED != ''
+        uses: actions/upload-artifact@v7
+        with:
+          name: android-unsigned
+          path: ${{ runner.temp }}/android/${{ env.APKUNSIGNED }}
+          retention-days: 14
+
+  android-sign:
+    # The APK for phones signed with the app's own key (main and dev only: the environment android-signing gives its
+    # secrets to no other branch). The certificate must be the one in android/signing-cert-sha256.txt.
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev')
+    needs: [android]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    environment: android-signing
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v8
+        with:
+          name: android-unsigned
+          path: unsigned
+      - name: Sign (apksigner) and check the certificate
+        env:
+          KS_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KS_PASS: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+        run: |
+          [ -n "$KS_B64" ] && [ -n "$KS_PASS" ] || { echo "::error::no signing key: the secrets ANDROID_KEYSTORE_BASE64 and ANDROID_KEYSTORE_PASSWORD of the environment android-signing"; exit 1; }
+          in=$(ls unsigned/Ttranslator-*-android-arm64-unsigned.apk | head -n 1)
+          [ -f "$in" ] || { echo "::error::no unsigned APK"; exit 1; }
+          name=$(basename "$in" -unsigned.apk).apk
+          bt=$(ls -d "$ANDROID_HOME"/build-tools/*/ | sort -V | tail -n 1)
+          ks=$RUNNER_TEMP/release.p12
+          umask 077
+          printf '%s' "$KS_B64" | base64 -d > "$ks"
+          "$bt/zipalign" -f 4 "$in" "$RUNNER_TEMP/aligned.apk"
+          mkdir -p signed
+          "$bt/apksigner" sign --ks "$ks" --ks-type PKCS12 --ks-key-alias ttranslator --ks-pass env:KS_PASS --key-pass env:KS_PASS \
+            --out "signed/$name" "$RUNNER_TEMP/aligned.apk"
+          rm -f "$ks"
+          "$bt/apksigner" verify --verbose --print-certs "signed/$name" | tee "$RUNNER_TEMP/verify.txt"
+          got=$(sed -n 's/^Signer #1 certificate SHA-256 digest: //p' "$RUNNER_TEMP/verify.txt" | tr -d ' :' | tr a-f A-F)
+          want=$(tr -d ' :\n\r' < android/signing-cert-sha256.txt | tr a-f A-F)
+          [ -n "$got" ] && [ "$got" = "$want" ] || { echo "::error::the APK is signed with another certificate: $got (want $want)"; exit 1; }
+          (cd signed && sha256sum "$name" | tee "$name.sha256")
+          echo "::notice title=APK::$(cat "signed/$name.sha256"), certificate SHA-256 $got"
+          echo "APKSIGNED=$name" >> "$GITHUB_ENV"
+      # the APK as itself (not zipped again): the release job takes it from here
+      - uses: actions/upload-artifact@v7
+        with:
+          path: signed/${{ env.APKSIGNED }}
+          archive: false
+          retention-days: 14
 
   release:
     # The release, after the author's "yes" (main gets only releases). A push to main makes a DRAFT release v<version>
-    # (appVersion in source/launcher/main.go) with the four archives of this run, SHA256SUMS.txt and the text of
+    # (appVersion in source/launcher/main.go) with the four archives and the signed APK of this run, SHA256SUMS.txt and the text of
     # source/docs/RELEASE.md; the tag is made at this commit when the author publishes the draft in the browser
     # (Releases → the draft → Edit → Publish release). A published release is never touched; an older draft of the same
     # version is replaced. A push to dev rehearses it: the draft v<version>-rehearsal is made and deleted at once
     # (checks the archives, the text and the right to make releases).
     if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev')
-    needs: [tests, build, macos]
+    needs: [tests, build, macos, android-sign]
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     permissions:
@@ -229,7 +284,7 @@ jobs:
       - name: The archives and SHA256SUMS.txt
         run: |
           mkdir -p out
-          files="Ttranslator-$V-windows-x64.zip Ttranslator-$V-linux-x64.tar.gz Ttranslator-$V-macos-arm64.zip Ttranslator-$V-macos-x64.zip"
+          files="Ttranslator-$V-windows-x64.zip Ttranslator-$V-linux-x64.tar.gz Ttranslator-$V-macos-arm64.zip Ttranslator-$V-macos-x64.zip Ttranslator-$V-android-arm64.apk"
           for f in $files; do
             p=$(find dist -type f -name "$f" | head -n 1)
             if [ -z "$p" ]; then
@@ -241,7 +296,7 @@ jobs:
           cd out
           for f in $files; do
             case $f in
-              *.zip) unzip -tq "$f" > /dev/null ;;
+              *.zip|*.apk) unzip -tq "$f" > /dev/null ;;
               *.tar.gz) tar -tzf "$f" > /dev/null ;;
             esac || { echo "::error::$f is not a whole archive"; exit 1; }
           done
@@ -258,9 +313,9 @@ jobs:
           gh release create "$tag" --repo "$GITHUB_REPOSITORY" --draft --target "$GITHUB_SHA" --title "Ttranslator $V" \
             --notes-file "$RUNNER_TEMP/notes.md" $FILES
           n=$(gh release view "$tag" --repo "$GITHUB_REPOSITORY" --json assets --jq '.assets | length')
-          [ "$n" = 5 ] || { echo "::error::the draft $tag has $n files, not 5"; exit 1; }
+          [ "$n" = 6 ] || { echo "::error::the draft $tag has $n files, not 6"; exit 1; }
           if [ "$GITHUB_REF" = refs/heads/main ]; then
             echo "::notice::the draft release $tag is ready: Releases → $tag → Edit → Publish release"
           else
-            gh release delete "$tag" --repo "$GITHUB_REPOSITORY" --yes && echo "::notice::rehearsal: the draft $tag was made with 5 files and deleted"
+            gh release delete "$tag" --repo "$GITHUB_REPOSITORY" --yes && echo "::notice::rehearsal: the draft $tag was made with 6 files and deleted"
           fi

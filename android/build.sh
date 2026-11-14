@@ -1,5 +1,6 @@
 #!/bin/bash
-# Ttranslator for Android (feasibility prototype): builds the test APK.
+# Ttranslator for Android: builds the test APK (phones and the emulator of the CI, the open test key) and the APK for
+# phones (arm64 only, not signed: the CI signs it with the app's own key — .github/workflows/ci.yml, android-sign).
 #   bash android/build.sh [out-dir]          (default: android/work/out)
 # Needs: the Android SDK (ANDROID_HOME, with cmdline-tools), JDK 17+, Go 1.24+, git, curl, python3, cmake, ninja.
 # Environment: ABIS — "arm64-v8a x86_64" (default; arm64-v8a: phones, x86_64: the emulator of the CI),
@@ -202,9 +203,9 @@ rm -rf "$ASSETS"; mkdir -p "$ASSETS"
 cp "$REPO/LICENSE.txt" "$ASSETS/LICENSE.txt"
 { cat "$HERE/THIRD-PARTY.txt"; echo; echo "---- llama.cpp ($LLAMA_TAG) — LICENSE"; echo; cat "$LLAMA_ARM64/LICENSE"; } > "$ASSETS/THIRD-PARTY.txt"
 
-# ---------------------------------------------------------------- the APK
+# ---------------------------------------------------------------- the test APK
 VERSION_CODE=${GITHUB_RUN_NUMBER:-$(git -C "$REPO" rev-list --count HEAD 2>/dev/null || echo 1)}
-say "APK (Gradle $GRADLE_VERSION, version $APP_VERSION-android-test, code $VERSION_CODE)"
+say "test APK (Gradle $GRADLE_VERSION, version $APP_VERSION-android-test, code $VERSION_CODE)"
 export ANDROID_HOME=$SDK
 "$GRADLE" -p "$HERE" --no-daemon --console=plain --warning-mode=summary -PttVersion="$APP_VERSION" -PttVersionCode="$VERSION_CODE" \
   assembleDebug > "$W/gradle.log" 2>&1 || { tail -40 "$W/gradle.log"; die "gradle failed"; }
@@ -214,3 +215,20 @@ NAME=Ttranslator-$APP_VERSION-android-test.apk
 cp "$APK" "$OUT/$NAME"
 (cd "$OUT" && sha256sum "$NAME" > "$NAME.sha256")
 say "built $OUT/$NAME ($(du -h "$OUT/$NAME" | cut -f1))"
+
+# ---------------------------------------------------------------- the APK for phones (arm64), not signed
+# its version code comes from the version (1.2 → 10200, 1.2.1 → 10201): every release has a larger one than the last
+if [ -d "$JNI/arm64-v8a" ]; then
+  REL_CODE=$(echo "$APP_VERSION" | awk -F. '{ printf "%d", $1 * 10000 + $2 * 100 + $3 }')
+  rm -rf "$JNI/x86_64"
+  say "APK for phones (arm64, version $APP_VERSION, code $REL_CODE), not signed"
+  "$GRADLE" -p "$HERE" --no-daemon --console=plain --warning-mode=summary -PttVersion="$APP_VERSION" -PttVersionCode="$REL_CODE" \
+    assembleRelease >> "$W/gradle.log" 2>&1 || { tail -40 "$W/gradle.log"; die "gradle failed (release)"; }
+  REL=$HERE/app/build/outputs/apk/release/app-release-unsigned.apk
+  [ -f "$REL" ] || die "no APK for phones"
+  RNAME=Ttranslator-$APP_VERSION-android-arm64-unsigned.apk
+  cp "$REL" "$OUT/$RNAME"
+  unzip -l "$OUT/$RNAME" | grep -q 'lib/x86_64/' && die "the APK for phones has x86_64 libraries"
+  unzip -l "$OUT/$RNAME" | grep -q 'lib/arm64-v8a/libttranslator.so' || die "the APK for phones has no launcher"
+  say "built $OUT/$RNAME ($(du -h "$OUT/$RNAME" | cut -f1))"
+fi
