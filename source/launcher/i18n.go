@@ -128,6 +128,8 @@ var msgEN = map[string]string{
 	"Ярлык Ttranslator добавлен в меню приложений: %s\nЕсли перенести папку программы, сделайте ярлык снова (./ttranslator-linux --shortcut).": "Ttranslator is now in the menu of applications: %s\nIf you move the program folder, make the shortcut again (./ttranslator-linux --shortcut).",
 	"В Windows ярлык делается так: правый щелчок по Ttranslator.exe → «Отправить» → «Рабочий стол (создать ярлык)».":                           "In Windows, make a shortcut like this: right-click Ttranslator.exe → “Send to” → “Desktop (create shortcut)”.",
 	"На Mac ярлык не нужен: перенесите Ttranslator.app в папку «Программы», а оттуда, если хотите, — в Dock.":                                  "On a Mac no shortcut is needed: move Ttranslator.app into the Applications folder and from there, if you like, into the Dock.",
+	// Android (1.2): /api/open
+	"На Android папку открыть нельзя: сохранённое и словари можно выгрузить пунктом «Экспорт в файл…».": "Folders cannot be opened on Android: saved translations and glossaries can be saved with “Export to a file…”.",
 }
 
 var msgDE = map[string]string{
@@ -220,6 +222,8 @@ var msgDE = map[string]string{
 	"Ярлык Ttranslator добавлен в меню приложений: %s\nЕсли перенести папку программы, сделайте ярлык снова (./ttranslator-linux --shortcut).": "Ttranslator steht jetzt im Anwendungsmenü: %s\nWenn Sie den Programmordner verschieben, legen Sie die Verknüpfung erneut an (./ttranslator-linux --shortcut).",
 	"В Windows ярлык делается так: правый щелчок по Ttranslator.exe → «Отправить» → «Рабочий стол (создать ярлык)».":                           "Unter Windows legen Sie eine Verknüpfung so an: Rechtsklick auf Ttranslator.exe → „Senden an“ → „Desktop (Verknüpfung erstellen)“.",
 	"На Mac ярлык не нужен: перенесите Ttranslator.app в папку «Программы», а оттуда, если хотите, — в Dock.":                                  "Auf dem Mac ist keine Verknüpfung nötig: Verschieben Sie Ttranslator.app in den Ordner „Programme“ und von dort, wenn Sie möchten, ins Dock.",
+	// Android (1.2): /api/open
+	"На Android папку открыть нельзя: сохранённое и словари можно выгрузить пунктом «Экспорт в файл…».": "Unter Android lassen sich keine Ordner öffnen: Gespeichertes und Glossare können Sie mit „In Datei exportieren…“ sichern.",
 }
 
 // Spanish (1.0): the same keys as msgEN
@@ -305,6 +309,8 @@ var msgES = map[string]string{
 	"Ярлык Ttranslator добавлен в меню приложений: %s\nЕсли перенести папку программы, сделайте ярлык снова (./ttranslator-linux --shortcut).": "Ttranslator ya está en el menú de aplicaciones: %s\nSi mueve la carpeta del programa, vuelva a crear el acceso directo (./ttranslator-linux --shortcut).",
 	"В Windows ярлык делается так: правый щелчок по Ttranslator.exe → «Отправить» → «Рабочий стол (создать ярлык)».":                           "En Windows, el acceso directo se crea así: clic derecho en Ttranslator.exe → «Enviar a» → «Escritorio (crear acceso directo)».",
 	"На Mac ярлык не нужен: перенесите Ttranslator.app в папку «Программы», а оттуда, если хотите, — в Dock.":                                  "En Mac no hace falta un acceso directo: mueva Ttranslator.app a la carpeta «Aplicaciones» y, si lo desea, desde allí al Dock.",
+	// Android (1.2): /api/open
+	"На Android папку открыть нельзя: сохранённое и словари можно выгрузить пунктом «Экспорт в файл…».": "En Android no se pueden abrir carpetas: lo guardado y los glosarios se pueden sacar con «Exportar a un archivo…».",
 }
 
 // Simplified Chinese (1.0): the same keys as msgEN
@@ -390,4 +396,6 @@ var msgZH = map[string]string{
 	"Ярлык Ttranslator добавлен в меню приложений: %s\nЕсли перенести папку программы, сделайте ярлык снова (./ttranslator-linux --shortcut).": "Ttranslator 已添加到应用程序菜单：%s\n如果移动了程序文件夹，请重新创建快捷方式（./ttranslator-linux --shortcut）。",
 	"В Windows ярлык делается так: правый щелчок по Ttranslator.exe → «Отправить» → «Рабочий стол (создать ярлык)».":                           "在 Windows 中这样创建快捷方式：右键单击 Ttranslator.exe →“发送到”→“桌面快捷方式”。",
 	"На Mac ярлык не нужен: перенесите Ttranslator.app в папку «Программы», а оттуда, если хотите, — в Dock.":                                  "在 Mac 上不需要快捷方式：请把 Ttranslator.app 移到“应用程序”文件夹，如有需要，再从那里拖到程序坞。",
+	// Android (1.2): /api/open
+	"На Android папку открыть нельзя: сохранённое и словари можно выгрузить пунктом «Экспорт в файл…».": "在 Android 上无法打开文件夹：已保存内容和术语表可以通过“导出到文件…”导出。",
 }

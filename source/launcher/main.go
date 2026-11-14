@@ -397,6 +397,7 @@ type App struct {
 	vdlCancel      context.CancelFunc
 	ttsNoUTF8      bool // Windows: the copy of sherpa-onnx with the UTF-8 manifest does not start here
 	machine        Machine
+	accessKey      string // Android: every request must carry it (android.go); "" on computers
 
 	// Open windows. Every page sends its own id with /api/events and, when the window is closed or reloaded,
 	// with /api/closing (pagehide): a page that said it is closing no longer counts as open even if its event
@@ -457,6 +458,7 @@ func main() {
 		engStatus: "stopped",
 		started:   time.Now(),
 		quit:      make(chan struct{}),
+		accessKey: takeAccessKey(),
 	}
 	if d := filepath.Join(res, "engine", runtime.GOOS+"-"+runtime.GOARCH); d != a.engineDir {
 		a.appEngineDir = d
@@ -497,13 +499,17 @@ func main() {
 	a.pkg, a.pkgErr = currentEnginePackage()
 	applyTestOverrides()
 	applyTTSTestOverrides()
+	a.machine = deviceInfo(machineInfo())
+	if isAndroid {
+		modelSpecs = phoneCatalog(modelSpecs, a.machine.RamGB)
+		logger.Printf("Android: %s, %.1f GB; access key: %v", a.machine.OS, a.machine.RamGB, a.accessKey != "")
+	}
 	a.mu.Lock()
 	a.ensureActiveValid()
 	if !a.cfg.LoadModelAtStart {
 		a.unloaded, a.noModelAtStart = true, true
 	}
 	a.mu.Unlock()
-	a.machine = machineInfo()
 	platformInit()
 
 	ln, existing := a.listen(uiPort)
@@ -516,6 +522,7 @@ func main() {
 	}
 	a.uiURL = fmt.Sprintf("http://127.0.0.1:%d/", ln.Addr().(*net.TCPAddr).Port)
 	logger.Printf("UI at %s", a.uiURL)
+	writePortFile(os.Getenv("TDOC_PORT_FILE"), ln.Addr().(*net.TCPAddr).Port)
 	if a.noModelAtStart {
 		logger.Printf("the model is not loaded at start (load_model_at_start is off)")
 	}
@@ -570,13 +577,17 @@ func (a *App) listen(port int) (net.Listener, string) {
 	if err == nil {
 		return ln, ""
 	}
+	// Android (access key): never hand over to a copy already there — it would not know our key; listen elsewhere,
+	// the app opens the port of the port file
 	c := http.Client{Timeout: 2 * time.Second}
-	if resp, err2 := c.Get("http://" + addr + "/api/ping"); err2 == nil {
-		var p struct{ App string }
-		_ = json.NewDecoder(resp.Body).Decode(&p)
-		resp.Body.Close()
-		if p.App == appID {
-			return nil, "http://" + addr + "/"
+	if a.accessKey == "" {
+		if resp, err2 := c.Get("http://" + addr + "/api/ping"); err2 == nil {
+			var p struct{ App string }
+			_ = json.NewDecoder(resp.Body).Decode(&p)
+			resp.Body.Close()
+			if p.App == appID {
+				return nil, "http://" + addr + "/"
+			}
 		}
 	}
 	ln, err = net.Listen("tcp", "127.0.0.1:0")
@@ -1499,6 +1510,10 @@ func (a *App) guard(next http.Handler) http.Handler {
 			http.Error(w, "forbidden", http.StatusForbidden)
 			return
 		}
+		if a.accessKey != "" && !a.accessOK(r) { // Android: other apps of the phone (android.go)
+			http.Error(w, "forbidden", http.StatusForbidden)
+			return
+		}
 		if r.Method != http.MethodGet && r.Method != http.MethodHead {
 			if o := r.Header.Get("Origin"); o != "" {
 				u, err := url.Parse(o)
@@ -1696,6 +1711,10 @@ func (a *App) routes() http.Handler {
 	mux.HandleFunc("/api/open", a.post(func(w http.ResponseWriter, r *http.Request) {
 		var req struct{ What string }
 		_ = json.NewDecoder(io.LimitReader(r.Body, 4096)).Decode(&req)
+		if isAndroid { // no file manager to open a folder in (the window hides these buttons on Android)
+			jsonError(w, 400, tr("На Android папку открыть нельзя: сохранённое и словари можно выгрузить пунктом «Экспорт в файл…»."))
+			return
+		}
 		p := a.dataDir
 		switch req.What {
 		case "root": // «Открыть папку данных» (macOS: the data are not next to the program)
