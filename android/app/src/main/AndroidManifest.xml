@@ -5,6 +5,12 @@
 
     <!-- also needed for 127.0.0.1: the window talks to the launcher, the launcher to the engine -->
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- the notification while a model downloads or the engine translates (WorkService): a foreground service keeps
+         the app running when the user switches to another app -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <!-- hasFragileUserData: when the app is removed, Android 10+ offers to keep its data (the models: gigabytes) -->
     <!-- enableOnBackInvokedCallback: «Назад» of the phone comes to the app's callback (Android 13+), which lets the
@@ -30,6 +36,27 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+            <!-- «Перевести» from any app (1.2): «Ttranslator» in the menu of selected text, and «Поделиться» → Ttranslator -->
+            <intent-filter android:label="Ttranslator">
+                <action android:name="android.intent.action.PROCESS_TEXT" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="text/plain" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.SEND" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="text/plain" />
+            </intent-filter>
         </activity>
+
+        <!-- dataSync: the downloads of models and voices; specialUse: the engine translating on the device -->
+        <service
+            android:name=".WorkService"
+            android:exported="false"
+            android:foregroundServiceType="dataSync|specialUse">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="Translating text with a language model on the device; the work goes on while the user switches to another app" />
+        </service>
     </application>
 </manifest>

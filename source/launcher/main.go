@@ -42,6 +42,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"syscall"
 	"time"
 )
@@ -397,7 +398,8 @@ type App struct {
 	vdlCancel      context.CancelFunc
 	ttsNoUTF8      bool // Windows: the copy of sherpa-onnx with the UTF-8 manifest does not start here
 	machine        Machine
-	accessKey      string // Android: every request must carry it (android.go); "" on computers
+	accessKey      string       // Android: every request must carry it (android.go); "" on computers
+	engBusy        atomic.Int32 // requests to the engine under way (a translation, a question): "engine_busy" of /api/state
 
 	// Open windows. Every page sends its own id with /api/events and, when the window is closed or reloaded,
 	// with /api/closing (pagehide): a page that said it is closing no longer counts as open even if its event
@@ -809,6 +811,9 @@ func (a *App) stateJSON() map[string]any {
 		"platform":          runtime.GOOS, // windows, linux, darwin
 		"tts":               a.ttsStateJSON(),
 		"window":            a.windowStateJSON(),
+		// Android: the app keeps its notification (a foreground service) while the engine works, so that Android
+		// does not stop a translation in the background
+		"engine_busy": a.engBusy.Load() > 0,
 	}
 }
 
@@ -1871,6 +1876,8 @@ func (a *App) handleProxy(w http.ResponseWriter, r *http.Request) {
 		r.ContentLength = int64(len(body))
 		r.Header.Set("Content-Length", strconv.Itoa(len(body)))
 	}
+	a.engBusy.Add(1)
+	defer a.engBusy.Add(-1)
 	target := &url.URL{Scheme: "http", Host: fmt.Sprintf("127.0.0.1:%d", port)}
 	rp := httputil.NewSingleHostReverseProxy(target)
 	rp.Transport = engineTransport

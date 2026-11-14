@@ -392,6 +392,7 @@ footer.status {
   #modelBtn { min-width: 0; padding: 6px 8px; }
   #modelName { max-width: 40vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   #goBtn { flex: 1; justify-content: center; }
+  .card-head { flex-wrap: wrap; row-gap: 2px; }   /* кнопки варианта — второй строкой, если не помещаются */
 }
 @media (max-width: 360px) { .brand { font-size: 0; gap: 0; } }
 /* Android: нет папок для «Открыть папку», вида окна и клавиатурных подсказок */
@@ -4685,6 +4686,29 @@ function moreMenu(anchor) {
   openPop(anchor, items);
 }
 
+// «Перевести» из другого приложения (Android: выделенный текст → «Ttranslator» в меню, или «Поделиться» → Ttranslator):
+// текст — в поле, языки — «Авто» слева и справа (чужой текст — на язык интерфейса, текст на нём — на английский или
+// русский), и сразу перевод; если модель ещё загружается — как только будет готова.
+var autoTranslate = false;
+window.ttwSetText = function (text) {
+  text = String(text == null ? '' : text).trim();
+  if (!text) return false;
+  if (!$('#welcomeView').hidden) closeWelcome();
+  closePop(); $('#modelMenu').hidden = true;
+  if (busy) stop();
+  showPane('results');
+  $('#src').value = text;
+  LS.src = LS.tgt = 'auto'; store.set('srcLang', 'auto'); store.set('tgtLang', 'auto');
+  $('#srcSel').value = 'auto'; $('#tgtSel').value = 'auto';
+  updateCounter(); formError(''); renderDir(); fitSrc();
+  if (text.length > MAX_CHARS) {
+    toast(t('Текст длиннее {max} знаков — сократите его или переводите по частям', { max: MAX_CHARS }));
+    return true;
+  }
+  if (isReady()) translate(); else autoTranslate = true;
+  return true;
+};
+
 // Кнопка «Назад» телефона (Android): закрыть открытое — окно приветствия, меню, панель; false — закрывать нечего
 // (тогда приложение уходит в фон, модель остаётся в памяти).
 window.ttwBack = function () {
@@ -4734,6 +4758,8 @@ let errorLogOpen = false;
 function setModelState(kind, info = {}) {
   modelState = kind;
   document.body.dataset.model = kind;
+  if (kind === 'ready' && autoTranslate) { autoTranslate = false; setTimeout(translate, 0); }   // текст из другого приложения
+  else if (!['ready', 'starting'].includes(kind)) autoTranslate = false;
   const bn = $('#modelBanner');
   bn.hidden = !['starting', 'unloaded', 'error', 'nomodel'].includes(kind);
   bn.className = 'banner' + (kind === 'starting' ? ' info' : kind === 'error' ? ' error' : '');

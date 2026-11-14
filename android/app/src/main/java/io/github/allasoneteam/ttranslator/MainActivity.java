@@ -6,6 +6,7 @@ import android.content.ActivityNotFoundException;
 import android.content.Intent;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageInfo;
+import android.content.pm.PackageManager;
 import android.database.Cursor;
 import android.graphics.Color;
 import android.net.Uri;
@@ -60,7 +61,7 @@ import java.util.concurrent.Executors;
  * at start whether it is in the app window: OWN_WINDOW), as ttranslator-window does it with webview's init script.
  */
 public class MainActivity extends Activity {
-    private static final int REQ_OPEN = 1, REQ_SAVE = 2;
+    private static final int REQ_OPEN = 1, REQ_SAVE = 2, REQ_NOTIFY = 3;
 
     /**
      * The window functions over the bridge object TtwAndroid. Every call returns a Promise, as with ttranslator-window;
@@ -93,6 +94,8 @@ public class MainActivity extends Activity {
     private boolean pageShown, starting, resumed;
 
     private ValueCallback<Uri[]> openCallback;
+    /** text from another app (selected text → «Ttranslator», or «Поделиться»), until the page can take it */
+    private String pendingText;
     private int saveId;
     private String saveText;
 
@@ -144,11 +147,39 @@ public class MainActivity extends Activity {
         overlay.addView(retryBtn);
         root.addView(overlay, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
         setContentView(root);
+        takeText(getIntent());
         // «Назад» of the phone: Android 13+ (and from 16 the only way) through the callback, older ones onBackPressed
         if (Build.VERSION.SDK_INT >= 33) {
             getOnBackInvokedDispatcher().registerOnBackInvokedCallback(OnBackInvokedDispatcher.PRIORITY_DEFAULT, this::back);
         }
         start();
+    }
+
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        setIntent(intent);
+        takeText(intent);
+    }
+
+    /** Text sent from another app: into the field of the page, which translates it (ttwSetText). */
+    private void takeText(Intent intent) {
+        if (intent == null) return;
+        CharSequence t = null;
+        if (Intent.ACTION_PROCESS_TEXT.equals(intent.getAction())) t = intent.getCharSequenceExtra(Intent.EXTRA_PROCESS_TEXT);
+        else if (Intent.ACTION_SEND.equals(intent.getAction())) t = intent.getCharSequenceExtra(Intent.EXTRA_TEXT);
+        if (t == null || t.toString().trim().isEmpty()) return;
+        pendingText = t.toString();
+        intent.setAction(Intent.ACTION_MAIN); // a later re-creation of the window does not take it again
+        launcher.log("text from another app: " + pendingText.length() + " characters");
+        if (pageShown) giveText();
+    }
+
+    private void giveText() {
+        if (pendingText == null || web == null) return;
+        String js = "(function () { try { return !!(window.ttwSetText && window.ttwSetText(" + JSONObject.quote(pendingText) + ")); } catch (e) { return false; } })()";
+        pendingText = null;
+        web.evaluateJavascript(js, null);
     }
 
     @Override
@@ -319,6 +350,11 @@ public class MainActivity extends Activity {
         public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest req) {
             Uri u = req.getUrl();
             String p = u.getPath();
+            if (isOurs(u) && "POST".equals(req.getMethod()) && startsWork(p)) {
+                // a download or a translation begins: the notification keeps the app running in the background
+                WorkService.begin(getApplicationContext());
+                ui.post(MainActivity.this::askNotifications);
+            }
             if (req.isForMainFrame() && "GET".equals(req.getMethod()) && isOurs(u)
                 && (p == null || p.isEmpty() || "/".equals(p) || "/index.html".equals(p))) {
                 return pageWithWindowFunctions(u);
@@ -343,6 +379,7 @@ public class MainActivity extends Activity {
                 pageShown = true;
                 overlay.setVisibility(View.GONE);
                 matchBars();
+                giveText();
             }
         }
 
@@ -368,6 +405,23 @@ public class MainActivity extends Activity {
             start();
             return true;
         }
+    }
+
+    /**
+     * Requests of the page that start work the notification is for: a download (the first start, a model chosen in the
+     * menu, a voice) or the engine (a translation, a question, the test).
+     */
+    private static boolean startsWork(String p) {
+        return p != null && (p.equals("/api/setup") || p.equals("/api/model") || p.equals("/api/voice") || p.startsWith("/v1/"));
+    }
+
+    /** Android 13+: may the notification be shown? Asked once, at the first work (without it the work runs all the same). */
+    private void askNotifications() {
+        if (Build.VERSION.SDK_INT < 33 || checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED) return;
+        android.content.SharedPreferences prefs = getSharedPreferences("app", MODE_PRIVATE);
+        if (prefs.getBoolean("notificationsAsked", false)) return;
+        prefs.edit().putBoolean("notificationsAsked", true).apply();
+        requestPermissions(new String[]{android.Manifest.permission.POST_NOTIFICATIONS}, REQ_NOTIFY);
     }
 
     /** The launcher's index.html with the window functions put in before the page's own scripts. */

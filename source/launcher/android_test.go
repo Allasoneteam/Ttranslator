@@ -7,11 +7,13 @@ import (
 	"net"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
 	"testing"
+	"time"
 )
 
 // Android (1.2): with an access key every request needs it — in the cookie of the window or the header of the app.
@@ -191,4 +193,36 @@ func TestOpenFolderOnAndroid(t *testing.T) {
 		}
 	}
 	setUILang("ru")
+}
+
+// engine_busy (Android: the notification of the work): true while a request to the engine is under way.
+func TestEngineBusy(t *testing.T) {
+	logger = log.New(io.Discard, "", 0)
+	release := make(chan struct{})
+	eng := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		<-release
+		_, _ = w.Write([]byte(`{"choices":[]}`))
+	}))
+	defer eng.Close()
+	u, _ := url.Parse(eng.URL)
+	port, _ := strconv.Atoi(u.Port())
+	a := &App{engPort: port, engKey: "k", engStatus: "ready"}
+	done := make(chan struct{})
+	go func() {
+		req := httptest.NewRequest(http.MethodPost, "/v1/chat/completions", strings.NewReader(`{}`))
+		a.handleProxy(httptest.NewRecorder(), req)
+		close(done)
+	}()
+	until := time.Now().Add(3 * time.Second)
+	for a.engBusy.Load() == 0 && time.Now().Before(until) {
+		time.Sleep(10 * time.Millisecond)
+	}
+	if a.engBusy.Load() != 1 {
+		t.Fatal("not busy during the request")
+	}
+	close(release)
+	<-done
+	if a.engBusy.Load() != 0 {
+		t.Fatal("still busy after the request")
+	}
 }

@@ -27,6 +27,16 @@ final class Texts {
         "Ttranslator 需要更新版本的“Android System WebView”（80 或更高版本；当前：{v}）。请在 Google Play 中更新。"};
     private static final String[] OPEN_PLAY = {
         "Open Google Play", "Открыть Google Play", "Google Play öffnen", "Abrir Google Play", "打开 Google Play"};
+    // the notification while Ttranslator works (WorkService, 1.2); {f}: the file
+    private static final String[] CHANNEL = {
+        "Downloads and translation", "Скачивание и перевод", "Downloads und Übersetzung", "Descargas y traducción", "下载和翻译"};
+    private static final String[] WORKING = {
+        "The model is working…", "Модель работает…", "Das Modell arbeitet…", "El modelo está trabajando…", "模型正在工作…"};
+    private static final String[] DOWNLOADING = {
+        "Downloading {f}", "Скачивание: {f}", "Download: {f}", "Descargando {f}", "正在下载：{f}"};
+    private static final String[] DOWNLOADING_VOICE = {
+        "Downloading the voice {f}", "Скачивание голоса: {f}", "Stimme wird heruntergeladen: {f}", "Descargando la voz {f}",
+        "正在下载语音：{f}"};
 
     private static int col(String lang) {
         switch (lang) {
@@ -44,4 +54,8 @@ final class Texts {
     static String noApp(String lang) { return NO_APP[col(lang)]; }
     static String oldWebView(String lang, String version) { return OLD_WEBVIEW[col(lang)].replace("{v}", version); }
     static String openPlay(String lang) { return OPEN_PLAY[col(lang)]; }
+    static String channel(String lang) { return CHANNEL[col(lang)]; }
+    static String working(String lang) { return WORKING[col(lang)]; }
+    static String downloading(String lang, String file) { return DOWNLOADING[col(lang)].replace("{f}", file); }
+    static String downloadingVoice(String lang, String file) { return DOWNLOADING_VOICE[col(lang)].replace("{f}", file); }
 }

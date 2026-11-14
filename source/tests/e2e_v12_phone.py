@@ -5,7 +5,8 @@
 #      the variants come under the form; the panes (Сохранённые, Тест, Настройки, Справка, О программе) take the place
 #      of the work window and «Назад» of the phone (ttwBack) closes them, then the model menu, then nothing is left
 #      (false: the app goes to the background); no «Открыть папку» in the menus; no window type in the settings and
-#      in the welcome window; «на вашем устройстве» in the welcome window;
+#      in the welcome window; «на вашем устройстве» in the welcome window; text from another app (ttwSetText) comes
+#      into the field and is translated at once («Авто» → «Авто»);
 #   2) the same phone screen in a browser tab (no Android app): the folder items and the keyboard hint stay;
 #   3) a computer (1280 x 800): all the header buttons are there, «⋮» is not, two columns as before.
 # Usage: e2e_v12_phone.py <work> <ui_url>   (a launcher with a ready stand-in model)
@@ -117,6 +118,14 @@ with sync_playwright() as p:
        'phone: the page scrolled to «Перевести» (just under the header), the variants under it: %s' % pos)
     ok(pos['sw'] == 412 and page.evaluate(WIDE) == [], 'phone: the variant cards are as wide as the screen: %s' % page.evaluate(WIDE))
     page.screenshot(path=os.path.join(shots, 'phone-variants.png'))
+    # text from another app (Android: selected text → «Ttranslator»): into the field, «Авто» → «Авто», translated at once
+    page.select_option('#srcSel', 'ru'); page.select_option('#tgtSel', 'en')
+    page.evaluate("document.querySelector('#cards').innerHTML = ''")
+    r = page.evaluate("window.ttwSetText('  Guten Morgen! Wie geht es Ihnen?  ')")
+    page.wait_for_function("document.querySelectorAll('.card').length > 0 && document.querySelector('#stopBtn').hidden", timeout=120000)
+    got = page.evaluate("[document.querySelector('#src').value, document.querySelector('#srcSel').value, document.querySelector('#tgtSel').value]")
+    ok(r is True and got == ['Guten Morgen! Wie geht es Ihnen?', 'auto', 'auto'], 'text from another app: in the field, «Авто» → «Авто», translated at once: %s' % got)
+    ok(page.evaluate("window.ttwSetText('   ')") is False, 'empty text from another app: nothing happens')
     page.click('#modelBtn'); time.sleep(0.3)
     ok(page.is_visible('#modelMenu'), 'the model menu opens')
     ok(page.evaluate('window.ttwBack()') is True and not page.is_visible('#modelMenu'), '«Назад» closes the model menu')

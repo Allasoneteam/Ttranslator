@@ -428,6 +428,8 @@ def check_device():
 def check_start():
     r = adb('install', '-r', APK, timeout=300)
     ok(r.returncode == 0, 'the APK installs: ' + (r.stdout + r.stderr).decode(errors='replace').strip().splitlines()[-1])
+    if SDK >= 33:  # the notification of the work: allowed in advance (the app asks once, at the first work)
+        adb('shell', 'pm', 'grant', PKG, 'android.permission.POST_NOTIFICATIONS')
     libdir = re.search(r'legacyNativeLibraryDir=(\S+)', sh('dumpsys package ' + PKG))
     info('library folder: %s' % (libdir.group(1) if libdir else '?'))
     t0 = time.time()
@@ -534,6 +536,12 @@ def check_page():
         # a translation in the page, as the user does it
         texts, dt = translate(page, 'Good morning! The weather is nice today.')
         ok(texts, 'the page translated through the engine in %.1f s: %d variants (the first: %r)' % (dt, len(texts), (texts or [''])[0][:50]))
+        # the notification of the work (a foreground service) is there during the translation and goes a few seconds after
+        svc = sh('dumpsys activity services %s/.WorkService' % PKG)
+        ok('WorkService' in svc and 'isForeground=true' in svc, 'the work keeps a notification (a foreground service)%s'
+           % ('' if 'isForeground=true' in svc else ': ' + ' '.join(svc.split())[:200]))
+        gone = wait(lambda: 'isForeground=true' not in sh('dumpsys activity services %s/.WorkService' % PKG), 30)
+        ok(gone, 'the notification goes when the work is over')
         time.sleep(0.5)
         page.screenshot('4-translation-page')
         shot('4-translation')
@@ -564,6 +572,15 @@ def check_page():
         adb('shell', 'am', 'start', '-W', '-n', ACT, timeout=60)
         time.sleep(1.5)
         ok(page.js('window.__ttTestMarker') == 1, 'back in front after «Назад»: the same page')
+        # «Перевести» from another app: the text selected there comes into the field and is translated at once
+        page.js("document.querySelector('#cards').innerHTML = ''; true")
+        text = 'Guten Morgen! Wie geht es Ihnen heute?'
+        adb('shell', 'am', 'start', '-n', ACT, '-a', 'android.intent.action.PROCESS_TEXT', '-t', 'text/plain',
+            '--es', 'android.intent.extra.PROCESS_TEXT', "'%s'" % text, timeout=60)
+        got = page.wait_js("document.querySelector('#src').value === %s && document.querySelectorAll('.card').length > 0" % json.dumps(text), 120)
+        ok(got and page.js("document.querySelector('#srcSel').value === 'auto' && document.querySelector('#tgtSel').value === 'auto'"),
+           'text from another app (selected text → «Ttranslator»): in the field, «Авто» → «Авто», translated at once')
+        shot('5-text-from-another-app')
         page.reload()
         ok(page.ready(60), 'the page loads again (reload)')
         # the Chinese interface: the fonts of the phone
