@@ -263,6 +263,13 @@ FRESH=1 start_launcher "$W/r16" 18789
 run "e2e v1.0: English first, Spanish and Chinese interface, «Авто», the Latin voice, test pairs in any languages" \
   python3 "$T/e2e_v10.py" "$W" http://127.0.0.1:18789/ "$W/r16"
 
+# 1.2: the interface on a phone screen with the window functions of the Android app (header with «⋮», one column,
+# panes in place of the work window, «Назад» of the phone, no folders); a browser tab and a computer as before
+start_launcher "$W/r17" 18790
+make_ready 18790
+run "e2e v1.2: the phone screen (Android): header «⋮», one column, panes, «Назад»; the computer as before" \
+  python3 "$T/e2e_v12_phone.py" "$W" http://127.0.0.1:18790/
+
 # v0.9.1–0.9.3: the app window (ttranslator-window, source/window): the Windows program builds and needs only system
 # DLLs; the Linux program on WebKitGTK under a virtual screen (with openbox, if there is one: the maximized start) —
 # the launcher with it, then its functions for the page

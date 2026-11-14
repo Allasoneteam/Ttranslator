@@ -49,9 +49,10 @@ try:
 
       # --- header: ⚙ · model ⏏ · Saved · Test · ? · T · Exit
       ids = page.evaluate("[...document.querySelectorAll('header .actions > button')].map(b => b.id)")
-      ok(ids == ['settingsBtn', 'modelBtn', 'unloadBtn', 'savedBtn', 'testBtn', 'helpBtn', 'aboutBtn', 'quitBtn'], 'order of the header buttons: %s' % ids)
+      # (1.2: the last one, «⋮», is only for a phone screen: hidden on a computer)
+      ok(ids == ['settingsBtn', 'modelBtn', 'unloadBtn', 'savedBtn', 'testBtn', 'helpBtn', 'aboutBtn', 'quitBtn', 'moreBtn'], 'order of the header buttons: %s' % ids)
       vis = page.evaluate("[...document.querySelectorAll('header .actions > button')].filter(b => b.offsetParent).map(b => b.id)")
-      ok(vis == ids, 'all of them visible in the work window: %s' % vis)
+      ok(vis == ids[:-1], 'all of them visible in the work window, «⋮» not (a computer): %s' % vis)
       ok(page.get_attribute('#aboutBtn', 'title') == 'О программе' and (page.get_attribute('#aboutBtn svg path', 'd') or '').startswith('M67 88.5')
          and page.evaluate("getComputedStyle(document.querySelector('#aboutBtn')).color") == 'rgb(117, 5, 117)', 'the T button: icon t4, hint «О программе»')
       page.click('#aboutBtn')

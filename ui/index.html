@@ -365,11 +365,37 @@ footer.status {
   opacity: 0; pointer-events: none; transition: opacity .2s; z-index: 30; max-width: 80vw;
 }
 .toast.show { opacity: 1; }
+/* Узкое окно и телефон (1.2): одна колонка, и страница прокручивается целиком — текст и настройки перевода,
+   «Перевести», варианты, затем «Спросить модель» и словарь (левая колонка раскрыта в общий поток: display: contents).
+   Открытая панель (Настройки, Сохранённые, Тест, Справка, О программе) встаёт на место рабочего окна. */
+.more-btn { display: none; }
 @media (max-width: 760px) {
   body { overflow: auto; }
-  main.grid { grid-template-columns: 1fr; }
-  .left { border-right: none; border-bottom: 1px solid var(--border); }
+  header.top { position: sticky; top: 0; z-index: 6; }
+  .actions { flex-wrap: wrap; }
+  main.grid { display: flex; flex-direction: column; flex: none; gap: 12px; padding: 12px; }
+  .left { display: contents; }
+  .right { order: 1; padding: 0; overflow: visible; overflow-wrap: break-word; }
+  .ask { order: 2; flex: none; height: min(72vh, 520px); }
+  body.pane-open .left { display: none; }
+  .pane-head { flex-wrap: wrap; }
 }
+/* Телефон: в шапке — название, модель и меню «⋮» с остальными кнопками; языки — второй строкой */
+@media (max-width: 600px) {
+  header.top { padding: 6px 10px; gap: 6px 8px; }
+  .dir { order: 3; flex: 1 1 100%; margin-left: 0; }
+  .dir select { flex: 1 1 35%; min-width: 0; }
+  .dir .mode-badge:not(.edit) { display: none; }
+  .actions { order: 2; gap: 2px; flex-wrap: nowrap; min-width: 0; }
+  .actions > button:not(#modelBtn):not(.more-btn) { display: none; }
+  .more-btn { display: inline-flex; font-size: 1.43rem; line-height: 1; padding: 2px 10px; }
+  #modelBtn { min-width: 0; padding: 6px 8px; }
+  #modelName { max-width: 40vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  #goBtn { flex: 1; justify-content: center; }
+}
+@media (max-width: 360px) { .brand { font-size: 0; gap: 0; } }
+/* Android: нет папок для «Открыть папку», вида окна и клавиатурных подсказок */
+html.android .kbd, html.android #errorOpenBtn, html.android #modeRow, html.android #welcomeModeRow { display: none !important; }
 </style>
 </head>
 <body>
@@ -391,6 +417,7 @@ footer.status {
     <button id="helpBtn" class="icon" title="Справка" aria-label="Справка"></button>
     <button id="aboutBtn" class="icon logo-btn" title="О программе" aria-label="О программе"></button>
     <button id="quitBtn" class="ghost" hidden title="Выйти из программы: модель выгрузится из памяти, движок остановится"><span id="quitIcon"></span><span id="quitLabel">Выход</span></button>
+    <button id="moreBtn" class="icon more-btn" type="button" title="Меню" aria-label="Меню" aria-haspopup="menu">⋮</button>
   </div>
 </header>
 
@@ -533,7 +560,7 @@ footer.status {
           <div class="set-ctl"><div id="fontSeg" class="seg"><button data-v="90">Мелкий</button><button data-v="100">Обычный</button><button data-v="115">Крупный</button><button data-v="130">Очень крупный</button></div></div>
         </div>
         <div id="startRows" hidden>
-          <div class="set-row">
+          <div id="modeRow" class="set-row">
             <div class="set-label">Вид окна</div>
             <div class="set-ctl"><div id="modeSeg" class="seg"><button data-v="window" title="Окно самой программы на веб-движке системы (WebView2 в Windows, WebKitGTK в Linux, WKWebView в macOS), без вкладок и адресной строки. Если оно не откроется, откроется окно Edge или Chrome">Окно приложения</button><button data-v="tab" title="Вкладка браузера, выбранного в системе по умолчанию">Вкладка браузера</button></div><label class="check"><input type="checkbox" id="setMax"> <span>Окно приложения — на весь экран</span></label><div class="note">Вид окна меняется со следующего запуска.</div><div id="modeErr" class="note warn-note" hidden></div></div>
           </div>
@@ -617,12 +644,12 @@ footer.status {
 <div id="welcomeView" class="welcome-back" role="dialog" aria-modal="true" aria-label="Окно приветствия" hidden>
   <div class="panel welcome">
     <div class="about-head"><span id="welcomeLogo"></span><div><div class="about-name">Ttranslator</div><div id="welcomeVersion" class="muted"></div></div></div>
-    <p>Добро пожаловать! Переводчик работает на вашем компьютере, без интернета.</p>
+    <p id="welcomeIntro">Добро пожаловать! Переводчик работает на вашем компьютере, без интернета.</p>
     <h3 id="welcomeNewTitle"></h3>
     <ul id="welcomeNew"></ul>
     <div class="welcome-opts">
       <div class="set-row"><div class="set-label">Язык интерфейса</div><div class="set-ctl"><select id="welcomeLangSel" aria-label="Язык интерфейса"></select></div></div>
-      <div class="set-row"><div class="set-label">Вид окна</div><div class="set-ctl"><div id="welcomeModeSeg" class="seg"><button data-v="window" title="Окно самой программы на веб-движке системы (WebView2 в Windows, WebKitGTK в Linux, WKWebView в macOS), без вкладок и адресной строки. Если оно не откроется, откроется окно Edge или Chrome">Окно приложения</button><button data-v="tab" title="Вкладка браузера, выбранного в системе по умолчанию">Вкладка браузера</button></div><div class="note">Вид окна меняется со следующего запуска.</div></div></div>
+      <div id="welcomeModeRow" class="set-row"><div class="set-label">Вид окна</div><div class="set-ctl"><div id="welcomeModeSeg" class="seg"><button data-v="window" title="Окно самой программы на веб-движке системы (WebView2 в Windows, WebKitGTK в Linux, WKWebView в macOS), без вкладок и адресной строки. Если оно не откроется, откроется окно Edge или Chrome">Окно приложения</button><button data-v="tab" title="Вкладка браузера, выбранного в системе по умолчанию">Вкладка браузера</button></div><div class="note">Вид окна меняется со следующего запуска.</div></div></div>
       <label class="check"><input type="checkbox" id="welcomeLoad"> <span>Загружать выбранную модель при запуске</span> <span id="welcomeModel" class="muted"></span></label>
       <label class="check"><input type="checkbox" id="welcomeShow"> <span>Показывать это окно при запуске</span></label>
     </div>
@@ -1540,6 +1567,11 @@ const store = {
 // ttwSaveFile(имя, текст, расширение, заголовок, название типа) — окно «Сохранить как» системы, ttwClose() — закрыть
 // окно. В обычном браузере их нет.
 const OWN_WINDOW = typeof window.ttwSaveFile === 'function' && typeof window.ttwOpenExternal === 'function';
+// Android (1.2): приложение для Android даёт странице те же функции окна и говорит, что это Android (ttwPlatform). На
+// Android нет папок, которые можно открыть, вида окна и клавиатурных подсказок; кнопка «Назад» телефона сначала
+// закрывает открытое (ttwBack); текст из другого приложения («Перевести» в меню выделенного текста) — ttwSetText.
+const ANDROID = OWN_WINDOW && window.ttwPlatform === 'android';
+if (ANDROID) document.documentElement.classList.add('android');
 const errText = (e) => String((e && e.message) || e);
 
 // Сохранить текст в файл через окно «Сохранить как»: путь к файлу или '' (отменено).
@@ -2331,6 +2363,7 @@ async function translate() {
   lastRun = run;
   showPane('results');
   cards = []; $('#cards').innerHTML = ''; $('#emptyState').hidden = true;
+  if (narrow()) showVariants();
   resetOwn(run);
   $('#timing').textContent = '';
   const ri = $('#runInfo');
@@ -3304,7 +3337,7 @@ function savedMenu(anchor) {
   items.push({ label: t('Импорт из файла…'), sub: t('добавить записи из .tsv, .csv или .txt'), run: () => $('#savedImportFile').click() });
   items.push({ label: t('Экспорт в таблицу (.tsv)…'), sub: t('для Excel, LibreOffice и обратного импорта'), run: () => savedExport('tsv') });
   items.push({ label: t('Экспорт в текст (.txt)…'), sub: t('читаемый текст: оригинал и перевод'), run: () => savedExport('txt') });
-  if (MODE === 'launcher') {
+  if (MODE === 'launcher' && !ANDROID) {
     items.push({ sep: true });
     items.push({ label: t('Открыть папку'), sub: SV.dir || 'data\\saved', run: () => post('/api/open', { what: 'saved' }).catch(e => toast(e.message)) });
   }
@@ -4236,7 +4269,7 @@ function glossMenu(anchor) {
   }
   items.push({ label: t('Импорт из файла…'), sub: t('добавить термины из таблицы .tsv, .csv, .txt'), run: () => $('#glossImportFile').click() });
   items.push({ label: t('Экспорт в файл…'), sub: t('сохранить словарь в выбранное место'), run: glossExport });
-  if (MODE !== 'basic') {
+  if (MODE !== 'basic' && !ANDROID) {
     items.push({ sep: true });
     items.push({ label: t('Открыть папку словарей'), sub: GL.dir || 'data\\glossary', run: () => post('/api/open', { what: 'glossary' }).catch(e => toast(e.message)) });
   }
@@ -4593,6 +4626,14 @@ async function finishTest(results, started, totalMs, kind) {
       const r = await fetch('/api/report', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ markdown: md, json: report, kind: kind === 'quick' ? 'quick' : 'full' }) });
       const j = await r.json();
       sum.appendChild(el('div', 'note', t('Отчёт сохранён: {p}', { p: j.path || '' })));
+      if (ANDROID) {
+        const b = el('button', '', t('Сохранить отчёт в файл…'));
+        b.onclick = async () => {
+          try { const f = await ownSaveFile((j.path || 'test-report.md').split(/[\\/]/).pop(), md, 'md', t('Отчёт')); if (f) toast(t('Сохранено в файл {f}', { f })); }
+          catch (e) { toast(t('Не сохранено: {e}', { e: errText(e) })); }
+        };
+        sum.appendChild(b);
+      }
     } catch (e) { sum.appendChild(el('div', 'error', t('Не удалось сохранить отчёт: {e}', { e: e.message }))); }
   } else {
     const a = el('a'); a.href = URL.createObjectURL(new Blob([md], { type: 'text/markdown' }));
@@ -4603,8 +4644,58 @@ async function finishTest(results, started, totalMs, kind) {
 /* ===================== Панели и состояние программы ===================== */
 
 function showPane(which) {
+  const was = document.body.classList.contains('pane-open');
   for (const k of ['results', 'saved', 'test', 'settings', 'help', 'about']) $('#' + k + 'View').hidden = which !== k;
+  // узкое окно и телефон: панель — на месте рабочего окна (стили: @media 760px); прокрутка — к её началу, а при
+  // возвращении к вариантам — туда, где была
+  const open = which !== 'results';
+  document.body.classList.toggle('pane-open', open);
+  if (!narrow()) return;
+  const sc = document.scrollingElement || document.documentElement;
+  if (open && !was) paneScroll = sc.scrollTop;
+  if (open || was) sc.scrollTop = open ? 0 : paneScroll;
 }
+var paneScroll = 0;
+// узкое окно или телефон: одна колонка (как @media (max-width: 760px) в стилях)
+function narrow() { return window.matchMedia('(max-width: 760px)').matches; }
+
+// Узкое окно и телефон: при переводе — прокрутить к «Перевести», варианты появляются сразу под ней (клавиатура
+// телефона закрывается: она заслонила бы варианты).
+function showVariants() {
+  if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+  const sc = document.scrollingElement || document.documentElement;
+  const top = sc.scrollTop + $('#goBtn').getBoundingClientRect().top - $('header.top').getBoundingClientRect().height - 10;
+  if (top > sc.scrollTop) sc.scrollTo({ top, behavior: 'smooth' });
+}
+
+// Меню «⋮» шапки на телефоне: кнопки, которым там нет места (те же действия, что у кнопок).
+function moreMenu(anchor) {
+  const items = [];
+  const btn = (id, label, sub) => { const b = $('#' + id); if (!b.hidden) items.push({ label, sub, run: () => b.click() }); };
+  btn('savedBtn', t('Сохранённые'), $('#savedCount').textContent.trim());
+  btn('testBtn', t('Тест'), '');
+  btn('settingsBtn', t('Настройки'), '');
+  btn('helpBtn', t('Справка'), '');
+  btn('aboutBtn', t('О программе'), '');
+  const u = $('#unloadBtn'), q = $('#quitBtn');
+  if (!u.hidden || !q.hidden) items.push({ sep: true });
+  if (!u.hidden) items.push({ label: u.title, run: () => u.click() });
+  // выход из меню — сразу: выбрать «Выход» в меню — уже второй шаг (у кнопки шапки — второе нажатие)
+  if (!q.hidden) items.push({ label: t('Выход'), sub: q.title, run: () => { if (!quitTimer) quitApp(); quitApp(); } });
+  openPop(anchor, items);
+}
+
+// Кнопка «Назад» телефона (Android): закрыть открытое — окно приветствия, меню, панель; false — закрывать нечего
+// (тогда приложение уходит в фон, модель остаётся в памяти).
+window.ttwBack = function () {
+  if (!$('#welcomeView').hidden) { closeWelcome(); return true; }
+  if (!$('#popMenu').hidden) { closePop(); return true; }
+  if (!$('#modelMenu').hidden) { $('#modelMenu').hidden = true; return true; }
+  for (const k of ['saved', 'test', 'settings', 'help', 'about']) {
+    if (!$('#' + k + 'View').hidden) { $('#close' + k[0].toUpperCase() + k.slice(1) + 'Btn').click(); return true; }
+  }
+  return false;
+};
 
 function formError(msg) { $('#formError').textContent = msg || ''; }
 
@@ -5343,6 +5434,11 @@ function ownFromVariant(btn) {
 // числа (plural): ключ — русская форма для 1, значение — [[единственное, множественное], [Einzahl, Mehrzahl]].
 // Полноту переводов проверяет автотест source/tests/i18n_check.py.
 const I18N = {
+  // 1.2: телефон (Android)
+  'Меню': ['Menu', 'Menü', 'Menú', '菜单'],
+  'Сохранить отчёт в файл…': ['Save the report to a file…', 'Bericht in Datei speichern…', 'Guardar el informe en un archivo…', '将报告保存到文件…'],
+  'Отчёт': ['Report', 'Bericht', 'Informe', '报告'],
+  'Добро пожаловать! Переводчик работает на вашем устройстве, без интернета.': ['Welcome! The translator runs on your device, without the internet.', 'Willkommen! Der Übersetzer läuft auf Ihrem Gerät, ohne Internet.', '¡Bienvenido! El traductor funciona en su dispositivo, sin internet.', '欢迎！翻译器在您的设备上运行，无需联网。'],
   'Языки': ['Languages', 'Sprachen', 'Idiomas', '语言'],
   'Язык исходного текста': ['Language of the source text', 'Sprache des Ausgangstextes', 'Idioma del texto original', '原文语言'],
   'Язык исходного текста. «Авто» — определять по алфавиту и частым словам': ['Language of the source text. “Auto” detects it by the alphabet and frequent words', 'Sprache des Ausgangstextes. „Auto“ erkennt sie am Alphabet und an häufigen Wörtern', 'Idioma del texto original. «Auto» lo detecta por el alfabeto y las palabras frecuentes', '原文语言。“自动”根据字母和常用词识别语言'],
@@ -5935,7 +6031,7 @@ function fitSrc() {
   const top = t.scrollTop, cur = t.style.height;
   t.style.height = SRC_MIN + 'px';
   const want = t.scrollHeight + 2;
-  const spare = Math.max(0, box.getBoundingClientRect().height - ASK_MIN);
+  const spare = narrow() ? Math.max(0, window.innerHeight * 0.4 - SRC_MIN) : Math.max(0, box.getBoundingClientRect().height - ASK_MIN);
   const h = Math.max(SRC_MIN, Math.min(want, SRC_MIN + spare)) + 'px';
   t.style.height = h;
   if (h === cur) t.scrollTop = top;
@@ -5951,6 +6047,7 @@ function setFavicon() {
 
 function init() {
   translateStatic();
+  if (ANDROID) $('#welcomeIntro').textContent = t('Добро пожаловать! Переводчик работает на вашем устройстве, без интернета.');
   $('#logo').innerHTML = ICON.logo;
   setFavicon();
   $('#helpBtn').innerHTML = ICON.help;
@@ -6068,6 +6165,7 @@ function init() {
   $('#stopBtn').onclick = stop;
   $('#customStyle').addEventListener('input', () => { store.set('customStyle', $('#customStyle').value); formError(''); });
   $('#savedBtn').onclick = () => { showPane('saved'); renderSaved(); };
+  $('#moreBtn').onclick = (e) => { e.stopPropagation(); if (popAnchor === e.currentTarget) closePop(); else moreMenu(e.currentTarget); };
   $('#closeSavedBtn').onclick = () => { disarmField(); showPane('results'); };
   $('#savedFile').addEventListener('change', async () => {
     SV.file = $('#savedFile').value; store.set('savedFile', SV.file);

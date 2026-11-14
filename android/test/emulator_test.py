@@ -525,6 +525,12 @@ def check_page():
         page.start_work()
         shot('3-main-window')
         page.js('window.__ttTestMarker = 1')
+        # the phone layout (1.2): as wide as the screen, the header with «⋮», the page knows it is Android
+        lay = page.js("JSON.stringify({w: innerWidth, sw: document.documentElement.scrollWidth, android: document.documentElement.classList.contains('android'), "
+                      "more: !!document.querySelector('#moreBtn').getClientRects().length, settings: !!document.querySelector('#settingsBtn').getClientRects().length})")
+        lay = json.loads(lay)
+        ok(lay['android'] and lay['sw'] <= lay['w'] + 1 and lay['more'] and not lay['settings'],
+           'phone layout: as wide as the screen, the header menu «⋮», html.android: %s' % lay)
         # a translation in the page, as the user does it
         texts, dt = translate(page, 'Good morning! The weather is nice today.')
         ok(texts, 'the page translated through the engine in %.1f s: %d variants (the first: %r)' % (dt, len(texts), (texts or [''])[0][:50]))
@@ -545,6 +551,19 @@ def check_page():
         page.click('#settingsBtn')
         time.sleep(0.8)
         shot('5-settings')
+        # «Назад» of the phone: first the pane closes (the app stays in front), then the app goes to the background
+        adb('shell', 'input', 'keyevent', 'KEYCODE_BACK')
+        time.sleep(1.5)
+        top = sh('dumpsys activity activities | grep -E "mResumedActivity|topResumedActivity"')
+        ok(page.js("document.querySelector('#settingsView').hidden && !document.querySelector('#resultsView').hidden") and PKG in top,
+           '«Назад» of the phone closes «Настройки», the app stays in front')
+        adb('shell', 'input', 'keyevent', 'KEYCODE_BACK')
+        time.sleep(1.5)
+        top = sh('dumpsys activity activities | grep -E "mResumedActivity|topResumedActivity"')
+        ok(PKG not in top and alive(), '«Назад» with nothing open: the app goes to the background, the launcher stays: %s' % top.strip()[:120])
+        adb('shell', 'am', 'start', '-W', '-n', ACT, timeout=60)
+        time.sleep(1.5)
+        ok(page.js('window.__ttTestMarker') == 1, 'back in front after «Назад»: the same page')
         page.reload()
         ok(page.ready(60), 'the page loads again (reload)')
         # the Chinese interface: the fonts of the phone

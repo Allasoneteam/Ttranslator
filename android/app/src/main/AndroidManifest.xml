@@ -7,8 +7,11 @@
     <uses-permission android:name="android.permission.INTERNET" />
 
     <!-- hasFragileUserData: when the app is removed, Android 10+ offers to keep its data (the models: gigabytes) -->
+    <!-- enableOnBackInvokedCallback: «Назад» of the phone comes to the app's callback (Android 13+), which lets the
+         page close an open menu or pane first -->
     <application
         android:allowBackup="false"
+        android:enableOnBackInvokedCallback="true"
         android:hasFragileUserData="true"
         android:icon="@mipmap/ic_launcher"
         android:label="Ttranslator"

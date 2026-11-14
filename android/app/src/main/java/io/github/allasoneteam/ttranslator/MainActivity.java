@@ -33,6 +33,7 @@ import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.Button;
+import android.window.OnBackInvokedDispatcher;
 import android.widget.FrameLayout;
 import android.widget.LinearLayout;
 import android.widget.TextView;
@@ -68,6 +69,7 @@ public class MainActivity extends Activity {
     private static final String WINDOW_FUNCTIONS = "<script>/* Ttranslator for Android: the functions of the app window */\n"
         + "(function () {\n"
         + "  var B = window.TtwAndroid; if (!B) return;\n"
+        + "  window.ttwPlatform = 'android';\n"
         + "  var seq = 0, wait = {};\n"
         + "  window.__ttwDone = function (id, r) { var f = wait[id]; delete wait[id]; if (f) f(r || {}); };\n"
         + "  function call(fn) { return new Promise(function (res, rej) { var id = ++seq;\n"
@@ -142,7 +144,31 @@ public class MainActivity extends Activity {
         overlay.addView(retryBtn);
         root.addView(overlay, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
         setContentView(root);
+        // «Назад» of the phone: Android 13+ (and from 16 the only way) through the callback, older ones onBackPressed
+        if (Build.VERSION.SDK_INT >= 33) {
+            getOnBackInvokedDispatcher().registerOnBackInvokedCallback(OnBackInvokedDispatcher.PRIORITY_DEFAULT, this::back);
+        }
         start();
+    }
+
+    @Override
+    public void onBackPressed() {
+        back();
+    }
+
+    /**
+     * «Назад»: the page first closes what is open (a menu, a pane such as «Настройки», the welcome window: ttwBack);
+     * with nothing to close the app goes to the background — the launcher and the loaded model stay.
+     */
+    private void back() {
+        if (web == null || !pageShown) {
+            moveTaskToBack(true);
+            return;
+        }
+        web.evaluateJavascript("(function () { try { return !!(window.ttwBack && window.ttwBack()); } catch (e) { return false; } })()",
+            v -> {
+                if (!"true".equals(v)) moveTaskToBack(true);
+            });
     }
 
     private void setUpWebView(WebView w) {
@@ -480,7 +506,8 @@ public class MainActivity extends Activity {
                 saveText = text;
                 Intent i = new Intent(Intent.ACTION_CREATE_DOCUMENT);
                 i.addCategory(Intent.CATEGORY_OPENABLE);
-                i.setType("txt".equals(ext) ? "text/plain" : "tsv".equals(ext) ? "text/tab-separated-values" : "application/octet-stream");
+                i.setType("txt".equals(ext) ? "text/plain" : "tsv".equals(ext) ? "text/tab-separated-values"
+                    : "md".equals(ext) ? "text/markdown" : "application/octet-stream");
                 i.putExtra(Intent.EXTRA_TITLE, name);
                 try {
                     startActivityForResult(i, REQ_SAVE);
