@@ -236,10 +236,17 @@ jobs:
           "$bt/apksigner" sign --ks "$ks" --ks-type PKCS12 --ks-key-alias ttranslator --ks-pass env:KS_PASS --key-pass env:KS_PASS \
             --out "signed/$name" "$RUNNER_TEMP/aligned.apk"
           rm -f "$ks"
-          "$bt/apksigner" verify --verbose --print-certs "signed/$name" | tee "$RUNNER_TEMP/verify.txt"
-          got=$(sed -n 's/^Signer #1 certificate SHA-256 digest: //p' "$RUNNER_TEMP/verify.txt" | tr -d ' :' | tr a-f A-F)
+          v=$RUNNER_TEMP/verify.txt
+          if ! "$bt/apksigner" verify --verbose --print-certs "signed/$name" > "$v" 2>&1; then
+            head -n 30 "$v" | while IFS= read -r l; do echo "::error title=apksigner verify::$l"; done; exit 1
+          fi
+          cat "$v"
+          got=$(grep -i 'certificate SHA-256 digest' "$v" | head -n 1 | sed 's/.*digest:[[:space:]]*//' | tr -d ' :\r' | tr a-f A-F)
           want=$(tr -d ' :\n\r' < android/signing-cert-sha256.txt | tr a-f A-F)
-          [ -n "$got" ] && [ "$got" = "$want" ] || { echo "::error::the APK is signed with another certificate: $got (want $want)"; exit 1; }
+          if [ -z "$got" ] || [ "$got" != "$want" ]; then
+            grep -v '^WARNING' "$v" | head -n 30 | while IFS= read -r l; do echo "::notice title=apksigner::$l"; done
+            echo "::error::the APK is signed with another certificate: '$got' (want $want)"; exit 1
+          fi
           (cd signed && sha256sum "$name" | tee "$name.sha256")
           echo "::notice title=APK::$(cat "signed/$name.sha256"), certificate SHA-256 $got"
           echo "APKSIGNED=$name" >> "$GITHUB_ENV"
