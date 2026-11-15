@@ -100,6 +100,9 @@ fetch_cached espeak-ng-data.tar.bz2 4135ccf82e1f40613491c0874d4945ae9e9c7840933d
 # v0.9.4: the Spanish voice of the catalogue (speaker F of a two-speaker model); its entry is taken from tts.go
 fetch_cached vits-piper-es_ES-sharvard-medium.tar.bz2 b30a7a83df0518f0ee1c7039506648cade99f1f9b498fc49ed2ced2e2536bb5a \
   https://github.com/k2-fsa/sherpa-onnx/releases/download/tts-models/vits-piper-es_ES-sharvard-medium.tar.bz2
+# 1.3: Supertonic 3 — one model for 13 languages of the program (129 MB); its entries are taken from tts.go
+fetch_cached sherpa-onnx-supertonic-3-tts-int8-2026-05-11.tar.bz2 82fa96f91c4ef8abaae3a14a3f4153facf88bed821d1f7331cec2700f432c427 \
+  https://github.com/k2-fsa/sherpa-onnx/releases/download/tts-models/sherpa-onnx-supertonic-3-tts-int8-2026-05-11.tar.bz2
 (cd "$SRC/launcher" && TDOC_DUMP_VOICES="$W/catalogue.json" go test -count=1 -run '^TestDumpVoiceCatalog$' . > /dev/null) \
   || { echo "ERROR: voice catalogue (TestDumpVoiceCatalog)"; exit 1; }
 # the parts of a test voice: the model and tokens.txt of the LJSpeech archive as separate files (a voice made of parts,
@@ -149,6 +152,10 @@ json.dump([es, zh], open(os.path.join(w, 'voices093.json'), 'w'), ensure_ascii=F
 cat = json.load(open(os.path.join(w, 'catalogue.json'), encoding='utf-8'))
 sp = [dict(v, url='http://127.0.0.1:18080/' + os.path.basename(v['url'])) for v in cat['voices'] if v['id'] == 'es-sharvard-f']
 json.dump(sp, open(os.path.join(w, 'voices094.json'), 'w'), ensure_ascii=False, indent=1)
+# 1.3: the Supertonic entries exactly as in the catalogue of tts.go, and the Russian Piper voice Dmitri, from the mirror
+st = [dict(v, url='http://127.0.0.1:18080/' + os.path.basename(v['url'])) for v in cat['voices'] if v.get('engine') == 'supertonic']
+json.dump(st + [voice('ru-dmitri', 'ru', 'Dmitri', 'male', 'CC0', False, 'ru_RU-dmitri-medium')],
+          open(os.path.join(w, 'voices13.json'), 'w'), ensure_ascii=False, indent=1)
 PY
 python3 "$T/mirror_server.py" "$W/mirror" $MIRROR 8000000 > "$W/mirror.log" 2>&1 &
 PIDS="$PIDS $!"
@@ -269,6 +276,14 @@ start_launcher "$W/r17" 18790
 make_ready 18790
 run "e2e v1.2: the phone screen (Android): header «⋮», one column, panes, «Назад»; the computer as before" \
   python3 "$T/e2e_v12_phone.py" "$W" http://127.0.0.1:18790/
+
+# 1.3: the Supertonic 3 voice (the real model and sherpa-onnx from the mirror): one row for 13 languages, download,
+# speech in Japanese, Korean, Hindi, Arabic, Greek, the speakers, a Piper voice for one language, delete; the new
+# translation languages Japanese, Korean, Hindi («Авто», reading aloud)
+XENV="TDOC_TTS_URL=http://127.0.0.1:$MIRROR/$TTS TDOC_TEST_VOICES=$W/voices13.json" start_launcher "$W/r18" 18791
+make_ready 18791
+run "e2e v1.3: Supertonic 3 for 13 languages (download, speakers, choice, delete); Japanese, Korean, Hindi" \
+  python3 "$T/e2e_v13.py" "$W" http://127.0.0.1:18791/ "$W/r18"
 
 # v0.9.1–0.9.3: the app window (ttranslator-window, source/window): the Windows program builds and needs only system
 # DLLs; the Linux program on WebKitGTK under a virtual screen (with openbox, if there is one: the maximized start) —

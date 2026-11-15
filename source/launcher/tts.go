@@ -103,7 +103,11 @@ type VoiceSpec struct {
 	Via     string      `json:"via,omitempty"`     // the voice's own language when it reads another one (Latin: "it")
 	Respell string      `json:"respell,omitempty"` // the text is respelled first: "la-church" — Latin in Italian spelling, "la-classical" — the stress marked for espeak-ng's Latin (latin.go)
 	Espeak  string      `json:"espeak,omitempty"`  // the voice reads with this espeak-ng voice instead of its own: a copy of its model (espeakModel)
+	Engine  string      `json:"engine,omitempty"`  // "" — a Piper voice (VITS); engineSupertonic — the Supertonic 3 model (one archive for many languages)
 }
+
+// engineSupertonic: a catalogue entry of the Supertonic 3 model (supertonicCatalog).
+const engineSupertonic = "supertonic"
 
 // VoicePart is one file of a voice made of parts; an archive (.tar.bz2) is unpacked into the voice's folder.
 type VoicePart struct {
@@ -175,6 +179,48 @@ func partsVoice(id, lang, name, gender, license string, nc bool, voice string, p
 var espeakPart = VoicePart{URL: voiceRelease + "espeak-ng-data.tar.bz2", File: "espeak-ng-data.tar.bz2", Size: 7252012,
 	SHA256: "4135ccf82e1f40613491c0874d4945ae9e9c7840933d8e25a6f9e003d9ebf533"}
 
+// Supertonic 3 (Supertone; author's request of 15.11.2026 after listening to samples: "one voice for all languages,
+// perhaps by default"): one model of the official sherpa-onnx release (tts-models; sherpa-onnx supports it since
+// v1.13.2) reads 31 languages — all of the program's but Chinese and Latin — with 10 speakers (sid 0–4 female F1–F5,
+// 5–9 male M1–M5); the language is given with --lang, the text needs no espeak-ng. Checked 15.11.2026 with Whisper
+// turbo (Arabic, Greek, Hindi, Japanese, Korean: 0–3 % of the characters wrong); numbers are sometimes read wrongly
+// in Russian, German and Arabic. Licence of the model: OpenRAIL-M (use-based restrictions: no impersonation, no
+// hiding that the speech is synthetic), the code MIT. The catalogue has one entry per language, all in one folder:
+// the archive is downloaded once, choosing it makes it the voice of every language it reads (chooseVoice), deleting
+// it deletes it for all; the speaker is config.json "supertonic_speaker".
+const (
+	supertonicDir      = "sherpa-onnx-supertonic-3-tts-int8-2026-05-11"
+	supertonicSize     = 128774318
+	supertonicSHA256   = "82fa96f91c4ef8abaae3a14a3f4153facf88bed821d1f7331cec2700f432c427"
+	supertonicSpeakers = 10
+	supertonicPage     = "https://huggingface.co/spaces/Supertone/supertonic-3"
+)
+
+// supertonicFiles: the model's files in its folder (the program needs all of them).
+var supertonicFiles = []string{"duration_predictor.int8.onnx", "text_encoder.int8.onnx", "vector_estimator.int8.onnx",
+	"vocoder.int8.onnx", "tts.json", "unicode_indexer.bin", "voice.bin"}
+
+// supertonicLangs: the languages of the program that Supertonic 3 reads (its codes are the program's).
+var supertonicLangs = []string{"ru", "en", "de", "fr", "es", "el", "sv", "it", "pt", "ar", "ja", "ko", "hi"}
+
+func supertonicCatalog() []VoiceSpec {
+	vs := make([]VoiceSpec, 0, len(supertonicLangs))
+	for _, l := range supertonicLangs {
+		vs = append(vs, VoiceSpec{ID: "supertonic-" + l, Lang: l, Name: "Supertonic", Gender: "female", License: "OpenRAIL-M",
+			Engine: engineSupertonic, Dir: supertonicDir, Model: "text_encoder.int8.onnx",
+			URL: voiceRelease + supertonicDir + ".tar.bz2", Page: supertonicPage, Size: supertonicSize, SHA256: supertonicSHA256})
+	}
+	return vs
+}
+
+// supertonicGender: sid 0–4 are the female speakers, 5–9 the male ones (by the pitch of their voices).
+func supertonicGender(sid int) string {
+	if sid >= supertonicSpeakers/2 {
+		return "male"
+	}
+	return "female"
+}
+
 // The voices chosen by the author (21.10.2026; Chinese 22.10.2026, Spanish 22.10.2026 — see below) and, for
 // Russian and English, a voice with a free licence. 1.1 (13–14.11.2026, the author's request after listening to
 // 25 voices of an experiment: "the especially good ones, without repeats"): French gets two voices, and English,
@@ -188,7 +234,9 @@ var espeakPart = VoicePart{URL: voiceRelease + "espeak-ng-data.tar.bz2", File: "
 // the model itself (the same with the original Piper file; trained on long audiobook passages), which is probably
 // why sherpa-onnx leaves the MLS voices out of its release. The author chose instead the female speaker (F, sid 1)
 // of the two-speaker es_ES-sharvard-medium.
-var voiceSpecs = []VoiceSpec{
+//
+// Supertonic comes first: once downloaded, it reads every language that has no voice chosen for it (activeVoiceID).
+var voiceSpecs = append(supertonicCatalog(), []VoiceSpec{
 	piperVoice("ru-ruslan", "ru", "Ruslan", "male", "CC BY-NC-SA 4.0", true, "ru_RU-ruslan-medium", 67210684,
 		"0690b1cad01f86e8db9ba988af24898bdc1af774e23cb2e46b9c730269b6fd83"),
 	piperVoice("ru-dmitri", "ru", "Dmitri", "male", "CC0", false, "ru_RU-dmitri-medium", 67188551,
@@ -240,7 +288,7 @@ var voiceSpecs = []VoiceSpec{
 		"8ad0791558ae2b3e96054fc5756ae3ae2f6457fb1765bc01f43bbab85e0a7021"),
 	piperVoice("pt-faber", "pt", "Faber", "male", "CC0", false, "pt_BR-faber-medium", 67183065,
 		"7add3f923ad6bc25ca8a192805fd1a64d1b3893e4611c4a9719545a825039a83"),
-}
+}...)
 
 // Test hooks, used only when the environment variables are set: TDOC_TTS_URL replaces the sherpa-onnx archive
 // URL (size and checksum are then not checked), TDOC_TEST_VOICES points to a JSON list of VoiceSpec.
@@ -314,6 +362,14 @@ func (a *App) removeVoiceDownloads(v *VoiceSpec) {
 
 func (a *App) voicePresent(v *VoiceSpec) bool {
 	d := a.voiceDir(v)
+	if v.Engine == engineSupertonic {
+		for _, f := range supertonicFiles {
+			if st, err := os.Stat(filepath.Join(d, f)); err != nil || st.IsDir() || st.Size() == 0 {
+				return false
+			}
+		}
+		return true
+	}
 	need := []string{v.Model, "tokens.txt"}
 	if v.Lexicon != "" {
 		need = append(append(need, v.Lexicon), v.Rules...)
@@ -329,6 +385,34 @@ func (a *App) voicePresent(v *VoiceSpec) bool {
 	}
 	st, err := os.Stat(filepath.Join(d, "espeak-ng-data"))
 	return err == nil && st.IsDir()
+}
+
+// chooseVoice makes v the voice of its language (config.json "voices"); a Supertonic entry — of every language
+// Supertonic reads: one choice for all of them (author's request of 15.11.2026). A Piper voice chosen afterwards
+// replaces it for its own language only. Caller holds a.mu.
+func (a *App) chooseVoice(v *VoiceSpec) {
+	if a.cfg.Voices == nil {
+		a.cfg.Voices = map[string]string{}
+	}
+	if v.Engine == engineSupertonic {
+		for i := range voiceSpecs {
+			if voiceSpecs[i].Engine == engineSupertonic && voiceSpecs[i].Dir == v.Dir {
+				a.cfg.Voices[voiceSpecs[i].Lang] = voiceSpecs[i].ID
+			}
+		}
+	} else {
+		a.cfg.Voices[v.Lang] = v.ID
+	}
+	a.saveConfig(a.cfg)
+}
+
+// supertonicSpeaker: the Supertonic speaker chosen in the voice menu (config.json "supertonic_speaker", 0–9).
+// Caller holds a.mu.
+func (a *App) supertonicSpeaker() int {
+	if s := a.cfg.SupertonicSpeaker; s >= 0 && s < supertonicSpeakers {
+		return s
+	}
+	return 0
 }
 
 // activeVoiceID is the voice that reads a language: the one chosen for it (config.json "voices"), or else the
@@ -422,6 +506,7 @@ func (a *App) ttsStateJSON() map[string]any {
 	pkg, ok := currentTTSPackage()
 	u := a.ttsURL(pkg)
 	exe := a.ttsExe()
+	speaker := a.supertonicSpeaker()
 	voices := []map[string]any{}
 	for i := range voiceSpecs {
 		v := &voiceSpecs[i]
@@ -434,10 +519,14 @@ func (a *App) ttsStateJSON() map[string]any {
 		for _, p := range voiceParts(v) {
 			parts = append(parts, map[string]any{"url": p.URL, "file": p.File, "size": p.Size})
 		}
+		gender := v.Gender
+		if v.Engine == engineSupertonic {
+			gender = supertonicGender(speaker)
+		}
 		voices = append(voices, map[string]any{
-			"id": v.ID, "lang": v.Lang, "name": v.Name, "gender": v.Gender, "license": v.License, "nc": v.NC,
+			"id": v.ID, "lang": v.Lang, "name": v.Name, "gender": gender, "license": v.License, "nc": v.NC,
 			"url": v.URL, "page": v.Page, "file": path.Base(v.URL), "size": v.Size, "parts": parts, "via": v.Via, "respell": v.Respell,
-			"present": present, "active": present && a.activeVoiceID(v.Lang) == v.ID, "partial": partial,
+			"present": present, "active": present && a.activeVoiceID(v.Lang) == v.ID, "partial": partial, "engine": v.Engine,
 		})
 	}
 	return map[string]any{
@@ -448,6 +537,7 @@ func (a *App) ttsStateJSON() map[string]any {
 		"voices":     voices,
 		"voices_dir": a.voicesDir(),
 		"download":   a.vdl,
+		"supertonic": map[string]any{"speaker": speaker, "speakers": supertonicSpeakers},
 	}
 }
 
@@ -506,12 +596,8 @@ func (a *App) startVoiceDownload(v *VoiceSpec) error {
 			logger.Printf("voice download failed: %v", err)
 		} else if v != nil {
 			a.vdl.Error = ""
-			// the voice just downloaded is the one the user wants to hear
-			if a.cfg.Voices == nil {
-				a.cfg.Voices = map[string]string{}
-			}
-			a.cfg.Voices[v.Lang] = v.ID
-			a.saveConfig(a.cfg)
+			// the voice just downloaded is the one the user wants to hear (Supertonic: in every language it reads)
+			a.chooseVoice(v)
 		} else {
 			a.vdl.Error = ""
 		}
@@ -665,7 +751,32 @@ func ttsThreads() int {
 // command line in the system code page, and the folder of the program may have any letters in its name.
 // "--" ends the options, so a text that starts with "--" is still text.
 func ttsArgs(v *VoiceSpec, text string, speed float64, out string) []string {
-	args := []string{
+	var args []string
+	if v.Engine == engineSupertonic {
+		f := func(name string) string { return v.Dir + "/" + name }
+		lang := v.Lang
+		if v.Via != "" {
+			lang = v.Via
+		}
+		args = []string{
+			"--supertonic-duration-predictor=" + f("duration_predictor.int8.onnx"),
+			"--supertonic-text-encoder=" + f("text_encoder.int8.onnx"),
+			"--supertonic-vector-estimator=" + f("vector_estimator.int8.onnx"),
+			"--supertonic-vocoder=" + f("vocoder.int8.onnx"),
+			"--supertonic-tts-json=" + f("tts.json"),
+			"--supertonic-unicode-indexer=" + f("unicode_indexer.bin"),
+			"--supertonic-voice-style=" + f("voice.bin"),
+			"--lang=" + lang,
+		}
+		return append(args,
+			"--num-threads="+strconv.Itoa(ttsThreads()),
+			"--sid="+strconv.Itoa(v.SID),
+			"--speed="+strconv.FormatFloat(speed, 'f', 2, 64),
+			"--output-filename="+out,
+			"--", text,
+		)
+	}
+	args = []string{
 		"--vits-model=" + v.Dir + "/" + v.Model,
 		"--vits-tokens=" + v.Dir + "/tokens.txt",
 	}
@@ -918,11 +1029,7 @@ func (a *App) ttsRoutes(mux *http.ServeMux) {
 		a.mu.Lock()
 		present := a.voicePresent(v) && a.ttsExe() != ""
 		if present {
-			if a.cfg.Voices == nil {
-				a.cfg.Voices = map[string]string{}
-			}
-			a.cfg.Voices[v.Lang] = v.ID
-			a.saveConfig(a.cfg)
+			a.chooseVoice(v)
 		}
 		a.mu.Unlock()
 		if !present {
@@ -945,6 +1052,22 @@ func (a *App) ttsRoutes(mux *http.ServeMux) {
 			}
 		}
 		writeJSON(w, 200, map[string]any{"ok": true})
+	}))
+	// the Supertonic speaker (0–9: female F1–F5, male M1–M5) for every language it reads
+	mux.HandleFunc("/api/voice-speaker", a.post(func(w http.ResponseWriter, r *http.Request) {
+		var req struct {
+			Speaker *int `json:"speaker"`
+		}
+		err := json.NewDecoder(io.LimitReader(r.Body, 4096)).Decode(&req)
+		if err != nil || req.Speaker == nil || *req.Speaker < 0 || *req.Speaker >= supertonicSpeakers {
+			jsonError(w, 400, tr("неверное значение настройки"))
+			return
+		}
+		a.mu.Lock()
+		a.cfg.SupertonicSpeaker = *req.Speaker
+		a.saveConfig(a.cfg)
+		a.mu.Unlock()
+		writeJSON(w, 200, map[string]any{"ok": true, "speaker": *req.Speaker})
 	}))
 	mux.HandleFunc("/api/voice-cancel", a.post(func(w http.ResponseWriter, r *http.Request) {
 		a.mu.Lock()
@@ -980,8 +1103,15 @@ func (a *App) ttsRoutes(mux *http.ServeMux) {
 		}
 		a.removeVoiceDownloads(v)
 		a.mu.Lock()
-		if a.cfg.Voices[v.Lang] == v.ID {
-			delete(a.cfg.Voices, v.Lang)
+		// every language whose voice was in that folder (Supertonic: all of its languages; Paola: Latin and Italian)
+		changed := false
+		for l, id := range a.cfg.Voices {
+			if id == v.ID || sameVoiceDir(id, v) {
+				delete(a.cfg.Voices, l)
+				changed = true
+			}
+		}
+		if changed {
 			a.saveConfig(a.cfg)
 		}
 		a.mu.Unlock()
@@ -994,6 +1124,7 @@ func (a *App) ttsRoutes(mux *http.ServeMux) {
 			Lang  string  `json:"lang"`
 			Text  string  `json:"text"`
 			Speed float64 `json:"speed"`
+			Voice string  `json:"voice"` // a voice of that language instead of the chosen one (the sample of a Supertonic speaker)
 		}
 		if err := json.NewDecoder(io.LimitReader(r.Body, 64*1024)).Decode(&req); err != nil {
 			jsonError(w, 400, tr("неверный запрос"))
@@ -1015,6 +1146,15 @@ func (a *App) ttsRoutes(mux *http.ServeMux) {
 		a.mu.Lock()
 		exe := a.ttsExe()
 		v := findVoice(a.activeVoiceID(req.Lang))
+		if req.Voice != "" {
+			v = findVoice(req.Voice)
+			if v != nil && (v.Lang != req.Lang || !a.voicePresent(v)) {
+				v = nil
+			}
+		}
+		if v != nil && v.Engine == engineSupertonic {
+			v.SID = a.supertonicSpeaker() // findVoice returns a copy
+		}
 		a.mu.Unlock()
 		if exe == "" || v == nil {
 			jsonError(w, 409, tr("для этого языка нет скачанного голоса"))

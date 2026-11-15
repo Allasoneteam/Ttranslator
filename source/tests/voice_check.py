@@ -89,12 +89,27 @@ PHRASES = {
     "ar": ["مرحبا.", "صباح الخير.", "القطة تنام في البيت على الأريكة.", "أحب أن أقرأ الكتب في المساء.",
            "غدا سنزور جدي وجدتي في القرية.", "يغادر القطار في الصباح الباكر ويصل إلى عمان في المساء.",
            "تعمل أختي في مستشفى قرب البحر.", "هل يمكنك إغلاق النافذة من فضلك؟"],
+    # 1.3: Japanese, Korean, Hindi (read by Supertonic). Whisper base of sherpa-onnx-offline v1.13.7 loses tokens that hold
+    # half a character (it decodes every token on its own): for these three languages many letters go missing from what
+    # it heard, so the numbers here are too high — measured 15.11.2026 with Whisper turbo and a decoder that joins the
+    # bytes of the tokens: Supertonic 0–3 % of the characters wrong
+    "ja": ["こんにちは。", "おはようございます。", "猫は家のソファーで寝ています。", "私は夜に本を読むのが好きです。",
+           "明日、私たちは田舎の祖父母を訪ねます。", "電車は朝早く出発して、夕方に東京に着きます。",
+           "姉は海の近くの病院で働いています。", "窓を閉めていただけますか。"],
+    "ko": ["안녕하세요.", "좋은 아침입니다.", "고양이가 집에서 소파 위에 자고 있어요.", "저는 저녁에 책 읽는 것을 좋아해요.",
+           "내일 우리는 시골에 계신 조부모님을 찾아갈 거예요.", "기차는 아침 일찍 출발해서 저녁에 서울에 도착해요.",
+           "제 언니는 바닷가 근처 병원에서 일해요.", "창문 좀 닫아 주시겠어요?"],
+    "hi": ["नमस्ते।", "सुप्रभात।", "बिल्ली घर में सोफ़े पर सो रही है।", "मुझे शाम को किताबें पढ़ना पसंद है।",
+           "कल हम गाँव में अपने दादा-दादी से मिलने जाएँगे।", "ट्रेन सुबह जल्दी निकलती है और शाम को दिल्ली पहुँचती है।",
+           "मेरी बहन समुद्र के पास एक अस्पताल में काम करती है।", "क्या आप कृपया खिड़की बंद कर देंगे?"],
     # Latin is read by an Italian voice in Italian spelling (latin.go): the phrases are respelled as the app does it,
     # and Whisper listens in Italian (the voice's own language) and is compared with the respelled text
     "la": ["Salve.", "Gratias tibi.", "Puella in horto cum cane ambulat.", "Libros legere vesperi mihi placet.",
            "Cras avum et aviam in villa visitabimus.", "Navis mane solvit et vesperi in portum venit.",
            "Soror mea in valetudinario prope mare laborat.", "Claude, quaeso, fenestram cubiculi."],
 }
+# speech much longer than the text needs: seconds per character on average and in the worst phrase
+SLOW = {"zh": (0.45, 0.60), "ja": (0.45, 0.60), "ko": (0.30, 0.45), "ar": (0.15, 0.25)}
 # characters Whisper may write in the traditional form
 TRAD = str.maketrans("貓裡歡書們鄉車達爺發這個時間後來樣頭說話覺見", "猫里欢书们乡车达爷发这个时间后来样头说话觉见")
 
@@ -201,6 +216,10 @@ def espeak_model(vd, v):
 def install_voice(work, v):
     """The voice's folder under <work>/voices, as the app puts it together."""
     vd = os.path.join(work, "voices", v["dir"])
+    if v.get("engine") == "supertonic":   # 1.3: one archive (Dir) for every language it reads
+        if not os.path.exists(os.path.join(vd, "voice.bin")):
+            untar(fetch(work, v["url"], os.path.basename(v["url"]), v["size"], v["sha256"]), os.path.join(work, "voices"))
+        return vd
     if os.path.exists(os.path.join(vd, v["model"])) and os.path.exists(os.path.join(vd, "tokens.txt")):
         return vd
     parts = v.get("parts") or [{"url": v["url"], "file": os.path.basename(v["url"]), "size": v["size"], "sha256": v["sha256"]}]
@@ -226,8 +245,8 @@ def wav_seconds(path):
 def words(s, lang):
     s = unicodedata.normalize("NFD", s.lower())
     s = "".join(c for c in s if unicodedata.category(c) != "Mn")
-    if lang == "zh":
-        s = s.translate(TRAD)
+    if lang in ("zh", "ja", "ko"):
+        s = s.translate(TRAD) if lang == "zh" else unicodedata.normalize("NFC", s)
         return [c for c in s if unicodedata.category(c).startswith("L")]
     return re.sub(r"[^\w\s]", " ", s).split()
 
@@ -286,13 +305,22 @@ def main():
             out = os.path.join(speech, "%s-%d.wav" % (v["id"], i))
             cmd = [os.path.join(top, "bin", "sherpa-onnx-offline-tts"), "--vits-model=%s/%s" % (rel, model),
                    "--vits-tokens=%s/tokens.txt" % rel]
-            if v.get("lexicon"):
+            if v.get("engine") == "supertonic":   # 1.3: as ttsArgs in tts.go; the speaker — TDOC_SUPERTONIC_SID (0–9)
+                cmd = [os.path.join(top, "bin", "sherpa-onnx-offline-tts")] + [
+                    "--supertonic-%s=%s/%s" % (o, rel, f) for o, f in (
+                        ("duration-predictor", "duration_predictor.int8.onnx"), ("text-encoder", "text_encoder.int8.onnx"),
+                        ("vector-estimator", "vector_estimator.int8.onnx"), ("vocoder", "vocoder.int8.onnx"),
+                        ("tts-json", "tts.json"), ("unicode-indexer", "unicode_indexer.bin"), ("voice-style", "voice.bin"))]
+                cmd += ["--lang=" + lang, "--num-threads=4", "--sid=" + os.environ.get("TDOC_SUPERTONIC_SID", "0"),
+                        "--speed=1.00", "--output-filename=" + out, "--", text]
+            elif v.get("lexicon"):
                 cmd.append("--vits-lexicon=%s/%s" % (rel, v["lexicon"]))
                 if v.get("rules"):
                     cmd.append("--tts-rule-fsts=" + ",".join("%s/%s" % (rel, r) for r in v["rules"]))
             else:
                 cmd.append("--vits-data-dir=%s/espeak-ng-data" % rel)
-            cmd += ["--num-threads=4", "--sid=%d" % v.get("sid", 0), "--speed=1.00", "--output-filename=" + out, "--", text]
+            if v.get("engine") != "supertonic":
+                cmd += ["--num-threads=4", "--sid=%d" % v.get("sid", 0), "--speed=1.00", "--output-filename=" + out, "--", text]
             r = subprocess.run(cmd, cwd=os.path.join(work, "voices"), env=env, capture_output=True, text=True)
             if r.returncode != 0 or not os.path.exists(out):
                 fail("%s: sherpa-onnx-offline-tts failed:\n%s" % (v["id"], (r.stdout + r.stderr)[-2000:]))
@@ -308,8 +336,8 @@ def main():
             fail("%s: Whisper failed:\n%s" % (v["id"], (r.stdout + r.stderr)[-2000:]))
         for x, h in zip(rows, heard):
             x[3] = json.loads('"%s"' % h).strip()
-        zh = lang == "zh"
-        # the six longer phrases: four words and more (Chinese: six characters and more)
+        zh = lang in ("zh", "ja", "ko")   # counted in characters (1.3: Japanese and Korean too)
+        # the six longer phrases: four words and more (Chinese, Japanese, Korean: six characters and more)
         scored = [x for x in rows if (len(words(x[0], lang)) >= 6 if zh else len(x[0].split()) >= 4)]
         per_char = sum(x[2] for x in scored) / sum(len(x[0]) for x in scored)
         worst = max(x[2] / len(x[0]) for x in scored)
@@ -317,7 +345,10 @@ def main():
         # Italian words, so the letters are compared, not the words
         by_letters = bool(v.get("via"))
         errors = sum(error_rate(x[0], x[3], lang, by_letters) for x in scored) / len(scored)
-        slow = per_char > (0.45 if zh else 0.09) or worst > (0.60 if zh else 0.16)
+        # a character of Chinese or Japanese is a syllable or a mora, of Korean a syllable; Arabic writes no short
+        # vowels (1.3: Supertonic measured 0.12 s per character in Arabic, 0.16 in Korean, 0.20 in Japanese)
+        lim = SLOW.get(lang, (0.09, 0.16))
+        slow = per_char > lim[0] or worst > lim[1]
         verdict = " ".join(w for w, f in (("SLOW", slow), ("WORDS", errors > 0.6)) if f) or "ok"
         bad += verdict != "ok"
         print("%-16s %-4s %8.3f %8.3f %7.0f%%  %s" % (v["id"], lang, per_char, worst, 100 * errors, verdict), flush=True)

@@ -32,8 +32,10 @@ var hfPinned = regexp.MustCompile(`^https://huggingface\.co/csukuangfj/vits-pipe
 // the voices: official sherpa-onnx archives (or parts), pinned size and checksum, a known language, a licence
 func TestVoiceCatalog(t *testing.T) {
 	langs := map[string]bool{"ru": true, "en": true, "de": true, "fr": true, "es": true, "el": true, "zh": true, "la": true, "sv": true,
-		"it": true, "pt": true, "ar": true} // 1.2: Italian, Portuguese, Arabic
+		"it": true, "pt": true, "ar": true, // 1.2: Italian, Portuguese, Arabic
+		"ja": true, "ko": true, "hi": true} // 1.3: Japanese, Korean, Hindi
 	seen := map[string]bool{}
+	piperSeen := false
 	for _, v := range voiceSpecs {
 		if seen[v.ID] {
 			t.Errorf("%s: duplicate id", v.ID)
@@ -42,6 +44,20 @@ func TestVoiceCatalog(t *testing.T) {
 		if !langs[v.Lang] || v.Name == "" || v.License == "" || (v.Gender != "female" && v.Gender != "male") {
 			t.Errorf("%s: language, name, licence or gender: %+v", v.ID, v)
 		}
+		// Supertonic 3 (1.3): one archive of the sherpa-onnx release for every language it reads; its entries come
+		// first, so that it reads the languages without a chosen voice
+		if v.Engine == engineSupertonic {
+			if piperSeen || v.ID != "supertonic-"+v.Lang || v.Dir != supertonicDir || v.URL != voiceRelease+supertonicDir+".tar.bz2" ||
+				v.Size != supertonicSize || v.SHA256 != supertonicSHA256 || !hex64.MatchString(v.SHA256) || v.Page != supertonicPage ||
+				v.License != "OpenRAIL-M" || v.NC || len(v.Parts) > 0 || v.Lexicon != "" || v.Espeak != "" || v.Respell != "" {
+				t.Errorf("%s: Supertonic entry %+v", v.ID, v)
+			}
+			continue
+		}
+		if v.Engine != "" {
+			t.Errorf("%s: unknown engine %q", v.ID, v.Engine)
+		}
+		piperSeen = true
 		if !strings.HasPrefix(v.Dir, "vits-piper-") || !strings.HasSuffix(v.Model, ".onnx") || !strings.Contains(v.Dir, strings.TrimSuffix(v.Model, ".onnx")) {
 			t.Errorf("%s: folder %s, model %s", v.ID, v.Dir, v.Model)
 		}
@@ -124,6 +140,21 @@ func TestVoiceCatalog(t *testing.T) {
 	if _, ok := ttsPackageFor("windows", "arm64"); ok {
 		t.Errorf("windows/arm64 must not have a sherpa-onnx package")
 	}
+	// Supertonic reads every language of the program but Chinese and Latin; the new languages of 1.3 have only it
+	st := map[string]bool{}
+	for _, v := range voiceSpecs {
+		if v.Engine == engineSupertonic {
+			st[v.Lang] = true
+		}
+	}
+	for l := range langs {
+		if st[l] == (l == "zh" || l == "la") {
+			t.Errorf("%s: Supertonic entry %v", l, st[l])
+		}
+	}
+	if supertonicGender(0) != "female" || supertonicGender(4) != "female" || supertonicGender(5) != "male" || supertonicGender(9) != "male" {
+		t.Errorf("Supertonic speakers: 0–4 female, 5–9 male")
+	}
 }
 
 // arguments: paths relative to the voices folder, "--" before the text
@@ -168,6 +199,114 @@ func TestTTSArgs(t *testing.T) {
 	if !strings.Contains(all, "--sid=1 ") || !strings.Contains(all, "--vits-model=vits-piper-es_ES-sharvard-medium/es_ES-sharvard-medium.onnx") ||
 		!strings.Contains(all, "--vits-data-dir=vits-piper-es_ES-sharvard-medium/espeak-ng-data") {
 		t.Errorf("Spanish args: %s", all)
+	}
+	// Supertonic (1.3): the files of its folder, the language and the speaker; no espeak-ng
+	ja := findVoice("supertonic-ja")
+	if ja == nil {
+		t.Fatal("no Supertonic entry for Japanese")
+	}
+	ja.SID = 7
+	args = ttsArgs(ja, "こんにちは。", 0.9, "tts-4.wav")
+	all = strings.Join(args, " ")
+	for _, want := range []string{"--supertonic-duration-predictor=" + supertonicDir + "/duration_predictor.int8.onnx",
+		"--supertonic-text-encoder=" + supertonicDir + "/text_encoder.int8.onnx",
+		"--supertonic-vector-estimator=" + supertonicDir + "/vector_estimator.int8.onnx",
+		"--supertonic-vocoder=" + supertonicDir + "/vocoder.int8.onnx", "--supertonic-tts-json=" + supertonicDir + "/tts.json",
+		"--supertonic-unicode-indexer=" + supertonicDir + "/unicode_indexer.bin",
+		"--supertonic-voice-style=" + supertonicDir + "/voice.bin", "--lang=ja", "--sid=7", "--speed=0.90", "--output-filename=tts-4.wav"} {
+		if !strings.Contains(all+" ", want+" ") {
+			t.Errorf("Supertonic args: no %s in %s", want, all)
+		}
+	}
+	if strings.Contains(all, "vits") || strings.Contains(all, "espeak") || args[len(args)-2] != "--" || args[len(args)-1] != "こんにちは。" {
+		t.Errorf("Supertonic args: %s", all)
+	}
+}
+
+// Supertonic (1.3): present when all its files are there; once downloaded, it reads every language without a chosen
+// voice; choosing it chooses it for all its languages, a Piper voice chosen afterwards only for its own; the
+// speaker is one for all; deleting it forgets it for all languages
+func TestSupertonicChoice(t *testing.T) {
+	a := testApp(t)
+	a.root = t.TempDir()
+	a.modelsDir = t.TempDir()
+	a.engineDir = t.TempDir()
+	saved := voiceSpecs
+	defer func() { voiceSpecs = saved }()
+	voiceSpecs = append(supertonicCatalog(),
+		piperVoice("ru-a", "ru", "A", "male", "CC0", false, "ru_RU-a-medium", 1<<21, strings.Repeat("a", 64)),
+		piperVoice("en-c", "en", "C", "female", "CC0", false, "en_US-c-medium", 1<<21, strings.Repeat("c", 64)))
+	a.cfg = defaultConfig()
+	ru, ja := findVoice("supertonic-ru"), findVoice("supertonic-ja")
+	fakeVoice(t, a, &voiceSpecs[len(voiceSpecs)-2]) // the Piper voice ru-a
+	d := a.voiceDir(ja)
+	_ = os.MkdirAll(d, 0o755)
+	for i, f := range supertonicFiles {
+		if a.voicePresent(ja) {
+			t.Fatalf("present without %v", supertonicFiles[i:])
+		}
+		_ = os.WriteFile(filepath.Join(d, f), []byte("x"), 0o644)
+	}
+	if !a.voicePresent(ja) || !a.voicePresent(ru) {
+		t.Fatal("Supertonic is not present with all its files")
+	}
+	if a.activeVoiceID("ja") != "supertonic-ja" || a.activeVoiceID("ru") != "supertonic-ru" || a.activeVoiceID("zh") != "" {
+		t.Errorf("nothing chosen: ja %q, ru %q, zh %q", a.activeVoiceID("ja"), a.activeVoiceID("ru"), a.activeVoiceID("zh"))
+	}
+	a.chooseVoice(findVoice("ru-a"))
+	if a.activeVoiceID("ru") != "ru-a" || a.activeVoiceID("ja") != "supertonic-ja" {
+		t.Errorf("Piper voice chosen for Russian: %v", a.cfg.Voices)
+	}
+	a.chooseVoice(ja)
+	for _, l := range supertonicLangs {
+		if a.cfg.Voices[l] != "supertonic-"+l || a.activeVoiceID(l) != "supertonic-"+l {
+			t.Errorf("Supertonic chosen: %s → %q", l, a.cfg.Voices[l])
+		}
+	}
+	a.chooseVoice(findVoice("ru-a"))
+	if a.activeVoiceID("ru") != "ru-a" || a.activeVoiceID("en") != "supertonic-en" {
+		t.Errorf("Piper voice chosen again for Russian: %v", a.cfg.Voices)
+	}
+
+	mux := http.NewServeMux()
+	a.ttsRoutes(mux)
+	call := func(method, path, body string) int {
+		rec := httptest.NewRecorder()
+		mux.ServeHTTP(rec, httptest.NewRequest(method, path, strings.NewReader(body)))
+		return rec.Code
+	}
+	for _, bad := range []string{`{}`, `{"speaker":-1}`, `{"speaker":10}`, `{"speaker":"3"}`} {
+		if code := call("POST", "/api/voice-speaker", bad); code != 400 {
+			t.Errorf("speaker %s: %d", bad, code)
+		}
+	}
+	if code := call("POST", "/api/voice-speaker", `{"speaker":7}`); code != 200 || a.cfg.SupertonicSpeaker != 7 || a.supertonicSpeaker() != 7 {
+		t.Errorf("speaker 7: %d, %d", code, a.cfg.SupertonicSpeaker)
+	}
+	st := a.ttsStateJSON()
+	for _, v := range st["voices"].([]map[string]any) {
+		if v["id"] == "supertonic-ko" && (v["gender"] != "male" || v["engine"] != engineSupertonic || v["active"] != true || v["license"] != "OpenRAIL-M") {
+			t.Errorf("state of the Korean entry: %v", v)
+		}
+	}
+	if s := st["supertonic"].(map[string]any); s["speaker"] != 7 || s["speakers"] != supertonicSpeakers {
+		t.Errorf("state: %v", s)
+	}
+	a.cfg.SupertonicSpeaker = 42 // a hand-edited config.json
+	if a.supertonicSpeaker() != 0 {
+		t.Errorf("speaker out of range: %d", a.supertonicSpeaker())
+	}
+	// delete through any of its entries: the folder goes, every language forgets it, the Piper choice stays
+	if code := call("DELETE", "/api/voice/supertonic-ko", ""); code != 200 || a.voicePresent(ja) {
+		t.Errorf("delete: %d", code)
+	}
+	for l, id := range a.cfg.Voices {
+		if strings.HasPrefix(id, "supertonic-") {
+			t.Errorf("%s still chooses %s", l, id)
+		}
+	}
+	if a.cfg.Voices["ru"] != "ru-a" || a.activeVoiceID("ja") != "" {
+		t.Errorf("after delete: %v, ja %q", a.cfg.Voices, a.activeVoiceID("ja"))
 	}
 }
 

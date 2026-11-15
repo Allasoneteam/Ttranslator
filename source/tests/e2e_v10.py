@@ -133,7 +133,9 @@ try:
          'help in Spanish (with both pronunciations of Latin)')
       ok(texts(page, '#helpBody h3')[-2] == 'Actualizar y desinstalar' and 'Desinstalar en Windows' in hb and '~/.cache/ttranslator' in hb and 'Prueba rápida' in hb,
          'help: updating and uninstalling, the quick test: %s' % texts(page, '#helpBody h3')[-3:])
-      ok(hb.count('Hay voces para') == 1 and 'Si hay dos voces descargadas para un idioma' in hb, 'help: one line about the voices, the line about two voices')
+      # 1.3: the Piper voices and, in a line of its own, Supertonic for 13 languages
+      ok(hb.count('Hay voces de Piper para') == 1 and 'Si hay dos voces descargadas para un idioma' in hb and hb.count('La voz Supertonic 3') == 1
+         and 'solo los lee Supertonic' in hb, 'help: one line about the Piper voices, one about Supertonic, the line about two voices')
       page.click('#aboutBtn'); page.wait_for_selector('#aboutView:not([hidden])')
       ab = page.inner_text('#aboutBody')
       ver = page.evaluate('APP_VERSION')   # the version of the program (1.0 when this test was written)

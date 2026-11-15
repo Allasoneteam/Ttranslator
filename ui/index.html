@@ -358,6 +358,11 @@ footer.status {
 .menu .mitem > button.pick:hover { background: transparent; }
 .menu .sub { font-size: .8571rem; color: var(--muted); }
 .menu .mitem.active .title { font-weight: 600; }
+/* Supertonic (1.3): выбор одного из десяти голосов под его строкой */
+.menu .mitem.st-speakers { align-items: center; }
+.menu .mitem.st-speakers:hover { background: transparent; }
+.menu .st-box { flex: 1; display: flex; flex-direction: column; gap: 4px; padding: 0 8px 6px 20px; }
+.menu .st-box .seg button { padding: 2px 7px; font-size: .8571rem; }
 .menu .foot { font-size: .8571rem; color: var(--muted); padding: 8px; border-top: 1px solid var(--border); margin-top: 4px; }
 .toast {
   position: fixed; left: 50%; bottom: 44px; transform: translateX(-50%);
@@ -713,7 +718,7 @@ const UI_LANG = UI_LANGS[document.documentElement.lang] ? document.documentEleme
 const LOCALE = LOCALES[UI_LANG];
 // Кавычки языка интерфейса (для названий в тексте)
 const QUOTES = { ru: ['«', '»'], en: ['“', '”'], de: ['„', '“'], es: ['«', '»'], zh: ['“', '”'] }[UI_LANG];
-const APP_VERSION = '1.2';   // версия интерфейса — та же, что appVersion в source/launcher/main.go
+const APP_VERSION = '1.3';   // версия интерфейса — та же, что appVersion в source/launcher/main.go
 
 const I18N_COL = { en: 0, de: 1, es: 2, zh: 3 };   // столбец перевода в I18N
 
@@ -742,6 +747,10 @@ const LANGS = {
   it: { name: 'Итальянский',   lower: 'итальянский',   loc: 'итальянском',   prompt: 'Italian' },
   pt: { name: 'Португальский', lower: 'португальский', loc: 'португальском', prompt: 'Portuguese', target: 'Brazilian Portuguese' },
   ar: { name: 'Арабский',      lower: 'арабский',      loc: 'арабском',      prompt: 'Arabic' },
+  // 1.3 (решение автора от 15.11.2026): ещё три языка перевода, интерфейс — по-прежнему на пяти; голос — Supertonic
+  ja: { name: 'Японский',      lower: 'японский',      loc: 'японском',      prompt: 'Japanese' },
+  ko: { name: 'Корейский',     lower: 'корейский',     loc: 'корейском',     prompt: 'Korean' },
+  hi: { name: 'Хинди',         lower: 'хинди',         loc: 'хинди',         prompt: 'Hindi' },
 };
 // Языки в каждом новом окне программы: слева — язык интерфейса, справа — первый из START_TARGET, который с ним
 // не совпадает (при английском интерфейсе — русский). Пока окно открыто, выбор в списках сохраняется.
@@ -1244,41 +1253,31 @@ const ABOUT = {
 
 // «Что нового» в окне приветствия — главное в этой версии, на пяти языках.
 const WHATS_NEW = {
-  version: '1.2',
+  version: '1.3',
   ru: [
-    'Ttranslator для Android: приложение для телефонов и планшетов с Android 9 и новее (64-битный процессор ARM; памяти — лучше от 8 ГБ) — файл APK на странице выпуска на GitHub. Модель работает на самом устройстве, без интернета; чтение вслух тоже работает.',
-    'На Android: «Перевести» из любого приложения — выделите текст → «Ttranslator» (или «Поделиться» → Ttranslator); пока идёт скачивание или перевод, в уведомлениях видно «Ttranslator» — приложение можно свернуть; модели — по памяти устройства (Gemma 4 E2B, с 12 ГБ — и E4B).',
-    'Узкое окно и экран телефона: одна колонка, панели открываются на месте окна перевода, редкие кнопки — в меню «⋮».',
-    'Новые языки перевода: итальянский, португальский (Бразилия) и арабский — теперь их 12. Новые голоса: итальянские Paola (тот же голос, что читает латынь) и Riccardo, бразильский Faber — в меню моделей; для арабского голоса пока нет.',
-    'Справка и README.txt: установка, обновление и удаление на Android — на пяти языках.',
+    'Новые языки перевода: японский, корейский и хинди — теперь их 15 (интерфейс — по-прежнему на пяти языках). «Авто» узнаёт их по письму.',
+    'Голос Supertonic 3 — один файл (около 130 МБ) на 13 языков, все, кроме китайского и латыни; впервые есть голоса для греческого, арабского, японского, корейского и хинди. В меню моделей — первой строкой среди голосов; десять голосов на выбор (пять женских, пять мужских), выбранный сразу звучит образцом.',
+    'Выбранный в меню моделей, Supertonic читает все свои языки; голос Piper, выбранный потом для отдельного языка, читает только его.',
   ],
   en: [
-    'Ttranslator for Android: an app for phones and tablets with Android 9 or newer (a 64-bit ARM processor; 8 GB of memory or more is best) — the APK file is on the release page on GitHub. The model runs on the device itself, without the internet; reading aloud works too.',
-    'On Android: “Translate” from any app — select text → “Ttranslator” (or “Share” → Ttranslator); while a download or a translation runs, “Ttranslator” shows in the notifications, so you can switch to another app; the models offered depend on the memory of the device (Gemma 4 E2B; with 12 GB, also E4B).',
-    'A narrow window and a phone screen: one column, the panels open in place of the translation window, the less frequent buttons are in the menu “⋮”.',
-    'New translation languages: Italian, Portuguese (Brazil) and Arabic — 12 in all. New voices: Italian Paola (the voice that reads Latin) and Riccardo, Brazilian Faber — in the model menu; Arabic has no voice yet.',
-    'Help and README.txt: installing, updating and uninstalling on Android, in five languages.',
+    'New translation languages: Japanese, Korean and Hindi — 15 in all (the interface is still in five languages). “Auto” recognizes them by their script.',
+    'The Supertonic 3 voice: one file (about 130 MB) for 13 languages, all but Chinese and Latin; for the first time there are voices for Greek, Arabic, Japanese, Korean and Hindi. In the model menu it is the first row among the voices; ten voices to choose from (five female, five male), and the chosen one plays a sample at once.',
+    'Once chosen in the model menu, Supertonic reads all its languages; a Piper voice chosen later for one language reads only that language.',
   ],
   de: [
-    'Ttranslator für Android: eine App für Telefone und Tablets mit Android 9 oder neuer (64-Bit-ARM-Prozessor; am besten 8 GB Arbeitsspeicher oder mehr) – die APK-Datei steht auf der Release-Seite auf GitHub. Das Modell läuft auf dem Gerät selbst, ohne Internet; auch das Vorlesen funktioniert.',
-    'Unter Android: „Übersetzen“ aus jeder App – Text markieren → „Ttranslator“ (oder „Teilen“ → Ttranslator); während ein Download oder eine Übersetzung läuft, steht „Ttranslator“ in den Benachrichtigungen, Sie können also zu einer anderen App wechseln; welche Modelle angeboten werden, hängt vom Arbeitsspeicher ab (Gemma 4 E2B; ab 12 GB auch E4B).',
-    'Ein schmales Fenster und der Telefonbildschirm: eine Spalte, die Bereiche öffnen sich anstelle des Übersetzungsfensters, seltener gebrauchte Schaltflächen sind im Menü „⋮“.',
-    'Neue Übersetzungssprachen: Italienisch, Portugiesisch (Brasilien) und Arabisch – jetzt 12. Neue Stimmen: italienisch Paola (die Stimme, die Latein liest) und Riccardo, brasilianisch Faber – im Modellmenü; für Arabisch gibt es noch keine Stimme.',
-    'Hilfe und README.txt: Installation, Aktualisierung und Deinstallation unter Android, in fünf Sprachen.',
+    'Neue Übersetzungssprachen: Japanisch, Koreanisch und Hindi – jetzt 15 (die Oberfläche bleibt in fünf Sprachen). „Auto“ erkennt sie an ihrer Schrift.',
+    'Die Stimme Supertonic 3: eine Datei (etwa 130 MB) für 13 Sprachen, alle außer Chinesisch und Latein; erstmals gibt es Stimmen für Griechisch, Arabisch, Japanisch, Koreanisch und Hindi. Im Modellmenü steht sie als erste Zeile unter den Stimmen; zehn Stimmen zur Auswahl (fünf weibliche, fünf männliche), die gewählte spielt sofort ein Beispiel.',
+    'Im Modellmenü gewählt, liest Supertonic alle ihre Sprachen; eine danach für eine einzelne Sprache gewählte Piper-Stimme liest nur diese.',
   ],
   es: [
-    'Ttranslator para Android: una aplicación para teléfonos y tabletas con Android 9 o posterior (procesador ARM de 64 bits; mejor con 8 GB de memoria o más): el archivo APK está en la página de la versión en GitHub. El modelo funciona en el propio dispositivo, sin internet; la lectura en voz alta también funciona.',
-    'En Android: «Traducir» desde cualquier aplicación: seleccione el texto → «Ttranslator» (o «Compartir» → Ttranslator); mientras dura una descarga o una traducción, «Ttranslator» aparece en las notificaciones, así que puede cambiar a otra aplicación; los modelos que se ofrecen dependen de la memoria del dispositivo (Gemma 4 E2B; con 12 GB, también E4B).',
-    'Una ventana estrecha y la pantalla del teléfono: una sola columna, los paneles se abren en lugar de la ventana de traducción y los botones menos usados están en el menú «⋮».',
-    'Nuevos idiomas de traducción: italiano, portugués (Brasil) y árabe; ahora son 12. Voces nuevas: las italianas Paola (la voz que lee el latín) y Riccardo y la brasileña Faber, en el menú de modelos; el árabe aún no tiene voz.',
-    'Ayuda y README.txt: instalación, actualización y desinstalación en Android, en cinco idiomas.',
+    'Nuevos idiomas de traducción: japonés, coreano e hindi; ahora son 15 (la interfaz sigue en cinco idiomas). «Auto» los reconoce por su escritura.',
+    'La voz Supertonic 3: un solo archivo (unos 130 MB) para 13 idiomas, todos menos el chino y el latín; por primera vez hay voces para el griego, el árabe, el japonés, el coreano y el hindi. En el menú de modelos es la primera línea entre las voces; hay diez voces para elegir (cinco femeninas y cinco masculinas), y la elegida suena al instante con una muestra.',
+    'Elegida en el menú de modelos, Supertonic lee todos sus idiomas; una voz de Piper elegida después para un idioma lee solo ese idioma.',
   ],
   zh: [
-    'Android 版 Ttranslator：适用于 Android 9 或更高版本的手机和平板（64 位 ARM 处理器；内存最好在 8 GB 以上）——APK 文件在 GitHub 的版本发布页面上。模型在设备本身上运行，无需联网；朗读功能同样可用。',
-    '在 Android 上：可从任何应用“翻译”——选中文本 →“Ttranslator”（或“分享”→ Ttranslator）；下载或翻译进行时，通知栏会显示“Ttranslator”，可以切换到其他应用；提供哪些模型取决于设备内存（Gemma 4 E2B；12 GB 及以上还有 E4B）。',
-    '窄窗口和手机屏幕：单栏显示，面板在翻译窗口的位置打开，不常用的按钮位于“⋮”菜单中。',
-    '新增翻译语言：意大利语、葡萄牙语（巴西）和阿拉伯语——现共 12 种。新增语音：意大利语 Paola（即朗读拉丁语的语音）和 Riccardo，巴西葡萄牙语 Faber——在模型菜单中；阿拉伯语暂无语音。',
-    '帮助和 README.txt：提供 Android 上的安装、更新和卸载说明，共五种语言。',
+    '新增翻译语言：日语、韩语和印地语——现共 15 种（界面仍为五种语言）。“自动”会根据文字识别它们。',
+    'Supertonic 3 语音：一个文件（约 130 MB）支持 13 种语言，即除中文和拉丁语外的全部语言；希腊语、阿拉伯语、日语、韩语和印地语首次有了语音。它位于模型菜单语音列表的第一行；共有十种声音可选（五个女声、五个男声），选中的声音会立即播放示例。',
+    '在模型菜单中选中后，Supertonic 朗读其支持的所有语言；之后为某种语言另选的 Piper 语音只朗读该语言。',
   ],
 };
 
@@ -1310,10 +1309,11 @@ const HELP = {
     ['Чтение вслух',
       'Кнопка 🔊 у поля текста, у каждого варианта, у «Своего варианта» и у ответов модели читает текст вслух. Пока текст звучит, кнопка и текст подсвечены зелёным; второе нажатие — пауза (подсветка текста снимается), третье — продолжить. Кнопка ■ рядом, Esc или другая кнопка 🔊 останавливают чтение; правка текста — тоже. Формулы LaTeX не читаются.',
       '- Голоса скачиваются в меню моделей (кнопка с названием модели вверху), по голосу на язык. Вместе с первым голосом один раз скачивается программа озвучки sherpa-onnx. Голос не занимает память постоянно: он запускается на секунду-две для каждой фразы.',
+      '- Голос Supertonic 3 (первая строка среди голосов) — один файл (около 130 МБ) на 13 языков: все, кроме китайского и латыни. Выбранный, он читает все эти языки; голос Piper, выбранный потом для отдельного языка, читает только его. Supertonic говорит одним из десяти голосов — пяти женских и пяти мужских (выбор — под его строкой, выбранный голос сразу звучит образцом). Числа он иногда читает неверно (русский, немецкий, арабский) — для них лучше голоса Piper.',
       '- Голоса можно перенести с другого компьютера: скопируйте папку models\\voices. Если программы озвучки в папке engine ещё нет, в меню моделей появится строка «Программа озвучки sherpa-onnx» — скачается только она (20–30 МБ), голоса заново не скачиваются. Без интернета можно скопировать и всю папку engine с другого компьютера с той же системой (Windows или Linux).',
       '- Если для языка скачано два голоса, читает тот, что отмечен ✓; другой выбирается щелчком. Без голоса для языка текста кнопка 🔊 бледная.',
-      '- Голоса есть для русского, английского, немецкого, французского, испанского, китайского, шведского, итальянского, португальского (бразильский вариант) и латыни; для английского, немецкого, испанского, шведского, французского и итальянского — женский и мужской. Для греческого и арабского голосов пока нет. Латынь читает итальянский голос Paola с одним из двух произношений (на выбор в меню моделей; голос скачивается один раз): «церковным» (итальянским) — caelum как «челум», gratia как «грациа» — или «классическим» — caelum как «кайлум», Cicero как «кикеро». Ударения программа расставляет сама по правилам латыни.',
-      '- Лицензии голосов разные (видны в меню моделей); Ruslan, HFC female и Ryan — только для некоммерческого использования.'],
+      '- Голоса Piper есть для русского, английского, немецкого, французского, испанского, китайского, шведского, итальянского, португальского (бразильский вариант) и латыни; для английского, немецкого, испанского, шведского, французского и итальянского — женский и мужской. Греческий, арабский, японский, корейский и хинди читает только Supertonic. Латынь читает итальянский голос Paola с одним из двух произношений (на выбор в меню моделей; голос скачивается один раз): «церковным» (итальянским) — caelum как «челум», gratia как «грациа» — или «классическим» — caelum как «кайлум», Cicero как «кикеро». Ударения программа расставляет сама по правилам латыни.',
+      '- Лицензии голосов разные (видны в меню моделей); Ruslan, HFC female и Ryan — только для некоммерческого использования. Лицензия Supertonic — OpenRAIL-M: синтезированную речь нельзя выдавать за речь живого человека и нельзя скрывать, что она синтезирована.'],
     ['Модели',
       'Кнопка с названием модели вверху открывает список. Перед скачиванием модели программа показывает, откуда, в какую папку и под каким именем скачивается файл; ненужную модель можно удалить; свой файл .gguf можно положить в папку models. Кнопка ⏏ выгружает модель из памяти: окно остаётся, а для перевода модель нужно загрузить снова. Если закрыть окно программы, через несколько секунд модель выгрузится из памяти и программа завершится.',
       'На экране первого запуска можно нажать «Пропустить»: окно откроется без модели (вверху — «Выбрать модель»), а модель Вы выберете и скачаете в этом списке.'],
@@ -1364,10 +1364,11 @@ const HELP = {
     ['Reading aloud',
       'The 🔊 button at the text field, at every variant, at “Your version” and at the model’s answers reads the text aloud. While the text is read, the button and the text are highlighted in green; a second click pauses (the text is no longer highlighted), a third continues. The ■ button next to it, Esc or another 🔊 button stops reading, and so does editing the text. LaTeX formulas are not read.',
       '- Voices are downloaded in the model menu (the button with the model name at the top), one voice per language. With the first voice, the speech program sherpa-onnx is downloaded once. A voice does not stay in memory: it starts for a second or two for every phrase.',
+      '- The Supertonic 3 voice (the first row among the voices) is one file (about 130 MB) for 13 languages: all but Chinese and Latin. Once chosen, it reads all these languages; a Piper voice chosen later for one language reads only that language. Supertonic speaks with one of ten voices, five female and five male (choose below its row; the chosen voice plays a sample at once). It sometimes reads numbers wrongly (Russian, German, Arabic) — for these, the Piper voices are better.',
       '- Voices can be moved from another computer: copy the folder models\\voices. If the speech program is not in the engine folder yet, the model menu shows the row “The speech program sherpa-onnx” — only the program is downloaded (20–30 MB), not the voices. Without the internet, you can also copy the whole engine folder from another computer with the same system (Windows or Linux).',
       '- If two voices are downloaded for a language, the one marked ✓ reads; click the other one to choose it. Without a voice for the language of the text, the 🔊 button is pale.',
-      '- There are voices for Russian, English, German, French, Spanish, Chinese, Swedish, Italian, Portuguese (the Brazilian variant) and Latin; for English, German, Spanish, Swedish, French and Italian, a female and a male one. Greek and Arabic have no voice yet. Latin is read by the Italian voice Paola with one of two pronunciations (choose in the model menu; the voice is downloaded once): the church (Italian) one — caelum as “chelum”, gratia as “gratsia” — or the classical one — caelum as “kailum”, Cicero as “Kikero”. The program puts the stress where the rules of Latin say.',
-      '- The voices have different licences (shown in the model menu); Ruslan, HFC female and Ryan are for non-commercial use only.'],
+      '- There are Piper voices for Russian, English, German, French, Spanish, Chinese, Swedish, Italian, Portuguese (the Brazilian variant) and Latin; for English, German, Spanish, Swedish, French and Italian, a female and a male one. Greek, Arabic, Japanese, Korean and Hindi are read only by Supertonic. Latin is read by the Italian voice Paola with one of two pronunciations (choose in the model menu; the voice is downloaded once): the church (Italian) one — caelum as “chelum”, gratia as “gratsia” — or the classical one — caelum as “kailum”, Cicero as “Kikero”. The program puts the stress where the rules of Latin say.',
+      '- The voices have different licences (shown in the model menu); Ruslan, HFC female and Ryan are for non-commercial use only. The licence of Supertonic is OpenRAIL-M: synthetic speech must not be passed off as the speech of a real person, and it must not be hidden that it is synthetic.'],
     ['Models',
       'The button with the model name at the top opens the list. Before downloading a model, the program shows where the file comes from, the folder it goes to and its name; a model you do not need can be deleted; your own .gguf file can be put into the models folder. The ⏏ button unloads the model from memory: the window stays, but to translate you need to load the model again. If you close the program window, the model is unloaded from memory within a few seconds and the program exits.',
       'On the first-start screen you can press “Skip”: the window opens without a model (“Choose a model” at the top), and you choose and download a model in this list.'],
@@ -1418,10 +1419,11 @@ const HELP = {
     ['Vorlesen',
       'Die Schaltfläche 🔊 beim Textfeld, bei jeder Variante, bei „Ihre Fassung“ und bei den Antworten des Modells liest den Text vor. Während der Text vorgelesen wird, sind Schaltfläche und Text grün hervorgehoben; ein zweiter Klick pausiert (der Text ist dann nicht mehr hervorgehoben), ein dritter setzt fort. Die Schaltfläche ■ daneben, Esc oder eine andere Schaltfläche 🔊 beendet das Vorlesen, ebenso das Bearbeiten des Textes. LaTeX-Formeln werden nicht vorgelesen.',
       '- Stimmen werden im Modellmenü heruntergeladen (die Schaltfläche mit dem Modellnamen oben), eine Stimme pro Sprache. Mit der ersten Stimme wird einmalig das Sprachausgabe-Programm sherpa-onnx heruntergeladen. Eine Stimme belegt keinen Arbeitsspeicher auf Dauer: Sie startet für jede Phrase für ein bis zwei Sekunden.',
+      '- Die Stimme Supertonic 3 (die erste Zeile unter den Stimmen) ist eine Datei (etwa 130 MB) für 13 Sprachen: alle außer Chinesisch und Latein. Gewählt, liest sie alle diese Sprachen; eine danach für eine einzelne Sprache gewählte Piper-Stimme liest nur diese. Supertonic spricht mit einer von zehn Stimmen, fünf weiblichen und fünf männlichen (Auswahl unter ihrer Zeile; die gewählte Stimme spielt sofort ein Beispiel). Zahlen liest sie manchmal falsch (Russisch, Deutsch, Arabisch) – dafür sind die Piper-Stimmen besser.',
       '- Stimmen lassen sich von einem anderen Computer übernehmen: Kopieren Sie den Ordner models\\voices. Ist das Sprachausgabe-Programm noch nicht im Ordner engine, zeigt das Modellmenü die Zeile „Das Sprachausgabe-Programm sherpa-onnx“ – heruntergeladen wird nur das Programm (20–30 MB), nicht die Stimmen. Ohne Internet können Sie auch den ganzen Ordner engine von einem anderen Computer mit demselben System (Windows oder Linux) kopieren.',
       '- Sind für eine Sprache zwei Stimmen heruntergeladen, liest die mit ✓ markierte; die andere wählen Sie per Klick. Ohne Stimme für die Sprache des Textes ist die Schaltfläche 🔊 blass.',
-      '- Stimmen gibt es für Russisch, Englisch, Deutsch, Französisch, Spanisch, Chinesisch, Schwedisch, Italienisch, Portugiesisch (die brasilianische Variante) und Latein; für Englisch, Deutsch, Spanisch, Schwedisch, Französisch und Italienisch je eine weibliche und eine männliche. Für Griechisch und Arabisch gibt es noch keine Stimme. Latein liest die italienische Stimme Paola mit einer von zwei Aussprachen (Auswahl im Modellmenü; die Stimme wird nur einmal heruntergeladen): der kirchlichen (italienischen) – caelum wie „tschelum“, gratia wie „grazia“ – oder der klassischen – caelum wie „kailum“, Cicero wie „Kikero“. Die Betonung setzt das Programm nach den Regeln des Lateins.',
-      '- Die Stimmen haben verschiedene Lizenzen (im Modellmenü sichtbar); Ruslan, HFC female und Ryan nur für nicht-kommerzielle Nutzung.'],
+      '- Piper-Stimmen gibt es für Russisch, Englisch, Deutsch, Französisch, Spanisch, Chinesisch, Schwedisch, Italienisch, Portugiesisch (die brasilianische Variante) und Latein; für Englisch, Deutsch, Spanisch, Schwedisch, Französisch und Italienisch je eine weibliche und eine männliche. Griechisch, Arabisch, Japanisch, Koreanisch und Hindi liest nur Supertonic. Latein liest die italienische Stimme Paola mit einer von zwei Aussprachen (Auswahl im Modellmenü; die Stimme wird nur einmal heruntergeladen): der kirchlichen (italienischen) – caelum wie „tschelum“, gratia wie „grazia“ – oder der klassischen – caelum wie „kailum“, Cicero wie „Kikero“. Die Betonung setzt das Programm nach den Regeln des Lateins.',
+      '- Die Stimmen haben verschiedene Lizenzen (im Modellmenü sichtbar); Ruslan, HFC female und Ryan nur für nicht-kommerzielle Nutzung. Die Lizenz von Supertonic ist OpenRAIL-M: Synthetische Sprache darf nicht als Sprache eines realen Menschen ausgegeben werden, und es darf nicht verschwiegen werden, dass sie synthetisch ist.'],
     ['Modelle',
       'Die Schaltfläche mit dem Modellnamen oben öffnet die Liste. Vor dem Herunterladen eines Modells zeigt das Programm Quelle, Zielordner und Dateinamen; ein nicht benötigtes Modell lässt sich löschen; eine eigene .gguf-Datei können Sie in den Ordner models legen. Die Schaltfläche ⏏ entlädt das Modell aus dem Arbeitsspeicher: Das Fenster bleibt, zum Übersetzen muss das Modell aber wieder geladen werden. Wenn Sie das Programmfenster schließen, wird das Modell nach wenigen Sekunden aus dem Arbeitsspeicher entladen und das Programm beendet.',
       'Auf dem Bildschirm des ersten Starts können Sie „Überspringen“ wählen: Das Fenster öffnet sich ohne Modell (oben „Modell wählen“), und Sie wählen und laden ein Modell in dieser Liste herunter.'],
@@ -1472,10 +1474,11 @@ const HELP = {
     ['Lectura en voz alta',
       'El botón 🔊 junto al campo de texto, a cada variante, a «Su versión» y a las respuestas del modelo lee el texto en voz alta. Mientras suena, el botón y el texto se resaltan en verde; un segundo clic hace una pausa (el texto deja de estar resaltado) y un tercero continúa. El botón ■ de al lado, Esc u otro botón 🔊 detienen la lectura, y también editar el texto. Las fórmulas LaTeX no se leen.',
       '- Las voces se descargan en el menú de modelos (el botón con el nombre del modelo, arriba), una voz por idioma. Con la primera voz se descarga una sola vez el programa de voz sherpa-onnx. Una voz no ocupa la memoria de forma permanente: se inicia uno o dos segundos para cada frase.',
+      '- La voz Supertonic 3 (la primera línea entre las voces) es un solo archivo (unos 130 MB) para 13 idiomas: todos menos el chino y el latín. Una vez elegida, lee todos estos idiomas; una voz de Piper elegida después para un idioma lee solo ese idioma. Supertonic habla con una de diez voces, cinco femeninas y cinco masculinas (se elige bajo su línea; la voz elegida suena al instante con una muestra). A veces lee mal los números (ruso, alemán, árabe): para ellos son mejores las voces de Piper.',
       '- Las voces se pueden pasar desde otro ordenador: copie la carpeta models\\voices. Si el programa de voz todavía no está en la carpeta engine, el menú de modelos muestra la línea «Programa de voz sherpa-onnx»: solo se descarga el programa (20–30 MB), no las voces. Sin internet también puede copiar toda la carpeta engine desde otro ordenador con el mismo sistema (Windows o Linux).',
       '- Si hay dos voces descargadas para un idioma, lee la marcada con ✓; la otra se elige con un clic. Sin voz para el idioma del texto, el botón 🔊 aparece pálido.',
-      '- Hay voces para ruso, inglés, alemán, francés, español, chino, sueco, italiano, portugués (la variante brasileña) y latín; para inglés, alemán, español, sueco, francés e italiano, una femenina y una masculina. El griego y el árabe aún no tienen voz. El latín lo lee la voz italiana Paola con una de dos pronunciaciones (se elige en el menú de modelos; la voz se descarga una sola vez): la eclesiástica (italiana) —caelum como «chelum», gratia como «gratsia»— o la clásica —caelum como «kailum», Cicero como «Kikero»—. El programa pone el acento según las reglas del latín.',
-      '- Las voces tienen licencias distintas (se ven en el menú de modelos); Ruslan, HFC female y Ryan son solo para uso no comercial.'],
+      '- Hay voces de Piper para ruso, inglés, alemán, francés, español, chino, sueco, italiano, portugués (la variante brasileña) y latín; para inglés, alemán, español, sueco, francés e italiano, una femenina y una masculina. El griego, el árabe, el japonés, el coreano y el hindi solo los lee Supertonic. El latín lo lee la voz italiana Paola con una de dos pronunciaciones (se elige en el menú de modelos; la voz se descarga una sola vez): la eclesiástica (italiana) —caelum como «chelum», gratia como «gratsia»— o la clásica —caelum como «kailum», Cicero como «Kikero»—. El programa pone el acento según las reglas del latín.',
+      '- Las voces tienen licencias distintas (se ven en el menú de modelos); Ruslan, HFC female y Ryan son solo para uso no comercial. La licencia de Supertonic es OpenRAIL-M: la voz sintética no puede hacerse pasar por la de una persona real, ni puede ocultarse que es sintética.'],
     ['Modelos',
       'El botón con el nombre del modelo, arriba, abre la lista. Antes de descargar un modelo, el programa muestra de dónde viene el archivo, a qué carpeta va y con qué nombre; un modelo que no necesite se puede eliminar; puede poner su propio archivo .gguf en la carpeta models. El botón ⏏ libera el modelo de la memoria: la ventana sigue abierta, pero para traducir hay que volver a cargar el modelo. Si cierra la ventana del programa, en unos segundos el modelo se libera de la memoria y el programa termina.',
       'En la pantalla del primer inicio puede pulsar «Omitir»: la ventana se abre sin modelo (arriba, «Elegir un modelo») y usted elige y descarga un modelo en esta lista.'],
@@ -1526,10 +1529,11 @@ const HELP = {
     ['朗读',
       '文本框、每个版本、“您的版本”和模型回答旁的 🔊 按钮可以朗读文本。朗读时按钮和文本以绿色突出显示；再点一次暂停（文本不再突出显示），第三次继续。旁边的 ■ 按钮、Esc 或另一个 🔊 按钮会停止朗读，编辑文本也会停止朗读。LaTeX 公式不会被朗读。',
       '- 语音在模型菜单（顶部显示模型名称的按钮）中下载，每种语言一个语音。下载第一个语音时，会一次性下载语音合成程序 sherpa-onnx。语音不会长期占用内存：每句话只运行一两秒。',
+      '- Supertonic 3 语音（语音列表的第一行）是一个文件（约 130 MB），支持 13 种语言：除中文和拉丁语外的全部语言。选中后，它朗读所有这些语言；之后为某种语言另选的 Piper 语音只朗读该语言。Supertonic 有十种声音可选——五个女声、五个男声（在它那一行下方选择，选中的声音会立即播放示例）。它有时会读错数字（俄语、德语、阿拉伯语）——这些语言用 Piper 语音更好。',
       '- 语音可以从另一台电脑迁移过来：复制 models\\voices 文件夹即可。如果 engine 文件夹中还没有语音合成程序，模型菜单会显示“语音合成程序 sherpa-onnx”一行——只需下载该程序（20–30 MB），无需重新下载语音。没有网络时，也可以从使用相同系统（Windows 或 Linux）的另一台电脑复制整个 engine 文件夹。',
       '- 如果某种语言下载了两个语音，由标有 ✓ 的语音朗读；点击另一个即可切换。文本语言没有语音时，🔊 按钮显示为浅色。',
-      '- 支持俄语、英语、德语、法语、西班牙语、中文、瑞典语、意大利语、葡萄牙语（巴西变体）和拉丁语的语音；英语、德语、西班牙语、瑞典语、法语和意大利语各有一个女声和一个男声。希腊语和阿拉伯语暂无语音。拉丁语由意大利语语音 Paola 朗读，可在模型菜单中选择两种发音之一（语音只需下载一次）：教会式（意大利式）发音——caelum 读作“切卢姆”，gratia 读作“格拉齐亚”；或古典式发音——caelum 读作“凯卢姆”，Cicero 读作“基凯罗”。程序会按拉丁语规则标出重音。',
-      '- 各语音的许可证不同（在模型菜单中可见）；Ruslan、HFC female 和 Ryan 仅限非商业用途。'],
+      '- 支持俄语、英语、德语、法语、西班牙语、中文、瑞典语、意大利语、葡萄牙语（巴西变体）和拉丁语的 Piper 语音；英语、德语、西班牙语、瑞典语、法语和意大利语各有一个女声和一个男声。希腊语、阿拉伯语、日语、韩语和印地语只能由 Supertonic 朗读。拉丁语由意大利语语音 Paola 朗读，可在模型菜单中选择两种发音之一（语音只需下载一次）：教会式（意大利式）发音——caelum 读作“切卢姆”，gratia 读作“格拉齐亚”；或古典式发音——caelum 读作“凯卢姆”，Cicero 读作“基凯罗”。程序会按拉丁语规则标出重音。',
+      '- 各语音的许可证不同（在模型菜单中可见）；Ruslan、HFC female 和 Ryan 仅限非商业用途。Supertonic 的许可证为 OpenRAIL-M：不得将合成语音冒充真人的声音，也不得隐瞒其为合成语音。'],
     ['模型',
       '顶部显示模型名称的按钮会打开模型列表。下载模型前，程序会显示文件来源、保存到哪个文件夹以及文件名；不需要的模型可以删除；也可以把自己的 .gguf 文件放进 models 文件夹。⏏ 按钮可从内存中卸载模型：窗口保留，但要翻译需重新加载模型。关闭程序窗口后，几秒钟内模型会从内存中卸载，程序随之退出。',
       '在首次启动界面可以点击“跳过”：窗口会在没有模型的情况下打开（顶部显示“选择模型”），您可以在此列表中选择并下载模型。'],
@@ -1774,7 +1778,8 @@ function unmaskMath(text, M) {
 // Список формул для сообщения: длинные — сокращены.
 const fmtFormulas = (items) => items.map(it => (it.src.length > 40 ? it.src.slice(0, 38) + '…' + it.src.slice(-1) : it.src)).join(', ');
 
-// Определение языка для «Авто». Кириллица, греческий алфавит, арабское письмо и иероглифы различаются по буквам;
+// Определение языка для «Авто». Кириллица, греческий алфавит, арабское письмо, иероглифы, кана (японский), хангыль
+// (корейский) и деванагари (хинди) различаются по буквам: иероглифы вместе с каной — японский, без каны — китайский;
 // языки с латинским алфавитом — по частым словам и характерным буквам (ä, ß, ç, ñ, å…).
 const LATIN_LANGS = {
   en: { w: 'the and of to in is are was were that this these for with as on by be been an which not or from at it its can we our they their has have than also such', c: {} },
@@ -1804,10 +1809,14 @@ function detectLatin(t) {
 function detectLang(t) {
   t = stripMath(t || '');   // буквы формул (\alpha, x, \sin) — не язык текста
   const n = (re) => (t.match(re) || []).length;
+  const han = n(/[㐀-䶿一-鿿豈-﫿]/g), kana = n(/[\u3040-\u30FF\u31F0-\u31FF\uFF66-\uFF9F]/g);
   const counts = {
     ru: n(/[Ѐ-ӿ]/g),
     el: n(/[Ͱ-Ͽἀ-῿]/g),
-    zh: 2 * n(/[㐀-䶿一-鿿豈-﫿]/g),
+    zh: kana ? 0 : 2 * han,
+    ja: kana ? 2 * (han + kana) : 0,
+    ko: 2 * n(/[\uAC00-\uD7AF\u1100-\u11FF\u3130-\u318F]/g),
+    hi: n(/[\u0900-\u097F]/g),
     ar: n(/[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF]/g),
     lat: n(/\p{Script=Latin}/gu),
   };
@@ -2796,18 +2805,24 @@ function voiceWithoutProgram(lang) {
 // latin.go): с пометкой и произношением.
 const voicePron = (v) => v.respell === 'la-church' ? t('церковное произношение') : v.respell === 'la-classical' ? t('классическое произношение') : '';
 const voiceLabel = (v) => (LANGS[v.lang] ? langName(v.lang) + ' · ' : '') + v.name +
+  (v.engine === 'supertonic' ? ' (' + stSpeakerName(stSpeaker()) + ')' : '') +
   (v.via === 'it' ? ' (' + t('итальянский голос') + (voicePron(v) ? ', ' + voicePron(v) : '') + ')' : '');
+// Supertonic 3 (1.3): один файл на все его языки (tts.go); голос — один из десяти: 0–4 — женские, 5–9 — мужские.
+const stSpeaker = () => { const s = ttsState(); return (s && s.supertonic && s.supertonic.speaker) || 0; };
+const stSpeakerName = (i) => i < 5 ? t('женский {n}', { n: i + 1 }) : t('мужской {n}', { n: i - 4 });
+const stSpeakerShort = (i) => i < 5 ? t('Ж{n}', { n: i + 1 }) : t('М{n}', { n: i - 4 });
+const voiceTitle = (v) => v.engine === 'supertonic' ? 'Supertonic 3' : voiceLabel(v);   // скачивание — одно на все языки
 const voiceLicense = (v) => v.license === 'public domain' ? t('общественное достояние') : v.license;
 
-// Текст → куски для чтения: без формул и разметки, по предложениям, не длиннее SPEAK.maxChunk знаков (китайский —
-// SPEAK.maxChunkZh). Китайские 。！？； заканчивают предложение и без пробела; длинное китайское предложение
-// делится по «，» и «、».
+// Текст → куски для чтения: без формул и разметки, по предложениям, не длиннее SPEAK.maxChunk знаков (китайский и
+// японский — SPEAK.maxChunkZh). Китайские и японские 。！？； заканчивают предложение и без пробела, хинди — ।;
+// длинное китайское или японское предложение делится по «，» и «、».
 function speechChunks(text, lang) {
-  const zh = lang === 'zh';
+  const zh = lang === 'zh' || lang === 'ja';
   const max = zh ? SPEAK.maxChunkZh : SPEAK.maxChunk;
   const sep = zh ? '' : ' ';
   const s = stripMath(String(text || '')).replace(/[*_`#>|~]+/g, ' ').replace(/[ \t]+/g, ' ');
-  const sentences = s.split(/(?<=[.!?…;:])\s+|(?<=[。！？；])\s*|\n+/).map(x => x.trim()).filter(x => /[\p{L}\p{N}]/u.test(x));
+  const sentences = s.split(/(?<=[.!?…;:।॥])\s+|(?<=[。！？；])\s*|\n+/).map(x => x.trim()).filter(x => /[\p{L}\p{N}]/u.test(x));
   const out = [];
   let cur = '';
   const push = (x) => { if (x) out.push(x); };
@@ -2871,7 +2886,8 @@ function speakButton(lang, onClick) {
 }
 
 // Нажатие на 🔊: начать чтение, поставить на паузу или продолжить; другая кнопка останавливает прежнее чтение.
-function speakToggle(btn, host, text, lang) {
+// voice — определённый голос вместо выбранного для языка (образец голоса Supertonic в меню моделей).
+function speakToggle(btn, host, text, lang, voice) {
   if (speech && speech.btn === btn) {
     speech.paused = !speech.paused;
     if (speech.audio) { if (speech.paused) speech.audio.pause(); else speech.audio.play().catch(() => {}); }
@@ -2880,7 +2896,8 @@ function speakToggle(btn, host, text, lang) {
   }
   stopSpeech();
   if (MODE !== 'launcher') return;
-  const v = voiceFor(lang);
+  const ts = ttsState();
+  const v = voice ? (ts && ts.engine.present && (ts.voices || []).find(x => x.id === voice && x.present)) || null : voiceFor(lang);
   if (!v) {
     const w = voiceWithoutProgram(lang);
     toast(w ? t('Голос «{v}» есть, но нет программы озвучки sherpa-onnx. Скачайте её в меню моделей (кнопка с названием модели вверху) — один раз, голоса скачивать заново не нужно.', { v: voiceLabel(w) })
@@ -2890,7 +2907,7 @@ function speakToggle(btn, host, text, lang) {
   }
   const chunks = speechChunks(text, lang);
   if (!chunks.length) { toast(t('Нет текста для чтения')); return; }
-  speech = { btn, host, chunks, lang, audio: null, paused: false, ctl: new AbortController(), pending: new Map(), urls: [] };
+  speech = { btn, host, chunks, lang, voice: voice || '', audio: null, paused: false, ctl: new AbortController(), pending: new Map(), urls: [] };
   speech.stopBtn = speakStopButton(speech);
   setSpeakLook(btn, host, 'playing');
   playChunk(speech, 0);
@@ -2900,7 +2917,7 @@ function fetchChunk(sp, i) {
   if (!sp.pending.has(i)) {
     const p = fetch('/api/tts', {
       method: 'POST', headers: { 'Content-Type': 'application/json' }, signal: sp.ctl.signal,
-      body: JSON.stringify({ lang: sp.lang, text: sp.chunks[i], speed: speechSpeed() }),
+      body: JSON.stringify({ lang: sp.lang, text: sp.chunks[i], speed: speechSpeed(), voice: sp.voice || undefined }),
     }).then(async (r) => {
       if (!r.ok) { let j = {}; try { j = await r.json(); } catch (e) { /* пусто */ } throw new Error(j.error || 'HTTP ' + r.status); }
       return r.blob();
@@ -2951,7 +2968,7 @@ function stopSpeechOnEdit(field) {
 function renderVoiceMenu(menu) {
   const s = ttsState();
   if (!s || !(s.voices || []).length) return;
-  menu.appendChild(el('div', 'group', t('Голоса для чтения вслух (Piper, программа sherpa-onnx)')));
+  menu.appendChild(el('div', 'group', t('Голоса для чтения вслух (Supertonic и Piper, программа sherpa-onnx)')));
   const dl = s.download || {};
   // Голоса уже есть (например, скопированы с другого компьютера), а программы озвучки нет: скачать нужно только её.
   const noProgram = !s.engine.present && s.voices.some(v => v.present);
@@ -2974,7 +2991,9 @@ function renderVoiceMenu(menu) {
     }
     menu.appendChild(row);
   }
+  renderSupertonicRows(menu, s, dl);
   for (const v of s.voices) {
+    if (v.engine === 'supertonic') continue;   // одна строка на все языки — выше
     const busyThis = dl.active && dl.name === v.id;
     const row = el('div', 'mitem' + (v.active ? ' active' : ''));
     const pick = el('button', 'pick');
@@ -3023,6 +3042,85 @@ function renderVoiceMenu(menu) {
   menu.appendChild(el('div', 'foot', t('Голос читает текст вслух прямо на этом компьютере. Кнопка 🔊 — у поля текста, у вариантов и у ответов модели. Послушать голоса: rhasspy.github.io/piper-samples.')));
 }
 
+// Supertonic 3 (1.3, просьба автора от 15.11.2026: один голос для всех языков): одна строка на все его языки — файл
+// один. Щелчок делает его голосом всех этих языков; голос Piper, выбранный потом для одного языка, читает только его.
+// Когда файл скачан, под строкой — какой из десяти голосов говорит (выбор сразу звучит образцом) и кнопка 🔊.
+function renderSupertonicRows(menu, s, dl) {
+  const st = (s.voices || []).filter(v => v.engine === 'supertonic');
+  if (!st.length) return;
+  const v = st[0];   // у всех записей один файл: размер, состояние и скачивание — общие
+  const busy = dl.active && st.some(x => x.id === dl.name);
+  const n = st.filter(x => x.active).length;
+  const row = el('div', 'mitem supertonic' + (n ? ' active' : ''));
+  const pick = el('button', 'pick');
+  pick.appendChild(el('span', 'title', (n ? '✓ ' : '') + t('Supertonic 3 · все языки, кроме китайского и латыни')));
+  const status = busy ? voiceDlText(dl) : (v.present && !s.engine.present) ? t('есть в папке; нужна программа озвучки')
+    : n === st.length ? t('читает все эти языки') : n ? t('читает языков: {n} из {m}; нажмите, чтобы читал все', { n, m: st.length })
+    : v.present ? t('скачан; нажмите, чтобы читал все эти языки') : (v.partial ? t('скачано {p} %', { p: Math.round(100 * v.partial / v.size) }) : t('нужно скачать'));
+  const sub = el('span', 'sub', `${fmtBytes(v.size)} · ${status} · ${t('один файл на {n} языков', { n: st.length })} · ${t('лицензия: {l}', { l: v.license })}`);
+  pick.appendChild(sub);
+  pick.onclick = async () => {
+    if (busy) return;
+    if (v.present && !s.engine.present) {
+      if (dl.active) { toast(t('Идёт скачивание голоса, дождитесь окончания')); return; }
+      showTTSProgramConfirm(row, s); return;
+    }
+    if (n === st.length) { toast(t('Этот голос уже выбран')); return; }
+    if (dl.active) { toast(t('Идёт скачивание голоса, дождитесь окончания')); return; }
+    if (!v.present || !s.engine.present) { showVoiceConfirm(row, v, s, t('Supertonic 3 (все языки, кроме китайского и латыни)')); return; }
+    try { await post('/api/voice', { id: v.id }); await refreshState(); renderModelMenu(); } catch (e) { toast(e.message); }
+  };
+  row.appendChild(pick);
+  if (busy) {
+    const c = el('button', 'icon'); c.innerHTML = ICON.stop; c.title = t('Отменить скачивание'); c.setAttribute('aria-label', c.title);
+    c.onclick = async (e) => { e.stopPropagation(); try { await post('/api/voice-cancel'); refreshState(); } catch (err) { toast(err.message); } };
+    row.appendChild(c);
+  } else if (v.present) {
+    const del = el('button', 'icon'); del.innerHTML = ICON.trash; del.title = t('Удалить голос'); del.setAttribute('aria-label', t('Удалить голос {v}', { v: 'Supertonic 3' }));
+    del.onclick = async (e) => {
+      e.stopPropagation();
+      if (!del.dataset.confirm) { del.dataset.confirm = '1'; sub.textContent = t('Нажмите значок ещё раз, чтобы удалить голос ({s})', { s: fmtBytes(v.size) }); return; }
+      try {
+        if (speech) stopSpeech();
+        const r = await fetch('/api/voice/' + encodeURIComponent(v.id), { method: 'DELETE' });
+        if (!r.ok) { const j = await r.json().catch(() => ({})); throw new Error(j.error || 'HTTP ' + r.status); }
+        toast(t('Голос удалён')); await refreshState(); renderModelMenu();
+      } catch (err) { toast(err.message); }
+    };
+    row.appendChild(del);
+  }
+  menu.appendChild(row);
+  if (!v.present || !s.engine.present) return;
+  // какой из десяти голосов говорит: Ж1–Ж5, М1–М5; выбор сразу звучит образцом на языке интерфейса (китайский
+  // Supertonic не читает — тогда по-английски)
+  const cur = stSpeaker();
+  const srow = el('div', 'mitem st-speakers');
+  const box = el('div', 'st-box');
+  box.appendChild(el('span', 'sub', t('Голос Supertonic для всех его языков: {v}', { v: stSpeakerName(cur) })));
+  const seg = el('div', 'seg');
+  const total = (s.supertonic && s.supertonic.speakers) || 10;
+  for (let i = 0; i < total; i++) {
+    const b = el('button', '', stSpeakerShort(i));
+    b.type = 'button'; b.dataset.speaker = String(i); b.title = stSpeakerName(i); b.setAttribute('aria-pressed', String(i === cur));
+    b.onclick = async (e) => {
+      e.stopPropagation();
+      try {
+        await post('/api/voice-speaker', { speaker: i }); await refreshState(); renderModelMenu();
+        const sp = $('#modelMenu .st-speakers button.speak'); if (sp) sp.click();
+      } catch (err) { toast(err.message); }
+    };
+    seg.appendChild(b);
+  }
+  box.appendChild(seg);
+  srow.appendChild(box);
+  const lang = st.some(x => x.lang === UI_LANG) ? UI_LANG : 'en';
+  const sample = lang === UI_LANG ? t('Здравствуйте! Так звучит этот голос.') : I18N['Здравствуйте! Так звучит этот голос.'][0];
+  const sb = speakButton(lang, (b) => speakToggle(b, srow, sample, lang, (st.find(x => x.lang === lang) || v).id));
+  sb.title = t('Послушать голос'); sb.setAttribute('aria-label', sb.title);
+  srow.appendChild(sb);
+  menu.appendChild(srow);
+}
+
 function voiceDlText(dl) {
   const what = dl.item === 'tts' ? t('программа озвучки') : t('голос');
   if (dl.phase === 'extract') return t('{w}: распаковка…', { w: what });
@@ -3031,11 +3129,11 @@ function voiceDlText(dl) {
   return t('{w}: скачано {p} %', { w: what, p }) + (dl.speed ? ' · ' + t('{n} МБ/с', { n: fmtNum(dl.speed / 1e6, 1) }) : '');
 }
 
-function showVoiceConfirm(row, v, s) {
+function showVoiceConfirm(row, v, s, label) {
   const old = $('#modelMenu .dl-confirm');
   if (old) { const same = old.previousElementSibling === row; old.remove(); if (same) return; }
   const box = el('div', 'dl-confirm');
-  box.appendChild(el('div', 'q', t('Скачать голос «{v}» ({s})?', { v: voiceLabel(v), s: fmtBytes(v.size - (v.partial || 0)) })));
+  box.appendChild(el('div', 'q', t('Скачать голос «{v}» ({s})?', { v: label || voiceLabel(v), s: fmtBytes(v.size - (v.partial || 0)) })));
   // голос из нескольких файлов (модель, tokens.txt, espeak-ng-data) — каждый файл со своим адресом
   const parts = (v.parts && v.parts.length) ? v.parts : [{ url: v.url, file: v.file }];
   const rows = parts.map(p => [t('Откуда:'), p.url]);
@@ -3047,6 +3145,7 @@ function showVoiceConfirm(row, v, s) {
     box.appendChild(kvList([[t('Откуда:'), s.engine.url], [t('Куда:'), s.engine.dir], [t('Файл:'), s.engine.file]]));
   }
   if (v.nc) box.appendChild(el('div', 'note', t('Лицензия голоса ({l}) разрешает только некоммерческое использование.', { l: v.license })));
+  if (v.engine === 'supertonic') box.appendChild(el('div', 'note', t('Лицензия Supertonic (OpenRAIL-M): синтезированную речь нельзя выдавать за речь живого человека и нельзя скрывать, что она синтезирована.')));
   const btns = el('div', 'row');
   const yes = el('button', 'primary', t('Скачать'));
   yes.onclick = async (e) => {
@@ -3088,10 +3187,10 @@ function renderTTSState() {
   const s = ttsState();
   const dl = (s && s.download) || {};
   const v = s && (s.voices || []).find(x => x.id === dl.name);
-  $('#ttsInfo').textContent = dl.active && v ? voiceLabel(v) + ': ' + voiceDlText(dl) : dl.active && dl.item === 'tts' ? voiceDlText(dl) : '';
+  $('#ttsInfo').textContent = dl.active && v ? voiceTitle(v) + ': ' + voiceDlText(dl) : dl.active && dl.item === 'tts' ? voiceDlText(dl) : '';
   if (voiceDlWas && !dl.active) {
     if (dl.error) toast(t('Голос не скачался: {e}', { e: dl.error }));
-    else if (v && v.present) toast(t('Голос «{v}» скачан. Кнопка 🔊 читает текст вслух.', { v: voiceLabel(v) }));
+    else if (v && v.present) toast(t('Голос «{v}» скачан. Кнопка 🔊 читает текст вслух.', { v: voiceTitle(v) }));
     else if (!dl.name && s && s.engine.present) toast(t('Программа озвучки скачана. Кнопка 🔊 читает текст вслух.'));
     const menu = $('#modelMenu');
     if (!menu.hidden && !menu.querySelector('.dl-confirm')) renderModelMenu();
@@ -5553,6 +5652,28 @@ const I18N = {
   'португальский': ['Portuguese', 'Portugiesisch', 'portugués', '葡萄牙语'],
   'Арабский': ['Arabic', 'Arabisch', 'Árabe', '阿拉伯语'],
   'арабский': ['Arabic', 'Arabisch', 'árabe', '阿拉伯语'],
+  // 1.3: новые языки перевода
+  'Японский': ['Japanese', 'Japanisch', 'Japonés', '日语'],
+  'японский': ['Japanese', 'Japanisch', 'japonés', '日语'],
+  'Корейский': ['Korean', 'Koreanisch', 'Coreano', '韩语'],
+  'корейский': ['Korean', 'Koreanisch', 'coreano', '韩语'],
+  'Хинди': ['Hindi', 'Hindi', 'Hindi', '印地语'],
+  'хинди': ['Hindi', 'Hindi', 'hindi', '印地语'],
+  // 1.3: голос Supertonic 3 для всех его языков
+  'женский {n}': ['female {n}', 'weiblich {n}', 'femenina {n}', '女声 {n}'],
+  'мужской {n}': ['male {n}', 'männlich {n}', 'masculina {n}', '男声 {n}'],
+  'Ж{n}': ['F{n}', 'W{n}', 'F{n}', '女{n}'],
+  'М{n}': ['M{n}', 'M{n}', 'M{n}', '男{n}'],
+  'Supertonic 3 · все языки, кроме китайского и латыни': ['Supertonic 3 · all languages except Chinese and Latin', 'Supertonic 3 · alle Sprachen außer Chinesisch und Latein', 'Supertonic 3 · todos los idiomas excepto el chino y el latín', 'Supertonic 3 · 除中文和拉丁语外的所有语言'],
+  'Supertonic 3 (все языки, кроме китайского и латыни)': ['Supertonic 3 (all languages except Chinese and Latin)', 'Supertonic 3 (alle Sprachen außer Chinesisch und Latein)', 'Supertonic 3 (todos los idiomas excepto el chino y el latín)', 'Supertonic 3（除中文和拉丁语外的所有语言）'],
+  'читает все эти языки': ['reads all these languages', 'liest alle diese Sprachen', 'lee todos estos idiomas', '朗读所有这些语言'],
+  'читает языков: {n} из {m}; нажмите, чтобы читал все': ['reads {n} of {m} languages; click to make it read all', 'liest {n} von {m} Sprachen; klicken, damit sie alle liest', 'lee {n} de {m} idiomas; haga clic para que lea todos', '朗读 {m} 种语言中的 {n} 种；点击即可朗读全部'],
+  'скачан; нажмите, чтобы читал все эти языки': ['downloaded; click to make it read all these languages', 'heruntergeladen; klicken, damit sie alle diese Sprachen liest', 'descargada; haga clic para que lea todos estos idiomas', '已下载；点击即可朗读所有这些语言'],
+  'один файл на {n} языков': ['one file for {n} languages', 'eine Datei für {n} Sprachen', 'un archivo para {n} idiomas', '一个文件支持 {n} 种语言'],
+  'Голос Supertonic для всех его языков: {v}': ['The Supertonic voice for all its languages: {v}', 'Die Supertonic-Stimme für alle ihre Sprachen: {v}', 'La voz de Supertonic para todos sus idiomas: {v}', '用于其所有语言的 Supertonic 声音：{v}'],
+  'Здравствуйте! Так звучит этот голос.': ['Hello! This is how this voice sounds.', 'Guten Tag! So klingt diese Stimme.', '¡Hola! Así suena esta voz.', '您好！这就是这个声音的效果。'],
+  'Послушать голос': ['Listen to the voice', 'Stimme anhören', 'Escuchar la voz', '试听声音'],
+  'Лицензия Supertonic (OpenRAIL-M): синтезированную речь нельзя выдавать за речь живого человека и нельзя скрывать, что она синтезирована.': ['Licence of Supertonic (OpenRAIL-M): synthetic speech must not be passed off as the speech of a real person, and it must not be hidden that it is synthetic.', 'Lizenz von Supertonic (OpenRAIL-M): Synthetische Sprache darf nicht als Sprache eines realen Menschen ausgegeben werden, und es darf nicht verschwiegen werden, dass sie synthetisch ist.', 'Licencia de Supertonic (OpenRAIL-M): la voz sintética no puede hacerse pasar por la de una persona real, ni puede ocultarse que es sintética.', 'Supertonic 的许可证（OpenRAIL-M）：不得将合成语音冒充真人的声音，也不得隐瞒其为合成语音。'],
   // 1.2: телефон (Android)
   'Меню': ['Menu', 'Menü', 'Menú', '菜单'],
   'Сохранить отчёт в файл…': ['Save the report to a file…', 'Bericht in Datei speichern…', 'Guardar el informe en un archivo…', '将报告保存到文件…'],
@@ -5649,7 +5770,7 @@ const I18N = {
   'Нет текста для чтения': ['No text to read', 'Kein Text zum Vorlesen', 'No hay texto para leer', '没有可朗读的文本'],
   'Не удалось прочитать вслух: {e}': ['Could not read aloud: {e}', 'Vorlesen nicht möglich: {e}', 'No se pudo leer en voz alta: {e}', '无法朗读：{e}'],
   'Не удалось воспроизвести звук': ['Could not play the sound', 'Der Ton konnte nicht abgespielt werden', 'No se pudo reproducir el sonido', '无法播放声音'],
-  'Голоса для чтения вслух (Piper, программа sherpa-onnx)': ['Voices for reading aloud (Piper, sherpa-onnx program)', 'Stimmen zum Vorlesen (Piper, Programm sherpa-onnx)', 'Voces para la lectura en voz alta (Piper, programa sherpa-onnx)', '朗读语音（Piper，sherpa-onnx 程序）'],
+  'Голоса для чтения вслух (Supertonic и Piper, программа sherpa-onnx)': ['Voices for reading aloud (Supertonic and Piper, sherpa-onnx program)', 'Stimmen zum Vorlesen (Supertonic und Piper, Programm sherpa-onnx)', 'Voces para la lectura en voz alta (Supertonic y Piper, programa sherpa-onnx)', '朗读语音（Supertonic 和 Piper，sherpa-onnx 程序）'],
   'читает этот язык': ['reads this language', 'liest diese Sprache', 'lee este idioma', '朗读此语言'],
   'скачан; нажмите, чтобы выбрать': ['downloaded; click to choose it', 'heruntergeladen; zum Auswählen klicken', 'descargada; pulse para elegirla', '已下载；点击选择'],
   'лицензия: {l}': ['licence: {l}', 'Lizenz: {l}', 'licencia: {l}', '许可证：{l}'],

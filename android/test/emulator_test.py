@@ -649,6 +649,38 @@ def check_tts():
         info('reply: %s' % body[:300])
 
 
+def check_supertonic():
+    # 1.3: the Supertonic 3 model (129 MB, one archive for 13 languages) through the app's reading-aloud program
+    # (android/native/tts-cli.c: the --supertonic-* options and the language as the "lang" of the extra options)
+    if time_left() < 1500:
+        info('Supertonic: skipped, only %d s left for the CI job' % time_left())
+        return
+    t0 = time.time()
+    code, _, body = post('/api/voice', {'id': 'supertonic-ja'})
+    ok(code == 200, 'Supertonic download started: %d %s' % (code, body[:120]))
+    def done():
+        s = api('/api/state')['tts']
+        v = [x for x in s['voices'] if x['id'] == 'supertonic-ja'][0]
+        if s['download'].get('error'):
+            return 'error: ' + s['download']['error']
+        return 'ok' if v['present'] and not s['download']['active'] else None
+    r = wait(done, max(60, min(600, time_left() - 900)), 2)
+    ok(r == 'ok', 'Supertonic (129 MB) downloaded from github.com and unpacked in %.0f s: %s' % (time.time() - t0, r))
+    if r != 'ok':
+        return
+    for lang, text in (('ja', '窓を閉めていただけますか。'), ('ko', '창문 좀 닫아 주시겠어요?')):
+        t0 = time.time()
+        code, ctype, body = post('/api/tts', {'lang': lang, 'text': text, 'speed': 1}, timeout=120)
+        rate = int.from_bytes(body[24:28], 'little') if body[:4] == b'RIFF' else 0
+        ok(code == 200 and body[:4] == b'RIFF' and rate == 44100 and len(body) > 44100,
+           'Supertonic reads %s: %d %s, %d bytes, %d Hz, %.1f s' % (lang, code, ctype, len(body), rate, time.time() - t0))
+        if body[:4] == b'RIFF':
+            with open(os.path.join(OUT, 'tts-supertonic-%s.wav' % lang), 'wb') as f:
+                f.write(body)
+        else:
+            info('reply: %s' % body[:300])
+
+
 def check_background():
     adb('shell', 'input', 'keyevent', 'KEYCODE_HOME')
     time.sleep(30)
@@ -785,6 +817,7 @@ try:
     if not QUICK:
         step('the page', check_page)
         step('reading aloud', check_tts)
+        step('reading aloud with Supertonic', check_supertonic)
         step('in the background', check_background)
         step('the app ended by Android', check_killed)
     step('Exit', check_exit)
