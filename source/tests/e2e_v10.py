@@ -220,7 +220,8 @@ try:
       page.click('#modelBtn'); page.wait_for_selector('#modelMenu:not([hidden])')
       menu = page.inner_text('#modelMenu')
       ok('Latín · Paola (voz italiana, pronunciación eclesiástica)' in menu and 'Latín · Paola (voz italiana, pronunciación clásica)' in menu, 'the Latin voice: the Italian Paola, church and classical pronunciation')
-      ok(menu.count('un solo archivo para ambas pronunciaciones') == 2, 'both Latin entries say they share one file')
+      ok(menu.count('un solo archivo para ambas pronunciaciones del latín y el italiano') == 2 and menu.count('el mismo archivo que las voces del latín') == 1,
+         'both Latin entries say they share one file with Italian; the Italian Paola says it is the Latin one (1.2)')
       ok('Modelos de prueba' in menu, 'a group name of the launcher\'s catalogue in Spanish')
       vs = {x['id']: x for x in api('/api/state')['tts']['voices'] if x['lang'] == 'la'}
       v, vc = vs.get('la-paola', {}), vs.get('la-paola-classical', {})

@@ -450,7 +450,7 @@ details.licenses pre { max-height: 60vh; overflow: auto; white-space: pre-wrap; 
 <main id="mainView" class="grid" hidden>
   <section class="left">
     <div>
-      <textarea id="src" placeholder="Введите или вставьте текст (до 1000 знаков)" aria-label="Исходный текст"></textarea>
+      <textarea id="src" dir="auto" placeholder="Введите или вставьте текст (до 1000 знаков)" aria-label="Исходный текст"></textarea>
       <div id="langHint" class="hint lang-hint" hidden><span class="txt"></span><button type="button"></button></div>
       <div class="row small src-tools"><button id="randomBtn" class="ghost needs-model" type="button" title="Попросить модель придумать случайную пословицу, поговорку или устойчивое выражение на языке текста"><span id="randomIcon"></span><span id="randomLabel">Случайно</span></button><button id="lessonBtn" class="ghost needs-model" type="button" title="Попросить модель придумать короткий учебный пример на языке текста: правило, упражнение, «найдите ошибку» или два слова, которые легко перепутать. Маленькие модели иногда ошибаются в правилах — проверяйте."><span id="lessonIcon"></span><span id="lessonLabel">Учебный пример</span></button><button id="lessonMore" class="ghost" type="button" title="Учебный пример: уровень, тема и упражнение в «Спросить модель» (вы отвечаете — модель проверяет)" aria-label="Учебный пример: уровень, тема и упражнение в «Спросить модель» (вы отвечаете — модель проверяет)"></button><span id="cleanNote" class="muted"></span><span class="spacer"></span><button id="srcSpeak" class="icon speak" type="button" title="Прочитать вслух" aria-label="Прочитать вслух"></button><span id="counter" class="muted">0 из 1000</span></div>
     </div>
@@ -479,7 +479,7 @@ details.licenses pre { max-height: 60vh; overflow: auto; white-space: pre-wrap; 
           <div id="askEmpty" class="ask-empty">Вопрос выбранной модели: как перевести термин, чем различаются варианты, верна ли фраза. Модель видит только эту переписку. Кнопка «?» у варианта перевода задаёт вопрос о нём.</div>
         </div>
         <div class="ask-input">
-          <textarea id="askInput" rows="1" maxlength="4000" placeholder="Ваш вопрос…" aria-label="Вопрос модели"></textarea>
+          <textarea id="askInput" dir="auto" rows="1" maxlength="4000" placeholder="Ваш вопрос…" aria-label="Вопрос модели"></textarea>
           <button id="askSend" class="primary needs-model" title="Отправить (Enter); новая строка — Shift+Enter">Ввод</button>
           <button id="askReset" title="Стереть переписку: модель её забудет. Сама модель остаётся в памяти">Обновить</button>
         </div>
@@ -522,7 +522,7 @@ details.licenses pre { max-height: 60vh; overflow: auto; white-space: pre-wrap; 
             <button id="ownSave" class="icon" type="button" title="Сохранить" aria-label="Сохранить"></button>
           </div>
         </div>
-        <textarea id="ownText" rows="2" maxlength="4000" placeholder="Напишите свой перевод — его можно сохранить в «Сохранённые»" aria-label="Свой вариант"></textarea>
+        <textarea id="ownText" dir="auto" rows="2" maxlength="4000" placeholder="Напишите свой перевод — его можно сохранить в «Сохранённые»" aria-label="Свой вариант"></textarea>
       </div>
     </div>
 
@@ -738,6 +738,10 @@ const LANGS = {
   zh: { name: 'Китайский',   lower: 'китайский',   loc: 'китайском',   prompt: 'Chinese', target: 'Simplified Chinese' },
   la: { name: 'Латынь',      lower: 'латынь',      loc: 'латыни',      prompt: 'Latin' },
   sv: { name: 'Шведский',    lower: 'шведский',    loc: 'шведском',    prompt: 'Swedish' },
+  // 1.2: только языки перевода (интерфейс — на пяти прежних); португальский — бразильский вариант, как его голоса
+  it: { name: 'Итальянский',   lower: 'итальянский',   loc: 'итальянском',   prompt: 'Italian' },
+  pt: { name: 'Португальский', lower: 'португальский', loc: 'португальском', prompt: 'Portuguese', target: 'Brazilian Portuguese' },
+  ar: { name: 'Арабский',      lower: 'арабский',      loc: 'арабском',      prompt: 'Arabic' },
 };
 // Языки в каждом новом окне программы: слева — язык интерфейса, справа — первый из START_TARGET, который с ним
 // не совпадает (при английском интерфейсе — русский). Пока окно открыто, выбор в списках сохраняется.
@@ -1308,7 +1312,7 @@ const HELP = {
       '- Голоса скачиваются в меню моделей (кнопка с названием модели вверху), по голосу на язык. Вместе с первым голосом один раз скачивается программа озвучки sherpa-onnx. Голос не занимает память постоянно: он запускается на секунду-две для каждой фразы.',
       '- Голоса можно перенести с другого компьютера: скопируйте папку models\\voices. Если программы озвучки в папке engine ещё нет, в меню моделей появится строка «Программа озвучки sherpa-onnx» — скачается только она (20–30 МБ), голоса заново не скачиваются. Без интернета можно скопировать и всю папку engine с другого компьютера с той же системой (Windows или Linux).',
       '- Если для языка скачано два голоса, читает тот, что отмечен ✓; другой выбирается щелчком. Без голоса для языка текста кнопка 🔊 бледная.',
-      '- Голоса есть для русского, английского, немецкого, французского, испанского, китайского, шведского и латыни; для английского, немецкого, испанского, шведского и французского — женский и мужской. Латынь читает итальянский голос Paola с одним из двух произношений (на выбор в меню моделей; голос скачивается один раз): «церковным» (итальянским) — caelum как «челум», gratia как «грациа» — или «классическим» — caelum как «кайлум», Cicero как «кикеро». Ударения программа расставляет сама по правилам латыни.',
+      '- Голоса есть для русского, английского, немецкого, французского, испанского, китайского, шведского, итальянского, португальского (бразильский вариант) и латыни; для английского, немецкого, испанского, шведского, французского и итальянского — женский и мужской. Для греческого и арабского голосов пока нет. Латынь читает итальянский голос Paola с одним из двух произношений (на выбор в меню моделей; голос скачивается один раз): «церковным» (итальянским) — caelum как «челум», gratia как «грациа» — или «классическим» — caelum как «кайлум», Cicero как «кикеро». Ударения программа расставляет сама по правилам латыни.',
       '- Лицензии голосов разные (видны в меню моделей); Ruslan, HFC female и Ryan — только для некоммерческого использования.'],
     ['Модели',
       'Кнопка с названием модели вверху открывает список. Перед скачиванием модели программа показывает, откуда, в какую папку и под каким именем скачивается файл; ненужную модель можно удалить; свой файл .gguf можно положить в папку models. Кнопка ⏏ выгружает модель из памяти: окно остаётся, а для перевода модель нужно загрузить снова. Если закрыть окно программы, через несколько секунд модель выгрузится из памяти и программа завершится.',
@@ -1316,7 +1320,7 @@ const HELP = {
     ['Тест',
       'Кнопка «Тест» открывает два теста; отчёт со временем и оценкой каждого сохраняется в папку data\\reports — так удобно сравнивать модели.',
       '- «Быстрый тест» — две латинские крылатые фразы (Audentes fortuna iuvat; Cogito, ergo sum): с латыни на язык интерфейса и обратно, в нейтральном стиле — четыре перевода, около минуты. Образцы переводов встроены в программу.',
-      '- «Подробный тест» переводит пары фраз из файла ui\\tests.txt в обе стороны в двух стилях и исправляет каждую фразу на своём языке. Пара — две строки на двух языках: «EN: …» и «RU: …» (или LA, DE, FR, ES, EL, ZH, SV); в наборе — две пары английский ↔ русский и четыре латинских крылатых выражения. Свои пары можно дописать в этот файл.',
+      '- «Подробный тест» переводит пары фраз из файла ui\\tests.txt в обе стороны в двух стилях и исправляет каждую фразу на своём языке. Пара — две строки на двух языках: «EN: …» и «RU: …» (или LA, DE, FR, ES, EL, ZH, SV, IT, PT, AR); в наборе — две пары английский ↔ русский и четыре латинских крылатых выражения. Свои пары можно дописать в этот файл.',
       '- В окне теста у каждого задания видны исходный текст, перевод модели и Ваш вариант (из файла) или образец перевода.'],
     ['Настройки',
       'Кнопка ⚙ вверху: язык интерфейса (английский, русский, немецкий, испанский или китайский), тема (светлая или тёмная), размер шрифта, «О программе» и «Выход». Настройки сохраняются сразу. Значок T вверху справа тоже открывает «О программе». При запуске программа показывает окно приветствия: язык, вид окна, загружать ли модель при запуске и показывать ли это окно; то же — в «Настройках». Окно приветствия можно передвинуть за заголовок; «Выйти» в нём закрывает программу.',
@@ -1362,7 +1366,7 @@ const HELP = {
       '- Voices are downloaded in the model menu (the button with the model name at the top), one voice per language. With the first voice, the speech program sherpa-onnx is downloaded once. A voice does not stay in memory: it starts for a second or two for every phrase.',
       '- Voices can be moved from another computer: copy the folder models\\voices. If the speech program is not in the engine folder yet, the model menu shows the row “The speech program sherpa-onnx” — only the program is downloaded (20–30 MB), not the voices. Without the internet, you can also copy the whole engine folder from another computer with the same system (Windows or Linux).',
       '- If two voices are downloaded for a language, the one marked ✓ reads; click the other one to choose it. Without a voice for the language of the text, the 🔊 button is pale.',
-      '- There are voices for Russian, English, German, French, Spanish, Chinese, Swedish and Latin; for English, German, Spanish, Swedish and French, a female and a male one. Latin is read by the Italian voice Paola with one of two pronunciations (choose in the model menu; the voice is downloaded once): the church (Italian) one — caelum as “chelum”, gratia as “gratsia” — or the classical one — caelum as “kailum”, Cicero as “Kikero”. The program puts the stress where the rules of Latin say.',
+      '- There are voices for Russian, English, German, French, Spanish, Chinese, Swedish, Italian, Portuguese (the Brazilian variant) and Latin; for English, German, Spanish, Swedish, French and Italian, a female and a male one. Greek and Arabic have no voice yet. Latin is read by the Italian voice Paola with one of two pronunciations (choose in the model menu; the voice is downloaded once): the church (Italian) one — caelum as “chelum”, gratia as “gratsia” — or the classical one — caelum as “kailum”, Cicero as “Kikero”. The program puts the stress where the rules of Latin say.',
       '- The voices have different licences (shown in the model menu); Ruslan, HFC female and Ryan are for non-commercial use only.'],
     ['Models',
       'The button with the model name at the top opens the list. Before downloading a model, the program shows where the file comes from, the folder it goes to and its name; a model you do not need can be deleted; your own .gguf file can be put into the models folder. The ⏏ button unloads the model from memory: the window stays, but to translate you need to load the model again. If you close the program window, the model is unloaded from memory within a few seconds and the program exits.',
@@ -1370,7 +1374,7 @@ const HELP = {
     ['Test',
       'The “Test” button opens two tests; a report with the timings and scores of each is saved to data\\reports — handy for comparing models.',
       '- “Quick test”: two Latin sayings (Audentes fortuna iuvat; Cogito, ergo sum), from Latin into the interface language and back, in the neutral style — four translations, about a minute. The reference translations are built into the program.',
-      '- “Full test” translates the phrase pairs from ui\\tests.txt both ways in two styles and corrects each phrase in its own language. A pair is two lines in two languages: “EN: …” and “RU: …” (or LA, DE, FR, ES, EL, ZH, SV); the set has two English ↔ Russian pairs and four Latin sayings. You can add your own pairs to this file.',
+      '- “Full test” translates the phrase pairs from ui\\tests.txt both ways in two styles and corrects each phrase in its own language. A pair is two lines in two languages: “EN: …” and “RU: …” (or LA, DE, FR, ES, EL, ZH, SV, IT, PT, AR); the set has two English ↔ Russian pairs and four Latin sayings. You can add your own pairs to this file.',
       '- In the test window each task shows the source text, the model translation and your version (from the file) or the reference translation.'],
     ['Settings',
       'The ⚙ button at the top: interface language (English, Russian, German, Spanish or Chinese), theme (light or dark), font size, “About” and “Exit”. Settings are saved at once. The T icon at the top right also opens “About”. At start the program shows a welcome window: the language, the window type, whether to load the model at start and whether to show this window; the same options are in “Settings”. The welcome window can be moved by its title; “Exit” in it closes the program.',
@@ -1416,7 +1420,7 @@ const HELP = {
       '- Stimmen werden im Modellmenü heruntergeladen (die Schaltfläche mit dem Modellnamen oben), eine Stimme pro Sprache. Mit der ersten Stimme wird einmalig das Sprachausgabe-Programm sherpa-onnx heruntergeladen. Eine Stimme belegt keinen Arbeitsspeicher auf Dauer: Sie startet für jede Phrase für ein bis zwei Sekunden.',
       '- Stimmen lassen sich von einem anderen Computer übernehmen: Kopieren Sie den Ordner models\\voices. Ist das Sprachausgabe-Programm noch nicht im Ordner engine, zeigt das Modellmenü die Zeile „Das Sprachausgabe-Programm sherpa-onnx“ – heruntergeladen wird nur das Programm (20–30 MB), nicht die Stimmen. Ohne Internet können Sie auch den ganzen Ordner engine von einem anderen Computer mit demselben System (Windows oder Linux) kopieren.',
       '- Sind für eine Sprache zwei Stimmen heruntergeladen, liest die mit ✓ markierte; die andere wählen Sie per Klick. Ohne Stimme für die Sprache des Textes ist die Schaltfläche 🔊 blass.',
-      '- Stimmen gibt es für Russisch, Englisch, Deutsch, Französisch, Spanisch, Chinesisch, Schwedisch und Latein; für Englisch, Deutsch, Spanisch, Schwedisch und Französisch je eine weibliche und eine männliche. Latein liest die italienische Stimme Paola mit einer von zwei Aussprachen (Auswahl im Modellmenü; die Stimme wird nur einmal heruntergeladen): der kirchlichen (italienischen) – caelum wie „tschelum“, gratia wie „grazia“ – oder der klassischen – caelum wie „kailum“, Cicero wie „Kikero“. Die Betonung setzt das Programm nach den Regeln des Lateins.',
+      '- Stimmen gibt es für Russisch, Englisch, Deutsch, Französisch, Spanisch, Chinesisch, Schwedisch, Italienisch, Portugiesisch (die brasilianische Variante) und Latein; für Englisch, Deutsch, Spanisch, Schwedisch, Französisch und Italienisch je eine weibliche und eine männliche. Für Griechisch und Arabisch gibt es noch keine Stimme. Latein liest die italienische Stimme Paola mit einer von zwei Aussprachen (Auswahl im Modellmenü; die Stimme wird nur einmal heruntergeladen): der kirchlichen (italienischen) – caelum wie „tschelum“, gratia wie „grazia“ – oder der klassischen – caelum wie „kailum“, Cicero wie „Kikero“. Die Betonung setzt das Programm nach den Regeln des Lateins.',
       '- Die Stimmen haben verschiedene Lizenzen (im Modellmenü sichtbar); Ruslan, HFC female und Ryan nur für nicht-kommerzielle Nutzung.'],
     ['Modelle',
       'Die Schaltfläche mit dem Modellnamen oben öffnet die Liste. Vor dem Herunterladen eines Modells zeigt das Programm Quelle, Zielordner und Dateinamen; ein nicht benötigtes Modell lässt sich löschen; eine eigene .gguf-Datei können Sie in den Ordner models legen. Die Schaltfläche ⏏ entlädt das Modell aus dem Arbeitsspeicher: Das Fenster bleibt, zum Übersetzen muss das Modell aber wieder geladen werden. Wenn Sie das Programmfenster schließen, wird das Modell nach wenigen Sekunden aus dem Arbeitsspeicher entladen und das Programm beendet.',
@@ -1424,7 +1428,7 @@ const HELP = {
     ['Test',
       'Die Schaltfläche „Test“ öffnet zwei Tests; zu jedem wird ein Bericht mit Zeiten und Bewertungen in data\\reports gespeichert – praktisch, um Modelle zu vergleichen.',
       '- „Schnelltest“: zwei lateinische Redewendungen (Audentes fortuna iuvat; Cogito, ergo sum), aus dem Lateinischen in die Sprache der Oberfläche und zurück, im neutralen Stil – vier Übersetzungen, etwa eine Minute. Die Referenzübersetzungen sind im Programm enthalten.',
-      '- „Ausführlicher Test“ übersetzt die Satzpaare aus ui\\tests.txt in beide Richtungen in zwei Stilen und korrigiert jeden Satz in seiner Sprache. Ein Paar sind zwei Zeilen in zwei Sprachen: „EN: …“ und „RU: …“ (oder LA, DE, FR, ES, EL, ZH, SV); enthalten sind zwei Paare Englisch ↔ Russisch und vier lateinische Redewendungen. Eigene Paare können Sie in diese Datei schreiben.',
+      '- „Ausführlicher Test“ übersetzt die Satzpaare aus ui\\tests.txt in beide Richtungen in zwei Stilen und korrigiert jeden Satz in seiner Sprache. Ein Paar sind zwei Zeilen in zwei Sprachen: „EN: …“ und „RU: …“ (oder LA, DE, FR, ES, EL, ZH, SV, IT, PT, AR); enthalten sind zwei Paare Englisch ↔ Russisch und vier lateinische Redewendungen. Eigene Paare können Sie in diese Datei schreiben.',
       '- Im Testfenster zeigt jede Aufgabe den Ausgangstext, die Übersetzung des Modells und Ihre Fassung (aus der Datei) oder die Referenzübersetzung.'],
     ['Einstellungen',
       'Die Schaltfläche ⚙ oben: Sprache der Oberfläche (Englisch, Russisch, Deutsch, Spanisch oder Chinesisch), Design (hell oder dunkel), Schriftgröße, „Über das Programm“ und „Beenden“. Einstellungen werden sofort gespeichert. Auch das Symbol T oben rechts öffnet „Über das Programm“. Beim Start zeigt das Programm ein Begrüßungsfenster: Sprache, Fensterart, ob das Modell beim Start geladen wird und ob dieses Fenster erscheint; dieselben Optionen gibt es unter „Einstellungen“. Das Begrüßungsfenster lässt sich an der Überschrift verschieben; „Beenden“ darin schließt das Programm.',
@@ -1470,7 +1474,7 @@ const HELP = {
       '- Las voces se descargan en el menú de modelos (el botón con el nombre del modelo, arriba), una voz por idioma. Con la primera voz se descarga una sola vez el programa de voz sherpa-onnx. Una voz no ocupa la memoria de forma permanente: se inicia uno o dos segundos para cada frase.',
       '- Las voces se pueden pasar desde otro ordenador: copie la carpeta models\\voices. Si el programa de voz todavía no está en la carpeta engine, el menú de modelos muestra la línea «Programa de voz sherpa-onnx»: solo se descarga el programa (20–30 MB), no las voces. Sin internet también puede copiar toda la carpeta engine desde otro ordenador con el mismo sistema (Windows o Linux).',
       '- Si hay dos voces descargadas para un idioma, lee la marcada con ✓; la otra se elige con un clic. Sin voz para el idioma del texto, el botón 🔊 aparece pálido.',
-      '- Hay voces para ruso, inglés, alemán, francés, español, chino, sueco y latín; para inglés, alemán, español, sueco y francés, una femenina y una masculina. El latín lo lee la voz italiana Paola con una de dos pronunciaciones (se elige en el menú de modelos; la voz se descarga una sola vez): la eclesiástica (italiana) —caelum como «chelum», gratia como «gratsia»— o la clásica —caelum como «kailum», Cicero como «Kikero»—. El programa pone el acento según las reglas del latín.',
+      '- Hay voces para ruso, inglés, alemán, francés, español, chino, sueco, italiano, portugués (la variante brasileña) y latín; para inglés, alemán, español, sueco, francés e italiano, una femenina y una masculina. El griego y el árabe aún no tienen voz. El latín lo lee la voz italiana Paola con una de dos pronunciaciones (se elige en el menú de modelos; la voz se descarga una sola vez): la eclesiástica (italiana) —caelum como «chelum», gratia como «gratsia»— o la clásica —caelum como «kailum», Cicero como «Kikero»—. El programa pone el acento según las reglas del latín.',
       '- Las voces tienen licencias distintas (se ven en el menú de modelos); Ruslan, HFC female y Ryan son solo para uso no comercial.'],
     ['Modelos',
       'El botón con el nombre del modelo, arriba, abre la lista. Antes de descargar un modelo, el programa muestra de dónde viene el archivo, a qué carpeta va y con qué nombre; un modelo que no necesite se puede eliminar; puede poner su propio archivo .gguf en la carpeta models. El botón ⏏ libera el modelo de la memoria: la ventana sigue abierta, pero para traducir hay que volver a cargar el modelo. Si cierra la ventana del programa, en unos segundos el modelo se libera de la memoria y el programa termina.',
@@ -1478,7 +1482,7 @@ const HELP = {
     ['Prueba',
       'El botón «Prueba» abre dos pruebas; de cada una se guarda un informe con tiempos y puntuaciones en la carpeta data\\reports: así es fácil comparar modelos.',
       '- «Prueba rápida»: dos locuciones latinas (Audentes fortuna iuvat; Cogito, ergo sum), del latín al idioma de la interfaz y de vuelta, en estilo neutro: cuatro traducciones, alrededor de un minuto. Las traducciones de referencia vienen incluidas en el programa.',
-      '- «Prueba completa» traduce en ambos sentidos y en dos estilos los pares de frases del archivo ui\\tests.txt y corrige cada frase en su propio idioma. Un par son dos líneas en dos idiomas: «EN: …» y «RU: …» (o LA, DE, FR, ES, EL, ZH, SV); el conjunto tiene dos pares inglés ↔ ruso y cuatro locuciones latinas. Puede añadir sus propios pares a este archivo.',
+      '- «Prueba completa» traduce en ambos sentidos y en dos estilos los pares de frases del archivo ui\\tests.txt y corrige cada frase en su propio idioma. Un par son dos líneas en dos idiomas: «EN: …» y «RU: …» (o LA, DE, FR, ES, EL, ZH, SV, IT, PT, AR); el conjunto tiene dos pares inglés ↔ ruso y cuatro locuciones latinas. Puede añadir sus propios pares a este archivo.',
       '- En la ventana de la prueba, cada tarea muestra el texto original, la traducción del modelo y su versión (del archivo) o la traducción de referencia.'],
     ['Ajustes',
       'El botón ⚙ de arriba: idioma de la interfaz (inglés, ruso, alemán, español o chino), tema (claro u oscuro), tamaño de letra, «Acerca de» y «Salir». Los ajustes se guardan al instante. El icono T de arriba a la derecha también abre «Acerca de». Al iniciar, el programa muestra una ventana de bienvenida: el idioma, el tipo de ventana, si se carga el modelo al iniciar y si se muestra esta ventana; las mismas opciones están en «Ajustes». La ventana de bienvenida se puede mover por el título; «Salir» en ella cierra el programa.',
@@ -1524,7 +1528,7 @@ const HELP = {
       '- 语音在模型菜单（顶部显示模型名称的按钮）中下载，每种语言一个语音。下载第一个语音时，会一次性下载语音合成程序 sherpa-onnx。语音不会长期占用内存：每句话只运行一两秒。',
       '- 语音可以从另一台电脑迁移过来：复制 models\\voices 文件夹即可。如果 engine 文件夹中还没有语音合成程序，模型菜单会显示“语音合成程序 sherpa-onnx”一行——只需下载该程序（20–30 MB），无需重新下载语音。没有网络时，也可以从使用相同系统（Windows 或 Linux）的另一台电脑复制整个 engine 文件夹。',
       '- 如果某种语言下载了两个语音，由标有 ✓ 的语音朗读；点击另一个即可切换。文本语言没有语音时，🔊 按钮显示为浅色。',
-      '- 支持俄语、英语、德语、法语、西班牙语、中文、瑞典语和拉丁语的语音；英语、德语、西班牙语、瑞典语和法语各有一个女声和一个男声。拉丁语由意大利语语音 Paola 朗读，可在模型菜单中选择两种发音之一（语音只需下载一次）：教会式（意大利式）发音——caelum 读作“切卢姆”，gratia 读作“格拉齐亚”；或古典式发音——caelum 读作“凯卢姆”，Cicero 读作“基凯罗”。程序会按拉丁语规则标出重音。',
+      '- 支持俄语、英语、德语、法语、西班牙语、中文、瑞典语、意大利语、葡萄牙语（巴西变体）和拉丁语的语音；英语、德语、西班牙语、瑞典语、法语和意大利语各有一个女声和一个男声。希腊语和阿拉伯语暂无语音。拉丁语由意大利语语音 Paola 朗读，可在模型菜单中选择两种发音之一（语音只需下载一次）：教会式（意大利式）发音——caelum 读作“切卢姆”，gratia 读作“格拉齐亚”；或古典式发音——caelum 读作“凯卢姆”，Cicero 读作“基凯罗”。程序会按拉丁语规则标出重音。',
       '- 各语音的许可证不同（在模型菜单中可见）；Ruslan、HFC female 和 Ryan 仅限非商业用途。'],
     ['模型',
       '顶部显示模型名称的按钮会打开模型列表。下载模型前，程序会显示文件来源、保存到哪个文件夹以及文件名；不需要的模型可以删除；也可以把自己的 .gguf 文件放进 models 文件夹。⏏ 按钮可从内存中卸载模型：窗口保留，但要翻译需重新加载模型。关闭程序窗口后，几秒钟内模型会从内存中卸载，程序随之退出。',
@@ -1532,7 +1536,7 @@ const HELP = {
     ['测试',
       '“测试”按钮提供两种测试；每次测试都会把带用时和评分的报告保存到 data\\reports 文件夹——便于比较模型。',
       '- “快速测试”：两句拉丁语名言（Audentes fortuna iuvat；Cogito, ergo sum），从拉丁语译成界面语言再译回，中性风格——共四次翻译，约一分钟。参考译文内置于程序中。',
-      '- “详细测试”以两种风格双向翻译 ui\\tests.txt 文件中的句子对，并用每个句子本身的语言校改它。一对句子是两种语言的两行：“EN: …”和“RU: …”（或 LA、DE、FR、ES、EL、ZH、SV）；默认包含两对英语 ↔ 俄语句子和四句拉丁语名言。您可以在此文件中添加自己的句子对。',
+      '- “详细测试”以两种风格双向翻译 ui\\tests.txt 文件中的句子对，并用每个句子本身的语言校改它。一对句子是两种语言的两行：“EN: …”和“RU: …”（或 LA、DE、FR、ES、EL、ZH、SV、IT、PT、AR）；默认包含两对英语 ↔ 俄语句子和四句拉丁语名言。您可以在此文件中添加自己的句子对。',
       '- 在测试窗口中，每项任务都会显示原文、模型译文，以及您的译文（来自文件）或参考译文。'],
     ['设置',
       '顶部的 ⚙ 按钮：界面语言（英语、俄语、德语、西班牙语或中文）、主题（浅色或深色）、字体大小、“关于”和“退出”。设置会立即保存。右上角的 T 图标也会打开“关于”。启动时程序会显示欢迎窗口：语言、窗口类型、启动时是否加载模型、是否显示此窗口；“设置”中也有相同选项。欢迎窗口可以拖动标题移动；其中的“退出”会关闭程序。',
@@ -1770,7 +1774,7 @@ function unmaskMath(text, M) {
 // Список формул для сообщения: длинные — сокращены.
 const fmtFormulas = (items) => items.map(it => (it.src.length > 40 ? it.src.slice(0, 38) + '…' + it.src.slice(-1) : it.src)).join(', ');
 
-// Определение языка для «Авто». Кириллица, греческий алфавит и иероглифы различаются по буквам;
+// Определение языка для «Авто». Кириллица, греческий алфавит, арабское письмо и иероглифы различаются по буквам;
 // языки с латинским алфавитом — по частым словам и характерным буквам (ä, ß, ç, ñ, å…).
 const LATIN_LANGS = {
   en: { w: 'the and of to in is are was were that this these for with as on by be been an which not or from at it its can we our they their has have than also such', c: {} },
@@ -1779,6 +1783,8 @@ const LATIN_LANGS = {
   es: { w: 'el la los las y de que en un una es son por con para no se del al lo su sus como más pero este esta ser ha muy también entre cuando', c: { 'ñ': 3, 'á': 2, 'í': 2, 'ó': 2, 'ú': 2, 'é': 1, '¿': 3, '¡': 3 } },
   la: { w: 'et est sunt in non ad cum ut quod sed qui quae quam enim esse ab ex per nec neque autem atque vel hoc etiam sicut tamen eius ac sive quoque igitur ergo inter', c: { 'ā': 2, 'ē': 2, 'ī': 2, 'ō': 2, 'ū': 2 } },
   sv: { w: 'och att det som en är på för med av inte den till har de ett om jag vi kan eller så från men var vid sig också när hur', c: { 'å': 3, 'ä': 1, 'ö': 1 } },
+  it: { w: 'il lo gli che è di della delle dei degli nel nella sono non per con una anche questo questa più come ma alla al sul ci io noi', c: { 'ì': 2, 'ò': 2, 'ù': 2, 'à': 1, 'è': 1 } },
+  pt: { w: 'o os e do da dos das em no na não um uma para com por que se como mais mas ao é são foi também você isso eu nós muito', c: { 'ã': 3, 'õ': 3, 'ç': 1, 'ê': 1, 'ô': 1 } },
 };
 for (const k in LATIN_LANGS) LATIN_LANGS[k].set = new Set(LATIN_LANGS[k].w.split(' '));
 
@@ -1802,6 +1808,7 @@ function detectLang(t) {
     ru: n(/[Ѐ-ӿ]/g),
     el: n(/[Ͱ-Ͽἀ-῿]/g),
     zh: 2 * n(/[㐀-䶿一-鿿豈-﫿]/g),
+    ar: n(/[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF]/g),
     lat: n(/\p{Script=Latin}/gu),
   };
   let best = null, max = 0;
@@ -2230,7 +2237,7 @@ function renderCardHead(c) {
 function makeCard(run, key, extra) {
   const c = { id: ++cardSeq, key, labels: [key], text: '', done: false, run, extra: !!extra, saved: null, back: null, showDiff: false };
   const a = el('article', 'card pending' + (key === 'neutral' && !extra ? ' main' : '') + (key === 'comments' ? ' comments' : ''));
-  a.innerHTML = '<div class="card-head"><span class="card-label"></span><span class="card-meta"></span><div class="card-actions" hidden></div></div><div class="card-text"></div><div class="card-diff" hidden></div><div class="card-back" hidden></div><div class="card-note" hidden></div>';
+  a.innerHTML = '<div class="card-head"><span class="card-label"></span><span class="card-meta"></span><div class="card-actions" hidden></div></div><div class="card-text" dir="auto"></div><div class="card-diff" hidden></div><div class="card-back" hidden></div><div class="card-note" hidden></div>';
   c.el = a;
   const acts = a.querySelector('.card-actions');
   // needs — кнопке нужна модель: пока она выгружена, кнопка бледная, а нажатие объясняет, что делать
@@ -2974,8 +2981,10 @@ function renderVoiceMenu(menu) {
     pick.appendChild(el('span', 'title', (v.active ? '✓ ' : '') + voiceLabel(v)));
     const status = busyThis ? voiceDlText(dl) : (v.present && !s.engine.present) ? t('есть в папке; нужна программа озвучки') : v.active ? t('читает этот язык') : v.present ? t('скачан; нажмите, чтобы выбрать') : (v.partial ? t('скачано {p} %', { p: Math.round(100 * v.partial / v.size) }) : t('нужно скачать'));
     const lic = t('лицензия: {l}', { l: voiceLicense(v) }) + (v.nc ? ' — ' + t('только некоммерческое использование') : '');
-    // два произношения латыни — один и тот же голос: файл скачивается один раз, удаляется тоже для обоих
-    const shared = s.voices.some(o => o.id !== v.id && o.file === v.file) ? ' · ' + t('один файл на оба произношения') : '';
+    // два произношения латыни и итальянский (1.2) — один и тот же голос Paola: файл скачивается один раз, удаляется тоже для всех
+    const others = s.voices.filter(o => o.id !== v.id && o.file === v.file);
+    const shared = !others.length ? '' : ' · ' + (v.lang !== 'la' ? t('тот же файл, что у голосов латыни')
+      : others.some(o => o.lang !== 'la') ? t('один файл на оба произношения латыни и итальянский') : t('один файл на оба произношения'));
     const sub = el('span', 'sub', `${fmtBytes(v.size)} · ${status} · ${v.gender === 'male' ? t('мужской голос') : t('женский голос')}${shared} · ${lic}`);
     pick.appendChild(sub);
     pick.onclick = async () => {
@@ -3612,7 +3621,7 @@ function askGrow() {
 function addAskMsg(role, text) {
   $('#askEmpty').hidden = true;
   const m = el('div', 'msg ' + role);
-  const body = el('div', 'msg-body');
+  const body = el('div', 'msg-body'); body.dir = 'auto';   // арабский — справа налево
   if (role === 'user') body.textContent = text;
   m.appendChild(body);
   $('#askLog').appendChild(m);
@@ -5243,10 +5252,60 @@ async function setFontScale(v) {
   try { await saveSettings({ font_scale: v }); } catch (e) { toast(e.message); }
 }
 
+// Android (1.2): свой раздел справки — первым, только в приложении для Android
+const HELP_ANDROID = {
+  ru: ['Android: телефон и планшет',
+    'Ttranslator для Android — то же, что на компьютере: модель работает на самом устройстве, без интернета.',
+    '- Установка: скачайте файл Ttranslator-<версия>-android-arm64.apk со страницы выпуска на GitHub и откройте его; Android попросит разрешить установку из этого источника. Google Play Защита может предупредить о неизвестном разработчике — «Всё равно установить».',
+    '- Обновление: откройте APK новой версии и нажмите «Обновить» — модели, голоса, настройки, сохранённое и словари остаются. Все версии подписаны одним ключом (его отпечаток — в README на GitHub); сами обновления не приходят: новые версии — на странице выпусков.',
+    '- Удаление: долгое нажатие на значок → «Удалить». Вместе с приложением удаляются модели, голоса, сохранённое и словари — нужное сохраните заранее («Экспорт в файл…»).',
+    '- Модели: для устройства с 8 ГБ памяти — Gemma 4 E2B · Q4_0, с 12 ГБ — ещё E4B · Q4_0. Скачивать лучше по Wi-Fi. Пока идёт скачивание или перевод, в уведомлениях видно «Ttranslator» — приложение можно свернуть.',
+    '- Перевести из другого приложения: выделите текст → «Ttranslator» в меню (или «Поделиться» → Ttranslator): текст появится в поле и сразу переведётся.',
+    '- Кнопки, которым нет места вверху (Сохранённые, Тест, Настройки, Справка, О программе, Выход), — в меню «⋮». Кнопка «Назад» закрывает меню и панели; если закрывать нечего, приложение уходит в фон, а модель остаётся в памяти.',
+    '- Файлы программы — в папке Android/data/io.github.allasoneteam.ttranslator/files (её видно с компьютера по USB; на Android 9 и 10 — во внутренней памяти приложения). Сохранённое и словари выгружаются пунктом «Экспорт в файл…».'],
+  en: ['Android: phone and tablet',
+    'Ttranslator for Android is the same as on a computer: the model runs on the device itself, without the internet.',
+    '- Installing: download the file Ttranslator-<version>-android-arm64.apk from the release page on GitHub and open it; Android asks you to allow installs from this source. Google Play Protect may warn about an unknown developer — “Install anyway”.',
+    '- Updating: open the APK of the new version and tap “Update” — models, voices, settings, saved translations and glossaries stay. All versions are signed with one key (its fingerprint is in the README on GitHub); updates do not come by themselves: new versions are on the releases page.',
+    '- Uninstalling: long-press the icon → “Uninstall”. Models, voices, saved translations and glossaries go with the app — save what you need first (“Export to a file…”).',
+    '- Models: for a device with 8 GB of memory, Gemma 4 E2B · Q4_0; with 12 GB, also E4B · Q4_0. Downloading is best over Wi-Fi. While a download or a translation runs, “Ttranslator” shows in the notifications — you can switch to another app.',
+    '- Translate from another app: select text → “Ttranslator” in the menu (or “Share” → Ttranslator): the text comes into the field and is translated at once.',
+    '- The buttons with no room at the top (Saved, Test, Settings, Help, About, Exit) are in the menu “⋮”. The Back button closes menus and panels; with nothing to close, the app goes to the background and the model stays in memory.',
+    '- The program files are in the folder Android/data/io.github.allasoneteam.ttranslator/files (a computer sees it over USB; on Android 9 and 10, in the app’s internal storage). Saved translations and glossaries leave the app with “Export to a file…”.'],
+  de: ['Android: Telefon und Tablet',
+    'Ttranslator für Android ist dasselbe wie auf dem Computer: Das Modell läuft auf dem Gerät selbst, ohne Internet.',
+    '- Installieren: Laden Sie die Datei Ttranslator-<Version>-android-arm64.apk von der Release-Seite auf GitHub herunter und öffnen Sie sie; Android bittet, Installationen aus dieser Quelle zu erlauben. Google Play Protect warnt womöglich vor einem unbekannten Entwickler – „Trotzdem installieren“.',
+    '- Aktualisieren: Öffnen Sie die APK der neuen Version und tippen Sie auf „Aktualisieren“ – Modelle, Stimmen, Einstellungen, Gespeichertes und Glossare bleiben. Alle Versionen sind mit einem Schlüssel signiert (sein Fingerabdruck steht im README auf GitHub); Updates kommen nicht von selbst: neue Versionen stehen auf der Release-Seite.',
+    '- Deinstallieren: Symbol lange drücken → „Deinstallieren“. Modelle, Stimmen, Gespeichertes und Glossare werden mit der App gelöscht – sichern Sie Nötiges vorher („In Datei exportieren…“).',
+    '- Modelle: für ein Gerät mit 8 GB Arbeitsspeicher Gemma 4 E2B · Q4_0, mit 12 GB auch E4B · Q4_0. Herunterladen am besten über WLAN. Während ein Download oder eine Übersetzung läuft, steht „Ttranslator“ in den Benachrichtigungen – Sie können zu einer anderen App wechseln.',
+    '- Aus einer anderen App übersetzen: Text markieren → „Ttranslator“ im Menü (oder „Teilen“ → Ttranslator): Der Text kommt ins Feld und wird sofort übersetzt.',
+    '- Die Schaltflächen, für die oben kein Platz ist (Gespeichert, Test, Einstellungen, Hilfe, Über das Programm, Beenden), sind im Menü „⋮“. Die Zurück-Taste schließt Menüs und Bereiche; gibt es nichts zu schließen, geht die App in den Hintergrund, und das Modell bleibt im Speicher.',
+    '- Die Programmdateien liegen im Ordner Android/data/io.github.allasoneteam.ttranslator/files (ein Computer sieht ihn über USB; unter Android 9 und 10 im internen Speicher der App). Gespeichertes und Glossare verlassen die App über „In Datei exportieren…“.'],
+  es: ['Android: teléfono y tableta',
+    'Ttranslator para Android es lo mismo que en el ordenador: el modelo funciona en el propio dispositivo, sin internet.',
+    '- Instalar: descargue el archivo Ttranslator-<versión>-android-arm64.apk de la página de la versión en GitHub y ábralo; Android le pedirá que permita instalar desde este origen. Google Play Protect puede avisar de un desarrollador desconocido: «Instalar de todos modos».',
+    '- Actualizar: abra el APK de la nueva versión y pulse «Actualizar»: los modelos, las voces, los ajustes, lo guardado y los glosarios se conservan. Todas las versiones están firmadas con la misma clave (su huella está en el README de GitHub); las actualizaciones no llegan solas: las nuevas versiones están en la página de versiones.',
+    '- Desinstalar: mantenga pulsado el icono → «Desinstalar». Con la aplicación se borran los modelos, las voces, lo guardado y los glosarios: guarde antes lo que necesite («Exportar a un archivo…»).',
+    '- Modelos: para un dispositivo con 8 GB de memoria, Gemma 4 E2B · Q4_0; con 12 GB, también E4B · Q4_0. Conviene descargar por wifi. Mientras dura una descarga o una traducción, «Ttranslator» aparece en las notificaciones: puede cambiar a otra aplicación.',
+    '- Traducir desde otra aplicación: seleccione el texto → «Ttranslator» en el menú (o «Compartir» → Ttranslator): el texto aparece en el campo y se traduce enseguida.',
+    '- Los botones que no caben arriba (Guardados, Prueba, Ajustes, Ayuda, Acerca de, Salir) están en el menú «⋮». El botón Atrás cierra menús y paneles; si no hay nada que cerrar, la aplicación pasa a segundo plano y el modelo sigue en memoria.',
+    '- Los archivos del programa están en la carpeta Android/data/io.github.allasoneteam.ttranslator/files (un ordenador la ve por USB; en Android 9 y 10, en la memoria interna de la aplicación). Lo guardado y los glosarios salen de la aplicación con «Exportar a un archivo…».'],
+  zh: ['Android：手机和平板',
+    'Android 版 Ttranslator 与电脑版相同：模型在设备本身上运行，无需联网。',
+    '- 安装：从 GitHub 的版本发布页面下载文件 Ttranslator-<版本>-android-arm64.apk 并打开；Android 会请求允许从此来源安装。Google Play 保护机制可能会提示开发者未知——选择“仍然安装”。',
+    '- 更新：打开新版本的 APK 并点按“更新”——模型、语音、设置、已保存内容和术语表都会保留。所有版本使用同一个密钥签名（其指纹见 GitHub 上的 README）；更新不会自动推送：新版本在版本发布页面上。',
+    '- 卸载：长按图标 →“卸载”。模型、语音、已保存内容和术语表会随应用一起删除——请先保存所需内容（“导出到文件…”）。',
+    '- 模型：内存 8 GB 的设备用 Gemma 4 E2B · Q4_0，12 GB 及以上还可用 E4B · Q4_0。最好通过 Wi-Fi 下载。下载或翻译进行时，通知栏会显示“Ttranslator”——可以切换到其他应用。',
+    '- 从其他应用翻译：选中文本 → 菜单中的“Ttranslator”（或“分享”→ Ttranslator）：文本会进入输入框并立即翻译。',
+    '- 顶部放不下的按钮（已保存、测试、设置、帮助、关于、退出）在“⋮”菜单中。返回键会关闭菜单和面板；没有可关闭的内容时，应用转入后台，模型仍保留在内存中。',
+    '- 程序文件位于 Android/data/io.github.allasoneteam.ttranslator/files 文件夹（电脑可通过 USB 看到；在 Android 9 和 10 上位于应用的内部存储中）。已保存内容和术语表可通过“导出到文件…”导出。'],
+};
+
 function renderHelp() {
   const box = $('#helpBody');
   if (box.childElementCount) return;
-  for (const [title, ...lines] of HELP[UI_LANG] || HELP.ru) {
+  const sections = (ANDROID ? [HELP_ANDROID[UI_LANG] || HELP_ANDROID.ru] : []).concat(HELP[UI_LANG] || HELP.ru);
+  for (const [title, ...lines] of sections) {
     box.appendChild(el('h3', '', title));
     let ul = null;
     for (const line of lines) {
@@ -5484,6 +5543,13 @@ function ownFromVariant(btn) {
 // числа (plural): ключ — русская форма для 1, значение — [[единственное, множественное], [Einzahl, Mehrzahl]].
 // Полноту переводов проверяет автотест source/tests/i18n_check.py.
 const I18N = {
+  // 1.2: новые языки перевода
+  'Итальянский': ['Italian', 'Italienisch', 'Italiano', '意大利语'],
+  'итальянский': ['Italian', 'Italienisch', 'italiano', '意大利语'],
+  'Португальский': ['Portuguese', 'Portugiesisch', 'Portugués', '葡萄牙语'],
+  'португальский': ['Portuguese', 'Portugiesisch', 'portugués', '葡萄牙语'],
+  'Арабский': ['Arabic', 'Arabisch', 'Árabe', '阿拉伯语'],
+  'арабский': ['Arabic', 'Arabisch', 'árabe', '阿拉伯语'],
   // 1.2: телефон (Android)
   'Меню': ['Menu', 'Menü', 'Menú', '菜单'],
   'Сохранить отчёт в файл…': ['Save the report to a file…', 'Bericht in Datei speichern…', 'Guardar el informe en un archivo…', '将报告保存到文件…'],
@@ -5590,6 +5656,8 @@ const I18N = {
   'итальянский голос': ['Italian voice', 'italienische Stimme', 'voz italiana', '意大利语语音'],
   'церковное произношение': ['church pronunciation', 'kirchliche Aussprache', 'pronunciación eclesiástica', '教会式发音'],
   'классическое произношение': ['classical pronunciation', 'klassische Aussprache', 'pronunciación clásica', '古典式发音'],
+  'один файл на оба произношения латыни и итальянский': ['one file for both Latin pronunciations and Italian', 'eine Datei für beide lateinischen Aussprachen und Italienisch', 'un solo archivo para ambas pronunciaciones del latín y el italiano', '拉丁语两种发音和意大利语共用一个文件'],
+  'тот же файл, что у голосов латыни': ['the same file as the Latin voices', 'dieselbe Datei wie die lateinischen Stimmen', 'el mismo archivo que las voces del latín', '与拉丁语语音共用同一个文件'],
   'один файл на оба произношения': ['one file for both pronunciations', 'eine Datei für beide Aussprachen', 'un solo archivo para ambas pronunciaciones', '两种发音共用一个文件'],
   'Этот голос уже выбран': ['This voice is already chosen', 'Diese Stimme ist bereits gewählt', 'Esta voz ya está elegida', '已选择此语音'],
   'Идёт скачивание голоса, дождитесь окончания': ['A voice is being downloaded, please wait until it finishes', 'Eine Stimme wird heruntergeladen, bitte warten Sie, bis der Download fertig ist', 'Se está descargando una voz; espere a que termine', '正在下载语音，请等待完成'],

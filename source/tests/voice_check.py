@@ -79,6 +79,16 @@ PHRASES = {
            "Min syster arbetar på ett sjukhus nära havet.", "Kan du stänga fönstret, tack?"],
     "zh": ["你好。", "早上好。", "猫在家里的沙发上睡觉。", "我喜欢在晚上看书。", "明天我们去乡下看望爷爷奶奶。",
            "火车早上出发，晚上到达北京。", "我的姐姐在海边的一家医院工作。", "请你把窗户关上，好吗？"],
+    # 1.2: Italian, Portuguese (Brazil), Arabic (Modern Standard, without vowel marks — as people write)
+    "it": ["Ciao.", "Buongiorno.", "Il gatto dorme a casa sul divano.", "Mi piace leggere libri la sera.",
+           "Domani andiamo a trovare i nonni in campagna.", "Il treno parte presto la mattina e arriva a Roma la sera.",
+           "Mia sorella lavora in un ospedale vicino al mare.", "Puoi chiudere la finestra, per favore?"],
+    "pt": ["Olá.", "Bom dia.", "O gato dorme em casa no sofá.", "Eu gosto de ler livros à noite.",
+           "Amanhã vamos visitar os nossos avós no interior.", "O trem sai cedo de manhã e chega a São Paulo à noite.",
+           "Minha irmã trabalha em um hospital perto do mar.", "Você pode fechar a janela, por favor?"],
+    "ar": ["مرحبا.", "صباح الخير.", "القطة تنام في البيت على الأريكة.", "أحب أن أقرأ الكتب في المساء.",
+           "غدا سنزور جدي وجدتي في القرية.", "يغادر القطار في الصباح الباكر ويصل إلى عمان في المساء.",
+           "تعمل أختي في مستشفى قرب البحر.", "هل يمكنك إغلاق النافذة من فضلك؟"],
     # Latin is read by an Italian voice in Italian spelling (latin.go): the phrases are respelled as the app does it,
     # and Whisper listens in Italian (the voice's own language) and is compared with the respelled text
     "la": ["Salve.", "Gratias tibi.", "Puella in horto cum cane ambulat.", "Libros legere vesperi mihi placet.",

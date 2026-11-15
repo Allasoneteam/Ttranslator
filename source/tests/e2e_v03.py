@@ -40,7 +40,8 @@ try:
       # --- languages
       src_opts = page.locator('#srcSel option').all_inner_texts()
       tgt_opts = page.locator('#tgtSel option').all_inner_texts()
-      want = ['Авто', 'Русский', 'Английский', 'Немецкий', 'Французский', 'Испанский', 'Греческий', 'Китайский', 'Латынь', 'Шведский']
+      want = ['Авто', 'Русский', 'Английский', 'Немецкий', 'Французский', 'Испанский', 'Греческий', 'Китайский', 'Латынь', 'Шведский',
+              'Итальянский', 'Португальский', 'Арабский']   # 1.2: Italian, Portuguese, Arabic
       ok(src_opts == want and tgt_opts == want, 'language lists: %s' % src_opts)
       samples = {
           'ru': 'Мы представляем точное решение в замкнутой форме.',

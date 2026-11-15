@@ -229,6 +229,20 @@ var voiceSpecs = []VoiceSpec{
 	// stress marked by latin.go; the same archive (Dir) — downloaded once for both
 	espeakRules(otherLanguage(piperVoice("la-paola-classical", "la", "Paola", "female", "CC0", false, "it_IT-paola-medium", 67221173,
 		"7541f75778afa164e44e34baaef63befad7698595df26a95ca944b63ef1a16b4"), "it", "la-classical"), "la"),
+	// 1.2, the new languages of translation (checked with voice_check.py, 13–14.11.2026). Italian: Paola (the same
+	// archive as the Latin voices: downloaded once for all three) and the male Riccardo (M-AILABS data set: LibriVox
+	// recordings, a BSD-style licence). Brazilian Portuguese: three male voices on CC0 data. Arabic has no voice yet:
+	// the only one (ar_JO-kareem) reads slowly and wrongly without vowel marks and its data set states no licence.
+	piperVoice("it-paola", "it", "Paola", "female", "CC0", false, "it_IT-paola-medium", 67221173,
+		"7541f75778afa164e44e34baaef63befad7698595df26a95ca944b63ef1a16b4"),
+	piperVoice("it-riccardo", "it", "Riccardo", "male", "M-AILABS (BSD)", false, "it_IT-riccardo-x_low", 26496614,
+		"8ad0791558ae2b3e96054fc5756ae3ae2f6457fb1765bc01f43bbab85e0a7021"),
+	piperVoice("pt-faber", "pt", "Faber", "male", "CC0", false, "pt_BR-faber-medium", 67183065,
+		"7add3f923ad6bc25ca8a192805fd1a64d1b3893e4611c4a9719545a825039a83"),
+	piperVoice("pt-cadu", "pt", "Cadu", "male", "CC0", false, "pt_BR-cadu-medium", 67207562,
+		"aba78157d4b89acc17ddef15a70f4b2474f4c189d4de6035002ac7fec9d5d303"),
+	piperVoice("pt-jeff", "pt", "Jeff", "male", "CC0", false, "pt_BR-jeff-medium", 67207052,
+		"da4c870fc7b20600c74261b3e1dd1c816da2ce063e18c46e1f2cd86dea88f3f0"),
 }
 
 // Test hooks, used only when the environment variables are set: TDOC_TTS_URL replaces the sherpa-onnx archive

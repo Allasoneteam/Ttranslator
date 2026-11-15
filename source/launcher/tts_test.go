@@ -31,7 +31,8 @@ var hfPinned = regexp.MustCompile(`^https://huggingface\.co/csukuangfj/vits-pipe
 
 // the voices: official sherpa-onnx archives (or parts), pinned size and checksum, a known language, a licence
 func TestVoiceCatalog(t *testing.T) {
-	langs := map[string]bool{"ru": true, "en": true, "de": true, "fr": true, "es": true, "el": true, "zh": true, "la": true, "sv": true}
+	langs := map[string]bool{"ru": true, "en": true, "de": true, "fr": true, "es": true, "el": true, "zh": true, "la": true, "sv": true,
+		"it": true, "pt": true, "ar": true} // 1.2: Italian, Portuguese, Arabic
 	seen := map[string]bool{}
 	for _, v := range voiceSpecs {
 		if seen[v.ID] {
