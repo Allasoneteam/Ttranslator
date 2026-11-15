@@ -85,6 +85,10 @@ with sync_playwright() as p:
           top: Math.round(document.querySelector('#' + k + 'View').getBoundingClientRect().top), sw: document.documentElement.scrollWidth})""", pane)
         ok(st['pane'] and not st['form'] and st['top'] < 200 and st['sw'] == 412,
            '«%s» from the menu: the pane in place of the work window, at the top, as wide as the screen: %s' % (label, st))
+        if pane == 'help':
+            h = page.eval_on_selector_all('#helpBody h3', 'es => es.map(e => e.textContent)')
+            ok(h[:1] == ['Android: телефон и планшет'] and 'Перевод' in h and 'Обновление и удаление' not in h and 'Файлы программы' not in h,
+               'Справка on Android: its own section first; no program folder and no updating of a computer: %s' % h)
         if pane == 'settings':
             ok(not page.is_visible('#modeRow'), 'settings on Android: no window type')
             page.screenshot(path=os.path.join(shots, 'phone-settings.png'))
@@ -147,6 +151,12 @@ with sync_playwright() as p:
     page.locator('#popMenu .mi', has_text='Сохранённые').first.click(); time.sleep(0.4)
     page.click('#savedMenuBtn'); time.sleep(0.3)
     ok('Открыть папку' in menu_items(page), 'browser tab: «Открыть папку» stays in Сохранённые')
+    page.evaluate('window.ttwBack()'); time.sleep(0.2)
+    page.click('#moreBtn'); time.sleep(0.2)
+    page.locator('#popMenu .mi', has_text='Справка').first.click(); time.sleep(0.4)
+    h = page.eval_on_selector_all('#helpBody h3', 'es => es.map(e => e.textContent)')
+    ok(h[:1] == ['Перевод'] and 'Обновление и удаление' in h and not [x for x in h if x.startswith('Android')],
+       'browser tab: the help of a computer, without the Android section: %s' % h[:3])
     ok(not errors, 'no errors in the page: %s' % errors[:3])
     b.close()
 

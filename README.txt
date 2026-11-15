@@ -1,15 +1,17 @@
-﻿TTRANSLATOR 1.1 — AN OFFLINE TRANSLATOR
+﻿TTRANSLATOR 1.2 — AN OFFLINE TRANSLATOR
 
 Офлайн-переводчик · Offline-Übersetzer · Traductor sin conexión · 离线翻译器
 
-Ttranslator is a free, open-source offline translator for nine languages:
-English, Russian, German, French, Spanish, Greek, Chinese, Latin and Swedish.
+Ttranslator is a free, open-source offline translator for twelve languages:
+English, Russian, German, French, Spanish, Italian, Portuguese (Brazil),
+Greek, Arabic, Chinese, Latin and Swedish.
 It runs a local language model on your own computer — no cloud, no account, no
 telemetry — and shows several translation variants in different styles, edits
 text in the same language, follows your own glossary, answers questions about
 a translation and reads texts aloud. A processor is enough (no graphics card
 is needed), with 8 GB of memory and 4–9 GB of disk space for a model. It runs
-on Windows 10/11, Linux and macOS 13.3 or newer.
+on Windows 10/11, Linux, macOS 13.3 or newer and Android 9 or newer (phones
+and tablets).
 
 The interface is in English, Russian, German, Spanish and Chinese. This file
 has the installation and the first start in these five languages and then the
@@ -192,6 +194,53 @@ path), and the data of the window:
 If the program does not open even after “Open Anyway”, run in Terminal
     xattr -dr com.apple.quarantine /Applications/Ttranslator.app
 and open it again.
+
+ANDROID
+
+Android 9 or newer, on a phone or tablet with a 64-bit ARM processor (nearly
+every device of the last years); 8 GB of memory or more is best. The app is
+the file Ttranslator-<version>-android-arm64.apk on the release page on
+GitHub; it is not in Google Play.
+
+1. Download the APK on the phone or tablet (or copy it there from a
+   computer) and open it in “Downloads” or “Files”. Android asks to allow
+   installing apps from this source: allow it for the browser or the file
+   manager, go back and tap “Install”. Google Play Protect may warn about an
+   unknown developer: “More details” → “Install anyway”.
+2. Start Ttranslator. On the first start tap “Download”: the model Gemma 4
+   E2B · Q4_0 (3.35 GB) is downloaded once — better over Wi-Fi. While it
+   downloads (and while a translation runs), “Ttranslator” is shown in the
+   notifications: you can switch to another app. Android 13 and newer asks
+   once whether the app may show notifications. Or tap “Skip” and choose a
+   model later in the model menu (with 12 GB of memory or more it also
+   offers E4B · Q4_0, 5.2 GB: better, but slower).
+3. Translate from another app: select text → “Ttranslator” in the menu of
+   the selection (or “Share” → Ttranslator): the text comes into the field
+   and is translated at once.
+4. The buttons that do not fit at the top (Saved, Test, Settings, Help,
+   About, Exit) are in the menu “⋮”. The Back button closes menus and
+   panels; with nothing to close, the app goes to the background and the
+   model stays loaded. “Exit” closes the app and frees the memory.
+
+Where the data are: in the folder
+    Android/data/io.github.allasoneteam.ttranslator/files
+(Android 11 and newer; a computer sees it over USB) — models, voices, saved
+translations, glossaries, test reports, logs (data/logs) and settings. On
+Android 9 and 10 they are in the app's internal storage.
+
+Updating: open the APK of the new version and tap “Update”. Models, voices,
+saved translations, glossaries and settings stay. All versions are signed
+with the same key; the SHA-256 fingerprint of its certificate is
+    E3:50:90:EC:9E:C7:60:64:84:D4:9B:AF:AF:6B:AE:EC:
+    03:38:0D:70:04:81:99:0E:72:E1:30:40:01:68:0C:C8
+The app does not update itself: new versions are on the releases page.
+
+Uninstalling: long-press the icon → “Uninstall” (or Settings → Apps →
+Ttranslator → Uninstall). The models, voices, saved translations and
+glossaries are deleted with the app — export what you need first (the menus
+of “Saved” and of the glossary, “Export…”). If Android offers to keep the
+app's data and you agree, they stay and come back when you install
+Ttranslator again.
 
 UPDATING AND MOVING TO ANOTHER COMPUTER
 
@@ -429,6 +478,54 @@ Intel.
   причина — в «Настройках» под видом окна.
 
 
+ANDROID
+
+Подходит Android 9 и новее на телефоне или планшете с 64-битным процессором
+ARM (почти любое устройство последних лет); памяти лучше 8 ГБ и больше.
+Приложение — файл Ttranslator-<версия>-android-arm64.apk на странице
+выпуска на GitHub; в Google Play его нет.
+
+1. Скачайте APK на телефоне или планшете (или перенесите его с компьютера)
+   и откройте в «Загрузках» или «Файлах». Android попросит разрешить
+   установку приложений из этого источника: разрешите браузеру или
+   файловому менеджеру, вернитесь назад и нажмите «Установить». Google Play
+   Защита может предупредить о неизвестном разработчике: «Подробнее» →
+   «Всё равно установить».
+2. Откройте Ttranslator. При первом запуске нажмите «Скачать»: программа
+   один раз скачает модель Gemma 4 E2B · Q4_0 (3,35 ГБ) — лучше по Wi-Fi.
+   Пока идёт скачивание (и перевод), в уведомлениях видно «Ttranslator» —
+   приложение можно свернуть. Android 13 и новее один раз спросит, можно ли
+   показывать уведомления. Или «Пропустить» — и выберите модель потом в
+   меню моделей (при памяти от 12 ГБ там есть и E4B · Q4_0, 5,2 ГБ:
+   точнее, но медленнее).
+3. Перевести из другого приложения: выделите текст → «Ttranslator» в меню
+   выделения (или «Поделиться» → Ttranslator) — текст появится в поле и
+   сразу переведётся.
+4. Кнопки, которым нет места вверху (Сохранённые, Тест, Настройки,
+   Справка, О программе, Выход), — в меню «⋮». Кнопка «Назад» закрывает
+   меню и панели; если закрывать нечего, приложение уходит в фон, а модель
+   остаётся в памяти. «Выход» закрывает приложение и освобождает память.
+
+Где лежат данные: в папке
+    Android/data/io.github.allasoneteam.ttranslator/files
+(Android 11 и новее; с компьютера её видно по USB) — модели, голоса,
+сохранённые переводы, словари, отчёты теста, журналы (data/logs) и
+настройки. На Android 9 и 10 — во внутренней памяти приложения.
+
+Обновление: откройте APK новой версии и нажмите «Обновить». Модели, голоса,
+сохранённые переводы, словари и настройки останутся. Все версии подписаны
+одним ключом; отпечаток SHA-256 его сертификата:
+    E3:50:90:EC:9E:C7:60:64:84:D4:9B:AF:AF:6B:AE:EC:
+    03:38:0D:70:04:81:99:0E:72:E1:30:40:01:68:0C:C8
+Само приложение не обновляется: новые версии — на странице выпусков.
+
+Удаление: долгое нажатие на значок → «Удалить» (или «Настройки» →
+«Приложения» → Ttranslator → «Удалить»). Вместе с приложением удаляются
+модели, голоса, сохранённые переводы и словари — нужное заранее выгрузите
+через меню «Сохранённых» и словаря («Экспорт…»). Если Android предложит
+сохранить данные приложения и вы согласитесь, они останутся и вернутся при
+новой установке Ttranslator.
+
 ОБНОВЛЕНИЕ И ПЕРЕНОС НА ДРУГОЙ КОМПЬЮТЕР
 
 Всё, что программа скачала и запомнила, лежит в её папке:
@@ -655,6 +752,60 @@ Terminal
     xattr -dr com.apple.quarantine /Applications/Ttranslator.app
 aus und öffnen Sie es erneut.
 
+ANDROID
+
+Geeignet ist Android 9 oder neuer auf einem Telefon oder Tablet mit
+64-Bit-ARM-Prozessor (fast jedes Gerät der letzten Jahre); am besten mit
+8 GB Arbeitsspeicher oder mehr. Die App ist die Datei
+Ttranslator-<Version>-android-arm64.apk auf der Release-Seite auf GitHub;
+bei Google Play gibt es sie nicht.
+
+1. Laden Sie die APK auf dem Telefon oder Tablet herunter (oder kopieren
+   Sie sie vom Computer dorthin) und öffnen Sie sie unter „Downloads“ oder
+   „Dateien“. Android bittet, die Installation von Apps aus dieser Quelle
+   zu erlauben: Erlauben Sie es dem Browser oder dem Dateimanager, gehen
+   Sie zurück und tippen Sie auf „Installieren“. Google Play Protect warnt
+   womöglich vor einem unbekannten Entwickler: „Weitere Details“ →
+   „Trotzdem installieren“.
+2. Starten Sie Ttranslator. Tippen Sie beim ersten Start auf
+   „Herunterladen“: Das Modell Gemma 4 E2B · Q4_0 (3,35 GB) wird einmal
+   geladen – am besten über WLAN. Während des Downloads (und während einer
+   Übersetzung) steht „Ttranslator“ in den Benachrichtigungen: Sie können
+   zu einer anderen App wechseln. Android 13 und neuer fragt einmal, ob die
+   App Benachrichtigungen zeigen darf. Oder „Überspringen“ – und das Modell
+   später im Modellmenü wählen (ab 12 GB Arbeitsspeicher gibt es dort auch
+   E4B · Q4_0, 5,2 GB: genauer, aber langsamer).
+3. Aus einer anderen App übersetzen: Text markieren → „Ttranslator“ im Menü
+   der Markierung (oder „Teilen“ → Ttranslator): Der Text kommt ins Feld
+   und wird sofort übersetzt.
+4. Die Schaltflächen, für die oben kein Platz ist (Gespeichert, Test,
+   Einstellungen, Hilfe, Über das Programm, Beenden), sind im Menü „⋮“.
+   Die Zurück-Taste schließt Menüs und Bereiche; gibt es nichts zu
+   schließen, geht die App in den Hintergrund, und das Modell bleibt
+   geladen. „Beenden“ schließt die App und gibt den Speicher frei.
+
+Wo die Daten liegen: im Ordner
+    Android/data/io.github.allasoneteam.ttranslator/files
+(Android 11 und neuer; ein Computer sieht ihn über USB) – Modelle, Stimmen,
+gespeicherte Übersetzungen, Glossare, Testberichte, Protokolle (data/logs)
+und Einstellungen. Unter Android 9 und 10 im internen Speicher der App.
+
+Aktualisieren: Öffnen Sie die APK der neuen Version und tippen Sie auf
+„Aktualisieren“. Modelle, Stimmen, gespeicherte Übersetzungen, Glossare und
+Einstellungen bleiben. Alle Versionen sind mit demselben Schlüssel
+signiert; der SHA-256-Fingerabdruck seines Zertifikats:
+    E3:50:90:EC:9E:C7:60:64:84:D4:9B:AF:AF:6B:AE:EC:
+    03:38:0D:70:04:81:99:0E:72:E1:30:40:01:68:0C:C8
+Die App aktualisiert sich nicht selbst: Neue Versionen stehen auf der
+Release-Seite.
+
+Deinstallieren: Symbol lange drücken → „Deinstallieren“ (oder
+Einstellungen → Apps → Ttranslator → Deinstallieren). Modelle, Stimmen,
+gespeicherte Übersetzungen und Glossare werden mit der App gelöscht –
+exportieren Sie Nötiges vorher über die Menüs von „Gespeichert“ und des
+Glossars. Bietet Android an, die App-Daten zu behalten, und Sie stimmen zu,
+bleiben sie erhalten und kommen bei einer neuen Installation zurück.
+
 AKTUALISIEREN UND AUF EINEN ANDEREN COMPUTER ÜBERTRAGEN
 
 Alles, was das Programm herunterlädt und sich merkt, liegt in seinem Ordner:
@@ -877,6 +1028,60 @@ en Terminal
     xattr -dr com.apple.quarantine /Applications/Ttranslator.app
 y vuelva a abrirlo.
 
+ANDROID
+
+Sirve Android 9 o posterior en un teléfono o una tableta con procesador ARM
+de 64 bits (casi cualquier dispositivo de los últimos años); mejor con 8 GB
+de memoria o más. La aplicación es el archivo
+Ttranslator-<versión>-android-arm64.apk de la página de la versión en
+GitHub; no está en Google Play.
+
+1. Descargue el APK en el teléfono o la tableta (o cópielo desde un
+   ordenador) y ábralo en «Descargas» o «Archivos». Android le pedirá que
+   permita instalar aplicaciones desde este origen: permítalo para el
+   navegador o el gestor de archivos, vuelva atrás y pulse «Instalar».
+   Google Play Protect puede avisar de un desarrollador desconocido: «Más
+   detalles» → «Instalar de todos modos».
+2. Abra Ttranslator. En el primer inicio pulse «Descargar»: el modelo
+   Gemma 4 E2B · Q4_0 (3,35 GB) se descarga una sola vez; mejor por wifi.
+   Mientras dura la descarga (y una traducción), «Ttranslator» aparece en
+   las notificaciones: puede cambiar a otra aplicación. Android 13 y
+   posteriores preguntan una vez si la aplicación puede mostrar
+   notificaciones. O pulse «Omitir» y elija un modelo más tarde en el menú
+   de modelos (con 12 GB de memoria o más también ofrece E4B · Q4_0,
+   5,2 GB: más preciso, pero más lento).
+3. Traducir desde otra aplicación: seleccione el texto → «Ttranslator» en
+   el menú de la selección (o «Compartir» → Ttranslator): el texto aparece
+   en el campo y se traduce enseguida.
+4. Los botones que no caben arriba (Guardados, Prueba, Ajustes, Ayuda,
+   Acerca de, Salir) están en el menú «⋮». El botón Atrás cierra menús y
+   paneles; si no hay nada que cerrar, la aplicación pasa a segundo plano y
+   el modelo sigue cargado. «Salir» cierra la aplicación y libera la
+   memoria.
+
+Dónde están los datos: en la carpeta
+    Android/data/io.github.allasoneteam.ttranslator/files
+(Android 11 y posteriores; un ordenador la ve por USB): modelos, voces,
+traducciones guardadas, glosarios, informes de prueba, registros
+(data/logs) y ajustes. En Android 9 y 10, en la memoria interna de la
+aplicación.
+
+Actualizar: abra el APK de la nueva versión y pulse «Actualizar». Los
+modelos, las voces, las traducciones guardadas, los glosarios y los ajustes
+se conservan. Todas las versiones están firmadas con la misma clave; la
+huella SHA-256 de su certificado es
+    E3:50:90:EC:9E:C7:60:64:84:D4:9B:AF:AF:6B:AE:EC:
+    03:38:0D:70:04:81:99:0E:72:E1:30:40:01:68:0C:C8
+La aplicación no se actualiza sola: las nuevas versiones están en la
+página de versiones.
+
+Desinstalar: mantenga pulsado el icono → «Desinstalar» (o Ajustes →
+Aplicaciones → Ttranslator → Desinstalar). Los modelos, las voces, las
+traducciones guardadas y los glosarios se borran con la aplicación: exporte
+antes lo que necesite desde los menús de «Guardados» y del glosario
+(«Exportar…»). Si Android ofrece conservar los datos de la aplicación y
+usted acepta, se conservan y vuelven al instalar Ttranslator de nuevo.
+
 ACTUALIZAR Y PASAR A OTRO ORDENADOR
 
 Todo lo que el programa descarga y recuerda está en su carpeta: models
@@ -1057,6 +1262,43 @@ M…”即 Apple 芯片，“处理器 … Intel”即 Intel）。
     xattr -dr com.apple.quarantine /Applications/Ttranslator.app
 然后再次打开。
 
+ANDROID
+
+需要 Android 9 或更高版本、搭载 64 位 ARM 处理器的手机或平板（近几年的设备几乎
+都是）；内存最好在 8 GB 以上。应用是 GitHub 版本发布页面上的文件
+Ttranslator-<版本>-android-arm64.apk；Google Play 中没有它。
+
+1. 在手机或平板上下载 APK（或从电脑复制过去），在“下载”或“文件”中打开它。
+   Android 会请求允许从此来源安装应用：为浏览器或文件管理器开启允许，返回后点
+   按“安装”。Google Play 保护机制可能会提示开发者未知：“更多详情”→“仍然安装”。
+2. 打开 Ttranslator。首次启动时点按“下载”：模型 Gemma 4 E2B · Q4_0（3.35 GB）
+   只需下载一次——最好通过 Wi-Fi。下载期间（以及翻译期间）通知栏会显示
+   “Ttranslator”：可以切换到其他应用。Android 13 及更高版本会询问一次是否允许
+   应用显示通知。也可以点按“跳过”，之后再在模型菜单中选择模型（内存 12 GB 及以
+   上时还提供 E4B · Q4_0，5.2 GB：更准确，但更慢）。
+3. 从其他应用翻译：选中文本 → 菜单中的“Ttranslator”（或“分享”→
+   Ttranslator）：文本会进入输入框并立即翻译。
+4. 顶部放不下的按钮（已保存、测试、设置、帮助、关于、退出）在“⋮”菜单中。返回
+   键会关闭菜单和面板；没有可关闭的内容时，应用转入后台，模型仍保留在内存中。
+   “退出”会关闭应用并释放内存。
+
+数据位置：文件夹
+    Android/data/io.github.allasoneteam.ttranslator/files
+（Android 11 及更高版本；电脑可通过 USB 看到它）——模型、语音、已保存的翻译、术
+语表、测试报告、日志（data/logs）和设置。在 Android 9 和 10 上位于应用的内部存
+储中。
+
+更新：打开新版本的 APK 并点按“更新”。模型、语音、已保存的翻译、术语表和设置都
+会保留。所有版本使用同一个密钥签名；其证书的 SHA-256 指纹为
+    E3:50:90:EC:9E:C7:60:64:84:D4:9B:AF:AF:6B:AE:EC:
+    03:38:0D:70:04:81:99:0E:72:E1:30:40:01:68:0C:C8
+应用不会自动更新：新版本在版本发布页面上。
+
+卸载：长按图标 →“卸载”（或“设置”→“应用”→ Ttranslator →“卸载”）。模型、语
+音、已保存的翻译和术语表会随应用一起删除——请先通过“已保存”和术语表的菜单导出
+所需内容（“导出…”）。如果 Android 提示保留应用数据并且您同意，这些数据会保留，
+重新安装 Ttranslator 后即可恢复。
+
 更新与迁移到另一台电脑
 
 程序下载和记住的所有内容都在它的文件夹中：models（模型；models\voices 为朗读语
@@ -1092,22 +1334,51 @@ M…”即 Apple 芯片，“处理器 … Intel”即 Intel）。
 6. ПОДРОБНАЯ ИНСТРУКЦИЯ (ПО-РУССКИ)
 ==============================================================================
 
-TTRANSLATOR — локальный переводчик, версия 1.1
+TTRANSLATOR — локальный переводчик, версия 1.2
 
-Локальный переводчик для девяти языков: русского, английского, немецкого,
-французского, испанского, греческого, китайского, латыни и шведского.
+Локальный переводчик для двенадцати языков: русского, английского,
+немецкого, французского, испанского, итальянского, португальского
+(бразильский вариант), греческого, арабского, китайского, латыни и
+шведского.
 Показывает несколько вариантов перевода, правит текст на том же языке,
 учитывает ваш словарь терминов, отвечает на вопросы в окне «Спросить
 модель» и читает тексты вслух. Работает на процессоре, без видеокарты; текст
 никуда не отправляется. Модели запускает движок llama.cpp, голоса для чтения
-вслух — программа sherpa-onnx. Системы: Windows 10/11, Linux и (с версии 1.1)
-macOS 13.3 и новее.
+вслух — программа sherpa-onnx. Системы: Windows 10/11, Linux, macOS 13.3 и
+новее (с версии 1.1) и Android 9 и новее — телефоны и планшеты (с версии
+1.2; установка — раздел 2, «Android»).
 
 Пути к папкам ниже (models, data, engine, config.json) — от папки программы
 (Windows, Linux). На Mac всё это лежит в папке данных
 ~/Library/Application Support/Ttranslator (раздел 2, «Mac»; открыть —
-«Настройки» → «Открыть папку данных»).
+«Настройки» → «Открыть папку данных»), на Android — в папке
+Android/data/io.github.allasoneteam.ttranslator/files (раздел 2, «Android»).
 
+
+ЧТО НОВОГО В 1.2
+
+- Ttranslator для Android: приложение для телефонов и планшетов с Android 9
+  и новее (64-битный процессор ARM; памяти лучше от 8 ГБ) — файл
+  Ttranslator-<версия>-android-arm64.apk на странице выпуска на GitHub.
+  Внутри — та же программа, что на компьютере: модель работает на самом
+  устройстве, без интернета; чтение вслух тоже работает. Установка,
+  обновление и удаление — раздел 2, «Android» (и на четырёх других языках).
+- На Android: модели — по памяти устройства (Gemma 4 E2B · Q4_0; при
+  памяти от 12 ГБ — и E4B · Q4_0); пока скачивается модель или голос или
+  идёт перевод, в уведомлениях видно «Ttranslator» — приложение можно
+  свернуть; «Перевести» из любого приложения — выделите текст →
+  «Ttranslator» (или «Поделиться» → Ttranslator); кнопка «Назад» закрывает
+  меню и панели. Все версии APK подписаны одним ключом, поэтому новые
+  ставятся поверх старых с сохранением моделей и данных.
+- Узкое окно и экран телефона: одна колонка, панели («Сохранённые»,
+  «Тест», «Настройки», «Справка», «О программе») открываются на месте окна
+  перевода, редкие кнопки — в меню «⋮». На компьютере в обычном окне всё
+  как прежде.
+- Новые языки перевода: итальянский, португальский (бразильский вариант) и
+  арабский — теперь их двенадцать. Интерфейс — по-прежнему на пяти языках.
+- Новые голоса (в меню моделей): итальянские Paola (тот же голос, что
+  читает латынь, — файл общий) и Riccardo, бразильские Faber, Cadu и Jeff.
+  Для арабского голоса пока нет.
 
 ЧТО НОВОГО В 1.1
 
@@ -1399,6 +1670,11 @@ macOS 13.3 и новее.
     Французский Pierre     мужской   CC BY-SA 4.0 (с 1.1)
     Испанский  Sharvard    женский   CC BY 3.0
     Испанский  Davefx      мужской   CC0 (с 1.1)
+    Итальянский Paola      женский   CC0 (с 1.2; тот же файл, что у латыни)
+    Итальянский Riccardo   мужской   BSD (M-AILABS) (с 1.2)
+    Португальский Faber    мужской   CC0 (бразильский, с 1.2)
+    Португальский Cadu     мужской   CC0 (бразильский, с 1.2)
+    Португальский Jeff     мужской   CC0 (бразильский, с 1.2)
     Китайский  Chaowen     мужской   CC0
     Шведский   Alma        женский   CC BY 4.0
     Шведский   NST         мужской   CC0 (с 1.1)
@@ -1428,7 +1704,7 @@ macOS 13.3 и новее.
 - Голос не держится в памяти: для каждого куска текста программа озвучки
   запускается на секунду-две и сразу освобождает память.
 - Если для языка текста голоса нет, кнопка 🔊 бледная, а нажатие подсказывает,
-  где его скачать. Для греческого голоса пока нет.
+  где его скачать. Для греческого и арабского голосов пока нет.
 - Голоса, скопированные с другого компьютера в папку models\voices,
   программа видит сама. Если программы озвучки ещё нет, кнопка 🔊 и меню
   моделей подскажут: скачать нужно только её (строка «Программа озвучки
@@ -1490,7 +1766,8 @@ macOS 13.3 и новее.
 
 ЯЗЫКИ
 
-Русский, английский, немецкий, французский, испанский, греческий, китайский
+Русский, английский, немецкий, французский, испанский, итальянский,
+португальский (бразильский вариант), греческий, арабский, китайский
 (результат — упрощённые иероглифы), латынь, шведский.
 - «Авто» слева определяет язык текста. Кириллица, греческий алфавит и
   иероглифы различаются сразу. Языки с латинским алфавитом определяются по
@@ -1502,7 +1779,9 @@ macOS 13.3 и новее.
   интерфейса. При русском интерфейсе: русский текст — на английский, любой
   другой — на русский. Любую пару можно выбрать вручную, например
   немецкий → английский.
-- Gemma 4 знает все девять языков.
+- Арабский пишется справа налево: поле текста и варианты сами выравниваются
+  по направлению письма.
+- Gemma 4 знает все двенадцать языков.
 
 
 ПРАВКА НА ТОМ ЖЕ ЯЗЫКЕ
@@ -1516,7 +1795,7 @@ macOS 13.3 и новее.
 - стили (научный, деловой и т. д.) — текст переписан в этом стиле;
 - Замечания — список логических и смысловых неточностей вместо переписанного
   текста.
-Работает для всех девяти языков.
+Работает для всех двенадцати языков.
 
 
 СПРОСИТЬ МОДЕЛЬ
@@ -1640,7 +1919,7 @@ models. Окно остаётся: текст, варианты, чат и «С�
   LaTeX (в обе стороны; MATH_TESTS в ui\index.html) и пишет в отчёт, остались
   ли формулы на месте и сколько раз пришлось повторить запрос.
 - Пара — две строки подряд на двух разных языках: «EN: …» и «RU: …», «LA: …»
-  и «EN: …» и т. д. (коды EN, RU, DE, FR, ES, EL, ZH, LA, SV); пары
+  и «EN: …» и т. д. (коды EN, RU, DE, FR, ES, EL, ZH, LA, SV, IT, PT, AR); пары
   разделяются пустой строкой, строки с # в начале пропускаются. Свои пары
   можно дописывать.
 - Набор 1.0: две пары английский ↔ русский (как в 0.9) и четыре латинских

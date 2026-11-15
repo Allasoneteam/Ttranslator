@@ -713,7 +713,7 @@ const UI_LANG = UI_LANGS[document.documentElement.lang] ? document.documentEleme
 const LOCALE = LOCALES[UI_LANG];
 // Кавычки языка интерфейса (для названий в тексте)
 const QUOTES = { ru: ['«', '»'], en: ['“', '”'], de: ['„', '“'], es: ['«', '»'], zh: ['“', '”'] }[UI_LANG];
-const APP_VERSION = '1.1';   // версия интерфейса — та же, что appVersion в source/launcher/main.go
+const APP_VERSION = '1.2';   // версия интерфейса — та же, что appVersion в source/launcher/main.go
 
 const I18N_COL = { en: 0, de: 1, es: 2, zh: 3 };   // столбец перевода в I18N
 
@@ -1244,41 +1244,41 @@ const ABOUT = {
 
 // «Что нового» в окне приветствия — главное в этой версии, на пяти языках.
 const WHATS_NEW = {
-  version: '1.1',
+  version: '1.2',
   ru: [
-    'Ttranslator для Mac: Ttranslator.app для macOS 13.3 и новее — для Mac с процессором Apple (M1 и новее; модель работает на видеоядре, Metal) и с процессором Intel. Чтение вслух на Mac тоже работает.',
-    'На Mac настройки, модели, голоса и сохранённые переводы лежат в папке данных ~/Library/Application Support/Ttranslator: кнопка «Открыть папку данных» — в «Настройках» и в меню моделей.',
-    'На Mac: ⌘+Enter — «Перевести», ⌘C и ⌘V — как обычно, меню программы — на языке интерфейса.',
-    'Новые голоса для чтения вслух: французский — Siwis (женский) и Pierre (мужской); мужские голоса для английского (Ryan, только для некоммерческого использования), немецкого (Thorsten), испанского (Davefx) и шведского (NST). Скачиваются в меню моделей.',
-    'Справка и README.txt: установка, обновление и удаление на Mac — на пяти языках.',
+    'Ttranslator для Android: приложение для телефонов и планшетов с Android 9 и новее (64-битный процессор ARM; памяти — лучше от 8 ГБ) — файл APK на странице выпуска на GitHub. Модель работает на самом устройстве, без интернета; чтение вслух тоже работает.',
+    'На Android: «Перевести» из любого приложения — выделите текст → «Ttranslator» (или «Поделиться» → Ttranslator); пока идёт скачивание или перевод, в уведомлениях видно «Ttranslator» — приложение можно свернуть; модели — по памяти устройства (Gemma 4 E2B, с 12 ГБ — и E4B).',
+    'Узкое окно и экран телефона: одна колонка, панели открываются на месте окна перевода, редкие кнопки — в меню «⋮».',
+    'Новые языки перевода: итальянский, португальский (Бразилия) и арабский — теперь их 12. Новые голоса: итальянские Paola (тот же голос, что читает латынь) и Riccardo, бразильские Faber, Cadu и Jeff — в меню моделей; для арабского голоса пока нет.',
+    'Справка и README.txt: установка, обновление и удаление на Android — на пяти языках.',
   ],
   en: [
-    'Ttranslator for Mac: Ttranslator.app for macOS 13.3 or newer, on Macs with Apple silicon (M1 and newer; the model runs on the graphics cores, Metal) and with Intel processors. Reading aloud works on the Mac too.',
-    'On a Mac, settings, models, voices and saved translations are in the data folder ~/Library/Application Support/Ttranslator: the “Open the data folder” button is in “Settings” and in the model menu.',
-    'On a Mac: ⌘+Enter translates, ⌘C and ⌘V work as usual, and the app menu is in the interface language.',
-    'New voices for reading aloud: French — Siwis (female) and Pierre (male); male voices for English (Ryan, non-commercial use only), German (Thorsten), Spanish (Davefx) and Swedish (NST). Download them in the model menu.',
-    'Help and README.txt: installing, updating and uninstalling on a Mac, in five languages.',
+    'Ttranslator for Android: an app for phones and tablets with Android 9 or newer (a 64-bit ARM processor; 8 GB of memory or more is best) — the APK file is on the release page on GitHub. The model runs on the device itself, without the internet; reading aloud works too.',
+    'On Android: “Translate” from any app — select text → “Ttranslator” (or “Share” → Ttranslator); while a download or a translation runs, “Ttranslator” shows in the notifications, so you can switch to another app; the models offered depend on the memory of the device (Gemma 4 E2B; with 12 GB, also E4B).',
+    'A narrow window and a phone screen: one column, the panels open in place of the translation window, the less frequent buttons are in the menu “⋮”.',
+    'New translation languages: Italian, Portuguese (Brazil) and Arabic — 12 in all. New voices: Italian Paola (the voice that reads Latin) and Riccardo, Brazilian Faber, Cadu and Jeff — in the model menu; Arabic has no voice yet.',
+    'Help and README.txt: installing, updating and uninstalling on Android, in five languages.',
   ],
   de: [
-    'Ttranslator für den Mac: Ttranslator.app für macOS 13.3 oder neuer, auf Macs mit Apple-Chip (M1 und neuer; das Modell rechnet auf den Grafikkernen, Metal) und mit Intel-Prozessor. Auch das Vorlesen funktioniert auf dem Mac.',
-    'Auf dem Mac liegen Einstellungen, Modelle, Stimmen und gespeicherte Übersetzungen im Datenordner ~/Library/Application Support/Ttranslator: Die Schaltfläche „Datenordner öffnen“ gibt es unter „Einstellungen“ und im Modellmenü.',
-    'Auf dem Mac: ⌘+Enter übersetzt, ⌘C und ⌘V funktionieren wie gewohnt, und das Menü des Programms ist in der Sprache der Oberfläche.',
-    'Neue Stimmen zum Vorlesen: Französisch – Siwis (weiblich) und Pierre (männlich); männliche Stimmen für Englisch (Ryan, nur für nicht-kommerzielle Nutzung), Deutsch (Thorsten), Spanisch (Davefx) und Schwedisch (NST). Download im Modellmenü.',
-    'Hilfe und README.txt: Installation, Aktualisierung und Deinstallation auf dem Mac, in fünf Sprachen.',
+    'Ttranslator für Android: eine App für Telefone und Tablets mit Android 9 oder neuer (64-Bit-ARM-Prozessor; am besten 8 GB Arbeitsspeicher oder mehr) – die APK-Datei steht auf der Release-Seite auf GitHub. Das Modell läuft auf dem Gerät selbst, ohne Internet; auch das Vorlesen funktioniert.',
+    'Unter Android: „Übersetzen“ aus jeder App – Text markieren → „Ttranslator“ (oder „Teilen“ → Ttranslator); während ein Download oder eine Übersetzung läuft, steht „Ttranslator“ in den Benachrichtigungen, Sie können also zu einer anderen App wechseln; welche Modelle angeboten werden, hängt vom Arbeitsspeicher ab (Gemma 4 E2B; ab 12 GB auch E4B).',
+    'Ein schmales Fenster und der Telefonbildschirm: eine Spalte, die Bereiche öffnen sich anstelle des Übersetzungsfensters, seltener gebrauchte Schaltflächen sind im Menü „⋮“.',
+    'Neue Übersetzungssprachen: Italienisch, Portugiesisch (Brasilien) und Arabisch – jetzt 12. Neue Stimmen: italienisch Paola (die Stimme, die Latein liest) und Riccardo, brasilianisch Faber, Cadu und Jeff – im Modellmenü; für Arabisch gibt es noch keine Stimme.',
+    'Hilfe und README.txt: Installation, Aktualisierung und Deinstallation unter Android, in fünf Sprachen.',
   ],
   es: [
-    'Ttranslator para Mac: Ttranslator.app para macOS 13.3 o posterior, en Mac con chip de Apple (M1 y posteriores; el modelo se ejecuta en los núcleos gráficos, Metal) y con procesador Intel. La lectura en voz alta también funciona en el Mac.',
-    'En el Mac, los ajustes, los modelos, las voces y las traducciones guardadas están en la carpeta de datos ~/Library/Application Support/Ttranslator: el botón «Abrir la carpeta de datos» está en «Ajustes» y en el menú de modelos.',
-    'En el Mac: ⌘+Enter traduce, ⌘C y ⌘V funcionan como siempre y el menú del programa está en el idioma de la interfaz.',
-    'Voces nuevas para la lectura en voz alta: francés —Siwis (femenina) y Pierre (masculina)—; voces masculinas para inglés (Ryan, solo para uso no comercial), alemán (Thorsten), español (Davefx) y sueco (NST). Se descargan en el menú de modelos.',
-    'Ayuda y README.txt: instalación, actualización y desinstalación en el Mac, en cinco idiomas.',
+    'Ttranslator para Android: una aplicación para teléfonos y tabletas con Android 9 o posterior (procesador ARM de 64 bits; mejor con 8 GB de memoria o más): el archivo APK está en la página de la versión en GitHub. El modelo funciona en el propio dispositivo, sin internet; la lectura en voz alta también funciona.',
+    'En Android: «Traducir» desde cualquier aplicación: seleccione el texto → «Ttranslator» (o «Compartir» → Ttranslator); mientras dura una descarga o una traducción, «Ttranslator» aparece en las notificaciones, así que puede cambiar a otra aplicación; los modelos que se ofrecen dependen de la memoria del dispositivo (Gemma 4 E2B; con 12 GB, también E4B).',
+    'Una ventana estrecha y la pantalla del teléfono: una sola columna, los paneles se abren en lugar de la ventana de traducción y los botones menos usados están en el menú «⋮».',
+    'Nuevos idiomas de traducción: italiano, portugués (Brasil) y árabe; ahora son 12. Voces nuevas: las italianas Paola (la voz que lee el latín) y Riccardo y las brasileñas Faber, Cadu y Jeff, en el menú de modelos; el árabe aún no tiene voz.',
+    'Ayuda y README.txt: instalación, actualización y desinstalación en Android, en cinco idiomas.',
   ],
   zh: [
-    'Mac 版 Ttranslator：适用于 macOS 13.3 或更高版本的 Ttranslator.app，支持搭载 Apple 芯片（M1 及更新；模型在图形核心上运行，Metal）和 Intel 处理器的 Mac。朗读功能在 Mac 上同样可用。',
-    '在 Mac 上，设置、模型、语音和已保存的译文都位于数据文件夹 ~/Library/Application Support/Ttranslator：“打开数据文件夹”按钮位于“设置”和模型菜单中。',
-    '在 Mac 上：⌘+Enter 即可翻译，⌘C 和 ⌘V 照常使用，程序菜单与界面语言一致。',
-    '新增朗读语音：法语——Siwis（女声）和 Pierre（男声）；英语（Ryan，仅限非商业用途）、德语（Thorsten）、西班牙语（Davefx）和瑞典语（NST）新增男声。可在模型菜单中下载。',
-    '帮助和 README.txt：提供 Mac 上的安装、更新和卸载说明，共五种语言。',
+    'Android 版 Ttranslator：适用于 Android 9 或更高版本的手机和平板（64 位 ARM 处理器；内存最好在 8 GB 以上）——APK 文件在 GitHub 的版本发布页面上。模型在设备本身上运行，无需联网；朗读功能同样可用。',
+    '在 Android 上：可从任何应用“翻译”——选中文本 →“Ttranslator”（或“分享”→ Ttranslator）；下载或翻译进行时，通知栏会显示“Ttranslator”，可以切换到其他应用；提供哪些模型取决于设备内存（Gemma 4 E2B；12 GB 及以上还有 E4B）。',
+    '窄窗口和手机屏幕：单栏显示，面板在翻译窗口的位置打开，不常用的按钮位于“⋮”菜单中。',
+    '新增翻译语言：意大利语、葡萄牙语（巴西）和阿拉伯语——现共 12 种。新增语音：意大利语 Paola（即朗读拉丁语的语音）和 Riccardo，巴西葡萄牙语 Faber、Cadu 和 Jeff——在模型菜单中；阿拉伯语暂无语音。',
+    '帮助和 README.txt：提供 Android 上的安装、更新和卸载说明，共五种语言。',
   ],
 };
 
@@ -5258,53 +5258,56 @@ const HELP_ANDROID = {
     'Ttranslator для Android — то же, что на компьютере: модель работает на самом устройстве, без интернета.',
     '- Установка: скачайте файл Ttranslator-<версия>-android-arm64.apk со страницы выпуска на GitHub и откройте его; Android попросит разрешить установку из этого источника. Google Play Защита может предупредить о неизвестном разработчике — «Всё равно установить».',
     '- Обновление: откройте APK новой версии и нажмите «Обновить» — модели, голоса, настройки, сохранённое и словари остаются. Все версии подписаны одним ключом (его отпечаток — в README на GitHub); сами обновления не приходят: новые версии — на странице выпусков.',
-    '- Удаление: долгое нажатие на значок → «Удалить». Вместе с приложением удаляются модели, голоса, сохранённое и словари — нужное сохраните заранее («Экспорт в файл…»).',
+    '- Удаление: долгое нажатие на значок → «Удалить». Вместе с приложением удаляются модели, голоса, сохранённое и словари (если Android предложит сохранить данные приложения и Вы согласитесь, при новой установке они вернутся) — нужное выгрузите заранее через меню «Сохранённых» и словаря («Экспорт…»).',
     '- Модели: для устройства с 8 ГБ памяти — Gemma 4 E2B · Q4_0, с 12 ГБ — ещё E4B · Q4_0. Скачивать лучше по Wi-Fi. Пока идёт скачивание или перевод, в уведомлениях видно «Ttranslator» — приложение можно свернуть.',
     '- Перевести из другого приложения: выделите текст → «Ttranslator» в меню (или «Поделиться» → Ttranslator): текст появится в поле и сразу переведётся.',
     '- Кнопки, которым нет места вверху (Сохранённые, Тест, Настройки, Справка, О программе, Выход), — в меню «⋮». Кнопка «Назад» закрывает меню и панели; если закрывать нечего, приложение уходит в фон, а модель остаётся в памяти.',
-    '- Файлы программы — в папке Android/data/io.github.allasoneteam.ttranslator/files (её видно с компьютера по USB; на Android 9 и 10 — во внутренней памяти приложения). Сохранённое и словари выгружаются пунктом «Экспорт в файл…».'],
+    '- Файлы программы (модели, голоса, сохранённое, словари, отчёты теста, журналы) — в папке Android/data/io.github.allasoneteam.ttranslator/files: её видно с компьютера по USB. На Android 9 и 10 эти файлы — во внутренней памяти приложения, снаружи их не видно.'],
   en: ['Android: phone and tablet',
     'Ttranslator for Android is the same as on a computer: the model runs on the device itself, without the internet.',
     '- Installing: download the file Ttranslator-<version>-android-arm64.apk from the release page on GitHub and open it; Android asks you to allow installs from this source. Google Play Protect may warn about an unknown developer — “Install anyway”.',
     '- Updating: open the APK of the new version and tap “Update” — models, voices, settings, saved translations and glossaries stay. All versions are signed with one key (its fingerprint is in the README on GitHub); updates do not come by themselves: new versions are on the releases page.',
-    '- Uninstalling: long-press the icon → “Uninstall”. Models, voices, saved translations and glossaries go with the app — save what you need first (“Export to a file…”).',
+    '- Uninstalling: long-press the icon → “Uninstall”. Models, voices, saved translations and glossaries go with the app (if Android offers to keep the app’s data and you agree, they come back when you install it again) — export what you need first from the menus of “Saved” and of the glossary (“Export…”).',
     '- Models: for a device with 8 GB of memory, Gemma 4 E2B · Q4_0; with 12 GB, also E4B · Q4_0. Downloading is best over Wi-Fi. While a download or a translation runs, “Ttranslator” shows in the notifications — you can switch to another app.',
     '- Translate from another app: select text → “Ttranslator” in the menu (or “Share” → Ttranslator): the text comes into the field and is translated at once.',
     '- The buttons with no room at the top (Saved, Test, Settings, Help, About, Exit) are in the menu “⋮”. The Back button closes menus and panels; with nothing to close, the app goes to the background and the model stays in memory.',
-    '- The program files are in the folder Android/data/io.github.allasoneteam.ttranslator/files (a computer sees it over USB; on Android 9 and 10, in the app’s internal storage). Saved translations and glossaries leave the app with “Export to a file…”.'],
+    '- The program files (models, voices, saved translations, glossaries, test reports, logs) are in the folder Android/data/io.github.allasoneteam.ttranslator/files: a computer sees it over USB. On Android 9 and 10 these files are in the app’s internal storage and are not visible from outside.'],
   de: ['Android: Telefon und Tablet',
     'Ttranslator für Android ist dasselbe wie auf dem Computer: Das Modell läuft auf dem Gerät selbst, ohne Internet.',
     '- Installieren: Laden Sie die Datei Ttranslator-<Version>-android-arm64.apk von der Release-Seite auf GitHub herunter und öffnen Sie sie; Android bittet, Installationen aus dieser Quelle zu erlauben. Google Play Protect warnt womöglich vor einem unbekannten Entwickler – „Trotzdem installieren“.',
     '- Aktualisieren: Öffnen Sie die APK der neuen Version und tippen Sie auf „Aktualisieren“ – Modelle, Stimmen, Einstellungen, Gespeichertes und Glossare bleiben. Alle Versionen sind mit einem Schlüssel signiert (sein Fingerabdruck steht im README auf GitHub); Updates kommen nicht von selbst: neue Versionen stehen auf der Release-Seite.',
-    '- Deinstallieren: Symbol lange drücken → „Deinstallieren“. Modelle, Stimmen, Gespeichertes und Glossare werden mit der App gelöscht – sichern Sie Nötiges vorher („In Datei exportieren…“).',
+    '- Deinstallieren: Symbol lange drücken → „Deinstallieren“. Modelle, Stimmen, Gespeichertes und Glossare werden mit der App gelöscht (bietet Android an, die App-Daten zu behalten, und Sie stimmen zu, kommen sie bei einer neuen Installation zurück) – exportieren Sie Nötiges vorher über die Menüs von „Gespeichert“ und des Glossars.',
     '- Modelle: für ein Gerät mit 8 GB Arbeitsspeicher Gemma 4 E2B · Q4_0, mit 12 GB auch E4B · Q4_0. Herunterladen am besten über WLAN. Während ein Download oder eine Übersetzung läuft, steht „Ttranslator“ in den Benachrichtigungen – Sie können zu einer anderen App wechseln.',
     '- Aus einer anderen App übersetzen: Text markieren → „Ttranslator“ im Menü (oder „Teilen“ → Ttranslator): Der Text kommt ins Feld und wird sofort übersetzt.',
     '- Die Schaltflächen, für die oben kein Platz ist (Gespeichert, Test, Einstellungen, Hilfe, Über das Programm, Beenden), sind im Menü „⋮“. Die Zurück-Taste schließt Menüs und Bereiche; gibt es nichts zu schließen, geht die App in den Hintergrund, und das Modell bleibt im Speicher.',
-    '- Die Programmdateien liegen im Ordner Android/data/io.github.allasoneteam.ttranslator/files (ein Computer sieht ihn über USB; unter Android 9 und 10 im internen Speicher der App). Gespeichertes und Glossare verlassen die App über „In Datei exportieren…“.'],
+    '- Die Programmdateien (Modelle, Stimmen, Gespeichertes, Glossare, Testberichte, Protokolle) liegen im Ordner Android/data/io.github.allasoneteam.ttranslator/files: Ein Computer sieht ihn über USB. Unter Android 9 und 10 liegen diese Dateien im internen Speicher der App und sind von außen nicht sichtbar.'],
   es: ['Android: teléfono y tableta',
     'Ttranslator para Android es lo mismo que en el ordenador: el modelo funciona en el propio dispositivo, sin internet.',
     '- Instalar: descargue el archivo Ttranslator-<versión>-android-arm64.apk de la página de la versión en GitHub y ábralo; Android le pedirá que permita instalar desde este origen. Google Play Protect puede avisar de un desarrollador desconocido: «Instalar de todos modos».',
     '- Actualizar: abra el APK de la nueva versión y pulse «Actualizar»: los modelos, las voces, los ajustes, lo guardado y los glosarios se conservan. Todas las versiones están firmadas con la misma clave (su huella está en el README de GitHub); las actualizaciones no llegan solas: las nuevas versiones están en la página de versiones.',
-    '- Desinstalar: mantenga pulsado el icono → «Desinstalar». Con la aplicación se borran los modelos, las voces, lo guardado y los glosarios: guarde antes lo que necesite («Exportar a un archivo…»).',
+    '- Desinstalar: mantenga pulsado el icono → «Desinstalar». Con la aplicación se borran los modelos, las voces, lo guardado y los glosarios (si Android ofrece conservar los datos de la aplicación y usted acepta, vuelven al instalarla de nuevo): exporte antes lo que necesite desde los menús de «Guardados» y del glosario («Exportar…»).',
     '- Modelos: para un dispositivo con 8 GB de memoria, Gemma 4 E2B · Q4_0; con 12 GB, también E4B · Q4_0. Conviene descargar por wifi. Mientras dura una descarga o una traducción, «Ttranslator» aparece en las notificaciones: puede cambiar a otra aplicación.',
     '- Traducir desde otra aplicación: seleccione el texto → «Ttranslator» en el menú (o «Compartir» → Ttranslator): el texto aparece en el campo y se traduce enseguida.',
     '- Los botones que no caben arriba (Guardados, Prueba, Ajustes, Ayuda, Acerca de, Salir) están en el menú «⋮». El botón Atrás cierra menús y paneles; si no hay nada que cerrar, la aplicación pasa a segundo plano y el modelo sigue en memoria.',
-    '- Los archivos del programa están en la carpeta Android/data/io.github.allasoneteam.ttranslator/files (un ordenador la ve por USB; en Android 9 y 10, en la memoria interna de la aplicación). Lo guardado y los glosarios salen de la aplicación con «Exportar a un archivo…».'],
+    '- Los archivos del programa (modelos, voces, lo guardado, glosarios, informes de prueba, registros) están en la carpeta Android/data/io.github.allasoneteam.ttranslator/files: un ordenador la ve por USB. En Android 9 y 10 estos archivos están en la memoria interna de la aplicación y no se ven desde fuera.'],
   zh: ['Android：手机和平板',
     'Android 版 Ttranslator 与电脑版相同：模型在设备本身上运行，无需联网。',
     '- 安装：从 GitHub 的版本发布页面下载文件 Ttranslator-<版本>-android-arm64.apk 并打开；Android 会请求允许从此来源安装。Google Play 保护机制可能会提示开发者未知——选择“仍然安装”。',
     '- 更新：打开新版本的 APK 并点按“更新”——模型、语音、设置、已保存内容和术语表都会保留。所有版本使用同一个密钥签名（其指纹见 GitHub 上的 README）；更新不会自动推送：新版本在版本发布页面上。',
-    '- 卸载：长按图标 →“卸载”。模型、语音、已保存内容和术语表会随应用一起删除——请先保存所需内容（“导出到文件…”）。',
+    '- 卸载：长按图标 →“卸载”。模型、语音、已保存内容和术语表会随应用一起删除（如果 Android 提示保留应用数据并且您同意，重新安装后它们会恢复）——请先通过“已保存”和术语表的菜单导出所需内容（“导出…”）。',
     '- 模型：内存 8 GB 的设备用 Gemma 4 E2B · Q4_0，12 GB 及以上还可用 E4B · Q4_0。最好通过 Wi-Fi 下载。下载或翻译进行时，通知栏会显示“Ttranslator”——可以切换到其他应用。',
     '- 从其他应用翻译：选中文本 → 菜单中的“Ttranslator”（或“分享”→ Ttranslator）：文本会进入输入框并立即翻译。',
     '- 顶部放不下的按钮（已保存、测试、设置、帮助、关于、退出）在“⋮”菜单中。返回键会关闭菜单和面板；没有可关闭的内容时，应用转入后台，模型仍保留在内存中。',
-    '- 程序文件位于 Android/data/io.github.allasoneteam.ttranslator/files 文件夹（电脑可通过 USB 看到；在 Android 9 和 10 上位于应用的内部存储中）。已保存内容和术语表可通过“导出到文件…”导出。'],
+    '- 程序文件（模型、语音、已保存内容、术语表、测试报告、日志）位于 Android/data/io.github.allasoneteam.ttranslator/files 文件夹：电脑可通过 USB 看到它。在 Android 9 和 10 上，这些文件位于应用的内部存储中，外部无法看到。'],
 };
 
 function renderHelp() {
   const box = $('#helpBody');
   if (box.childElementCount) return;
-  const sections = (ANDROID ? [HELP_ANDROID[UI_LANG] || HELP_ANDROID.ru] : []).concat(HELP[UI_LANG] || HELP.ru);
+  // Android: свой раздел — первым; разделы о папке программы и об обновлении на компьютере не нужны (это — в нём)
+  const skip = ANDROID ? ['Файлы программы', 'Обновление и удаление'].map(x => HELP.ru.findIndex(s => s[0] === x)) : [];
+  const sections = (ANDROID ? [HELP_ANDROID[UI_LANG] || HELP_ANDROID.ru] : [])
+    .concat((HELP[UI_LANG] || HELP.ru).filter((s, i) => !skip.includes(i)));
   for (const [title, ...lines] of sections) {
     box.appendChild(el('h3', '', title));
     let ul = null;
