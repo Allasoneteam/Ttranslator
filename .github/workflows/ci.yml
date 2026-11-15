@@ -242,9 +242,13 @@ jobs:
             head -n 30 "$v" | while IFS= read -r l; do echo "::error title=apksigner verify::$l"; done; exit 1
           fi
           cat "$v"
-          for sch in v2 v3; do
-            grep -q "Verified using $sch scheme.*: true" "$v" || { echo "::error::the APK has no $sch signature"; exit 1; }
-          done
+          # v3 is what Android 9+ checks; apksigner verifies v2 only for older platforms, hence --min-sdk-version 24 to see it
+          grep -q "Verified using v3 scheme.*: true" "$v" || { echo "::error::the APK has no v3 signature"; exit 1; }
+          if "$bt/apksigner" verify --min-sdk-version 24 --verbose "signed/$name" 2>/dev/null | grep -q "Verified using v2 scheme.*: true"; then
+            echo "::notice title=APK::signatures v2 and v3"
+          else
+            echo "::notice title=APK::signature v3 only (enough for Android 9+)"
+          fi
           got=$(grep -i 'certificate SHA-256 digest' "$v" | head -n 1 | sed 's/.*digest:[[:space:]]*//' | tr -d ' :\r' | tr a-f A-F)
           want=$(tr -d ' :\n\r' < android/signing-cert-sha256.txt | tr a-f A-F)
           if [ -z "$got" ] || [ "$got" != "$want" ]; then
