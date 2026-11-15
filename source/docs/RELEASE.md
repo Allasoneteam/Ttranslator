@@ -20,7 +20,7 @@ SHA-256 checksums are in `SHA256SUMS.txt`. Which Mac: Apple menu → About This 
 - **Translate from any app** on Android: select text → **Ttranslator** in the menu of the selection (or **Share** → Ttranslator) — the text is translated at once.
 - On Android a **notification** shows while a model or a voice downloads and while a translation runs, so you can switch to another app; the downloads resume where they stopped.
 - **A narrow window and a phone screen**: one column, the panels open in place of the translation window, the less frequent buttons are in the menu **⋮**.
-- **New translation languages**: Italian, Portuguese (Brazil) and Arabic — twelve in all. **New voices**: Italian Paola (the voice that reads Latin) and Riccardo, Brazilian Faber, Cadu and Jeff; Arabic has no voice yet.
+- **New translation languages**: Italian, Portuguese (Brazil) and Arabic — twelve in all. **New voices**: Italian Paola (the voice that reads Latin) and Riccardo, Brazilian Faber; Arabic has no voice yet.
 - Updating from 1.0 or 1.1 keeps your models, voices, glossaries and settings.
 
 ## Getting started on Android

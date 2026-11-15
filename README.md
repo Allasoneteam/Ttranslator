@@ -158,6 +158,8 @@ carry the same certificate — Android refuses anything else.
 
 - **Update:** open the APK of the new version → **Update**: models, voices, settings, saved translations and glossaries
   stay. The app does not update itself: new versions are on the [Releases](https://github.com/Allasoneteam/Ttranslator/releases) page.
+  To be told about them, add `https://github.com/Allasoneteam/Ttranslator` to [Obtainium](https://github.com/ImranR98/Obtainium),
+  a free app that installs updates from GitHub releases.
 - **Uninstall:** long-press the icon → **Uninstall** (or Settings → Apps → Ttranslator → Uninstall). The models,
   voices, saved translations and glossaries are deleted with the app — export what you need first (the menus of
   “Saved” and of the glossary). If Android offers to keep the app's data and you agree, they stay and come back when
