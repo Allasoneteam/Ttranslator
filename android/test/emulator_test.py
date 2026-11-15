@@ -161,6 +161,17 @@ def start_app():
     return wait(alive, 60)
 
 
+def again_after_adbd(timeout=90):
+    """After adbd has restarted (adb root): the device answers again, the forward to the launcher again (the old one
+    is gone with adbd), until the launcher answers through it."""
+    def ready():
+        if sh('echo ok', timeout=10).strip() != 'ok':
+            return False
+        adb('forward', 'tcp:%d' % PORT, 'tcp:%d' % LPORT, timeout=20)
+        return alive()
+    return wait(ready, timeout, 2)
+
+
 def status_without_key(path):
     """What another app of the phone gets: the same request without the access key."""
     try:
@@ -215,12 +226,16 @@ def put_model(local, name):
             return 'run-as cp'
         info('run-as cp: %s' % (r.stdout + r.stderr).decode(errors='replace').strip()[-160:])
     r = adb('root', timeout=60)
-    if r.returncode != 0:
-        info('adb root: %s' % (r.stdout + r.stderr).decode(errors='replace').strip()[-160:])
-        return None
+    # adbd restarts as root; its reply is sometimes "unable to connect for root: closed" although it restarts all the
+    # same — then the forward to the launcher is gone too: wait for the device and forward again in any case
+    time.sleep(2)
     adb('wait-for-device', timeout=60)
-    time.sleep(3)
-    adb('forward', 'tcp:%d' % PORT, 'tcp:%d' % LPORT)  # adbd has restarted: the forward again
+    if not again_after_adbd():
+        info('adb root: the launcher does not answer through adb again: %s' % (r.stdout + r.stderr).decode(errors='replace').strip()[-160:])
+        return None
+    if sh('id -u').strip() != '0':
+        info('adb root: not root: %s' % (r.stdout + r.stderr).decode(errors='replace').strip()[-160:])
+        return None
     if adb('push', local, dest, timeout=180).returncode == 0 and model_seen(name):
         return 'adb root, adb push'
     # straight into the storage behind /sdcard, owned and labelled as the folder

@@ -233,14 +233,18 @@ jobs:
           printf '%s' "$KS_B64" | base64 -d > "$ks"
           "$bt/zipalign" -f 4 "$in" "$RUNNER_TEMP/aligned.apk"
           mkdir -p signed
+          # v2 and v3 (Android 9+ needs only v3; v2 for the tools that know only it)
           "$bt/apksigner" sign --ks "$ks" --ks-type PKCS12 --ks-key-alias ttranslator --ks-pass env:KS_PASS --key-pass env:KS_PASS \
-            --out "signed/$name" "$RUNNER_TEMP/aligned.apk"
+            --v2-signing-enabled true --v3-signing-enabled true --out "signed/$name" "$RUNNER_TEMP/aligned.apk"
           rm -f "$ks"
           v=$RUNNER_TEMP/verify.txt
           if ! "$bt/apksigner" verify --verbose --print-certs "signed/$name" > "$v" 2>&1; then
             head -n 30 "$v" | while IFS= read -r l; do echo "::error title=apksigner verify::$l"; done; exit 1
           fi
           cat "$v"
+          for sch in v2 v3; do
+            grep -q "Verified using $sch scheme.*: true" "$v" || { echo "::error::the APK has no $sch signature"; exit 1; }
+          done
           got=$(grep -i 'certificate SHA-256 digest' "$v" | head -n 1 | sed 's/.*digest:[[:space:]]*//' | tr -d ' :\r' | tr a-f A-F)
           want=$(tr -d ' :\n\r' < android/signing-cert-sha256.txt | tr a-f A-F)
           if [ -z "$got" ] || [ "$got" != "$want" ]; then
