@@ -7,8 +7,13 @@
 #     all 13 languages (config.json "voices"); under its row — ten speakers;
 #   - /api/tts in Japanese, Korean, Hindi, Arabic, Greek: 44.1 kHz speech of a sensible length from supertonic-<lang>;
 #     the male speaker M1 (5) speaks lower than F1 (0); a voice of another language is refused;
-#   - Dmitri chosen for Russian reads only Russian («12 из 13» in the Supertonic row); a click on the row — all 13 again;
+#   - the speaker until one is chosen: M4 (8, the author's choice of 17.11.2026); the female F1 (0) is stored too;
+#   - Dmitri chosen for Russian reads only Russian: the Supertonic row says «12 из 13 … другим голосом: русский» and has
+#     no ✓, Dmitri has it (one ✓ for Russian — the author's remark of 17.11.2026); a click on the row — all 13 again,
+#     ✓ on the row, and Dmitri says that Supertonic reads Russian now;
 #   - a speaker button stores the speaker in config.json and plays a sample with Supertonic in the interface language;
+#   - reading a chat answer aloud stops at once when «Обновить» wipes the chat (the author's remark of 17.11.2026), and
+#     when the text that is read is taken away from the window;
 #   - the new languages: in the lists; «Авто» recognizes Japanese (kana with kanji), Korean, Hindi, and Chinese stays
 #     Chinese; reading aloud splits Japanese at 。 and Hindi at ।; the 🔊 button of the text field reads Japanese;
 #   - deleting through the row removes the folder for every language; Dmitri stays.
@@ -95,7 +100,7 @@ with sync_playwright() as pw:
        'Supertonic entries, first: %s' % [v['lang'] for v in st])
     ok(len({v['file'] for v in st}) == 1 and st[0]['file'] == 'sherpa-onnx-supertonic-3-tts-int8-2026-05-11.tar.bz2' and st[0]['license'] == 'OpenRAIL-M'
        and not st[0]['nc'] and st[0]['size'] == 128774318, 'one archive: %s, %s, %d bytes' % (st[0]['file'], st[0]['license'], st[0]['size']))
-    ok(state()['tts'].get('supertonic') == {'speaker': 0, 'speakers': 10}, 'speaker: %s' % state()['tts'].get('supertonic'))
+    ok(state()['tts'].get('supertonic') == {'speaker': 8, 'speakers': 10} and 'supertonic_speaker' not in cfg(), 'speaker M4 until one is chosen: %s' % state()['tts'].get('supertonic'))
     open_menu()
     titles = page.locator('#modelMenu .mitem .title').all_inner_texts()
     ok(st_row().count() == 1 and sum('Supertonic' in x for x in titles) == 1 and 'Supertonic 3 · все языки, кроме китайского и латыни' in st_row().inner_text(),
@@ -122,7 +127,9 @@ with sync_playwright() as pw:
     ok('читает все эти языки' in st_row().locator('.sub').first.inner_text() and page.locator('#modelMenu .st-speakers .seg button').count() == 10,
        'row: %s; speakers: %d' % (st_row().locator('.sub').first.inner_text(), page.locator('#modelMenu .st-speakers .seg button').count()))
     ok(page.locator('#modelMenu .st-speakers .seg button').all_inner_texts() == ['Ж1', 'Ж2', 'Ж3', 'Ж4', 'Ж5', 'М1', 'М2', 'М3', 'М4', 'М5']
-       and page.locator('#modelMenu .st-speakers .seg button[aria-pressed="true"]').inner_text() == 'Ж1', 'speaker buttons')
+       and page.locator('#modelMenu .st-speakers .seg button[aria-pressed="true"]').inner_text() == 'М4' and 'мужской 4' in page.inner_text('#modelMenu .st-speakers'),
+       'speaker buttons, М4 chosen: ' + page.inner_text('#modelMenu .st-speakers'))
+    ok(st_row().locator('.title').inner_text().startswith('✓ Supertonic 3'), 'the row has ✓: ' + st_row().locator('.title').inner_text())
     page.screenshot(path=os.path.join(shots, '2-downloaded.png'))
     close_menu()
 
@@ -148,6 +155,7 @@ with sync_playwright() as pw:
         f[sid] = pitch(*wav(body)) if code == 200 else 0
     ok(f[0] > 140 and f[5] < 140 and f[0] > f[5] + 30, 'F1 speaks higher than M1: %.0f Hz and %.0f Hz' % (f[0], f[5]))
     post('/api/voice-speaker', {'speaker': 0})
+    ok(cfg().get('supertonic_speaker') == 0 and state()['tts']['supertonic']['speaker'] == 0, 'F1 (0) is stored: %s' % cfg().get('supertonic_speaker'))
     ok(post('/api/voice-speaker', {'speaker': 10})[0] == 400, 'speaker 10 is refused')
 
     # ================= a Piper voice for one language; the Supertonic row brings all back
@@ -158,10 +166,18 @@ with sync_playwright() as pw:
     act = {v['lang']: v['id'] for v in tst['voices'] if v['active']}
     ok(act.get('ru') == 'ru-dmitri' and act.get('ja') == 'supertonic-ja' and act.get('en') == 'supertonic-en', 'Dmitri reads Russian only: %s' % act)
     page.wait_for_timeout(1200); open_menu()
-    ok('читает языков: 12 из 13' in st_row().locator('.sub').first.inner_text(), 'row: ' + st_row().locator('.sub').first.inner_text())
+    ok('читает 12 из 13 языков; другим голосом: русский; нажмите, чтобы читал все' in st_row().locator('.sub').first.inner_text(), 'row: ' + st_row().locator('.sub').first.inner_text())
+    ok(not st_row().locator('.title').inner_text().startswith('✓') and voice_row('Русский · Dmitri').locator('.title').inner_text().startswith('✓ ')
+       and voice_row('Русский · Dmitri').locator('.sub').inner_text().count('читает этот язык') == 1,
+       'one ✓ for Russian, on Dmitri: %s | %s' % (st_row().locator('.title').inner_text(), voice_row('Русский · Dmitri').locator('.title').inner_text()))
+    page.screenshot(path=os.path.join(shots, '2a-dmitri-for-russian.png'))
     st_row().locator('.pick').click(); page.wait_for_timeout(800)
     act = {v['lang']: v['id'] for v in state()['tts']['voices'] if v['active']}
     ok(act.get('ru') == 'supertonic-ru' and cfg()['voices'].get('ru') == 'supertonic-ru', 'a click on the row — Supertonic for all again: %s' % act.get('ru'))
+    open_menu()
+    ok(st_row().locator('.title').inner_text().startswith('✓ ') and not voice_row('Русский · Dmitri').locator('.title').inner_text().startswith('✓')
+       and 'скачан; сейчас этот язык читает Supertonic — нажмите, чтобы выбрать этот голос' in voice_row('Русский · Dmitri').locator('.sub').inner_text(),
+       'the ✓ back on the row; Dmitri: %s' % voice_row('Русский · Dmitri').locator('.sub').inner_text())
 
     # ================= a speaker button: stored, and a sample in the interface language
     open_menu()
@@ -202,6 +218,31 @@ with sync_playwright() as pw:
     page.screenshot(path=os.path.join(shots, '4-japanese-speaking.png'))
     page.wait_for_function("!document.querySelector('#srcSpeak').classList.contains('speaking')", timeout=60000)
     ok('не удалось' not in toast().lower(), 'no error: ' + toast())
+
+    # ================= reading a chat answer: «Обновить» stops it at once; so does taking the text away
+    LONG = 'Поезд уходит рано утром и прибывает в город вечером. ' + 'Мы читаем вслух длинный ответ модели, предложение за предложением. ' * 8
+    def bot_answer():
+        page.evaluate("(t) => { const m = addAskMsg('bot', ''); renderBot(m, t); addBotMeta(m, t, 'test'); }", LONG)
+        page.locator('#askLog .msg.bot button.speak').last.click()
+        page.wait_for_function("speech && speech.audio && !speech.audio.paused && speech.audio.currentTime > 0", timeout=60000)
+    bot_answer()
+    ok(page.locator('#askLog .speak-stop').count() == 1, 'the answer is read, ■ is there')
+    page.click('#askReset')
+    ok(page.evaluate("() => speech === null") and page.locator('#askLog .msg').count() == 0 and page.locator('.speak-stop').count() == 0,
+       '«Обновить» stops reading at once')
+    bot_answer()
+    page.locator('#askLog .msg.bot button.speak').last.click()   # pause, then wipe: no hidden reading left behind
+    page.wait_for_function("speech && speech.paused")
+    page.click('#askReset')
+    ok(page.evaluate("() => speech === null"), '«Обновить» also ends a paused reading')
+    bot_answer()
+    page.evaluate("() => document.querySelector('#askLog .msg.bot').remove()")
+    try:
+        page.wait_for_function("speech === null", timeout=3000); gone = True
+    except Exception:
+        gone = False
+    ok(gone, 'the text taken away from the window: reading stops within a moment')
+    page.click('#askReset')
 
     # ================= delete through the row: every language forgets it, Dmitri stays
     open_menu()

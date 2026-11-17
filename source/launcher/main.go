@@ -271,8 +271,9 @@ type Config struct {
 	SpeechSpeed     int     `json:"speech_speed"`     // 70–120
 	// read aloud: the voice chosen for each language (language code → voice id, tts.go)
 	Voices map[string]string `json:"voices,omitempty"`
-	// the speaker of the Supertonic voice in every language it reads (1.3): 0–4 female, 5–9 male (tts.go)
-	SupertonicSpeaker int `json:"supertonic_speaker,omitempty"`
+	// the speaker of the Supertonic voice in every language it reads (1.3): 0–4 female, 5–9 male (tts.go); not set —
+	// the default one (supertonicDefaultSpeaker). A pointer, so that the female speaker 0 is stored too.
+	SupertonicSpeaker *int `json:"supertonic_speaker,omitempty"`
 	// «Пропустить» on the first-start screen (0.9.5): until the first model is downloaded or chosen, the program
 	// opens its main window without a model (phase "nomodel") instead of the first-start screen; the model is
 	// chosen in the model menu

@@ -2942,6 +2942,9 @@ async function playChunk(sp, i) {
   const a = new Audio(url);
   sp.audio = a;
   a.onended = () => playChunk(sp, i + 1);
+  // текст, который читается, убрали из окна (например, «Обновить» в «Спросить модель» стёрла переписку — замечание
+  // автора от 17.11.2026): вместе с ним пропали 🔊 и ■, поэтому чтение прекращается сразу, а не после куска
+  a.ontimeupdate = () => { if (speech === sp && !sp.host.isConnected) stopSpeech(); };
   a.onerror = () => { if (speech === sp) { toast(t('Не удалось воспроизвести звук')); stopSpeech(); } };
   if (!sp.paused) a.play().catch((e) => { if (speech === sp && e.name !== 'AbortError') { toast(t('Не удалось воспроизвести звук')); stopSpeech(); } });
 }
@@ -2951,7 +2954,7 @@ function stopSpeech() {
   if (!sp) return;
   speech = null;
   sp.ctl.abort();
-  if (sp.audio) { sp.audio.onended = null; sp.audio.onerror = null; sp.audio.pause(); }
+  if (sp.audio) { sp.audio.onended = null; sp.audio.onerror = null; sp.audio.ontimeupdate = null; sp.audio.pause(); }
   for (const u of sp.urls) URL.revokeObjectURL(u);
   if (sp.stopBtn) sp.stopBtn.remove();
   setSpeakLook(sp.btn, sp.host, 'off');
@@ -2998,7 +3001,11 @@ function renderVoiceMenu(menu) {
     const row = el('div', 'mitem' + (v.active ? ' active' : ''));
     const pick = el('button', 'pick');
     pick.appendChild(el('span', 'title', (v.active ? '✓ ' : '') + voiceLabel(v)));
-    const status = busyThis ? voiceDlText(dl) : (v.present && !s.engine.present) ? t('есть в папке; нужна программа озвучки') : v.active ? t('читает этот язык') : v.present ? t('скачан; нажмите, чтобы выбрать') : (v.partial ? t('скачано {p} %', { p: Math.round(100 * v.partial / v.size) }) : t('нужно скачать'));
+    // язык этого голоса сейчас читает Supertonic (его ✓ — на строке Supertonic, если тот читает все свои языки)
+    const byST = s.voices.some(o => o.engine === 'supertonic' && o.lang === v.lang && o.active);
+    const status = busyThis ? voiceDlText(dl) : (v.present && !s.engine.present) ? t('есть в папке; нужна программа озвучки') : v.active ? t('читает этот язык')
+      : v.present ? (byST ? t('скачан; сейчас этот язык читает Supertonic — нажмите, чтобы выбрать этот голос') : t('скачан; нажмите, чтобы выбрать'))
+      : (v.partial ? t('скачано {p} %', { p: Math.round(100 * v.partial / v.size) }) : t('нужно скачать'));
     const lic = t('лицензия: {l}', { l: voiceLicense(v) }) + (v.nc ? ' — ' + t('только некоммерческое использование') : '');
     // два произношения латыни и итальянский (1.2) — один и тот же голос Paola: файл скачивается один раз, удаляется тоже для всех
     const others = s.voices.filter(o => o.id !== v.id && o.file === v.file);
@@ -3051,11 +3058,15 @@ function renderSupertonicRows(menu, s, dl) {
   const v = st[0];   // у всех записей один файл: размер, состояние и скачивание — общие
   const busy = dl.active && st.some(x => x.id === dl.name);
   const n = st.filter(x => x.active).length;
-  const row = el('div', 'mitem supertonic' + (n ? ' active' : ''));
+  // ✓ — только когда Supertonic читает все свои языки (замечание автора от 17.11.2026: ✓ оставалась и после выбора
+  // голоса Piper — две ✓ на один язык). Если часть языков читают голоса Piper, строка называет эти языки.
+  const all = n === st.length;
+  const row = el('div', 'mitem supertonic' + (all ? ' active' : ''));
   const pick = el('button', 'pick');
-  pick.appendChild(el('span', 'title', (n ? '✓ ' : '') + t('Supertonic 3 · все языки, кроме китайского и латыни')));
+  pick.appendChild(el('span', 'title', (all ? '✓ ' : '') + t('Supertonic 3 · все языки, кроме китайского и латыни')));
+  const others = st.filter(x => !x.active).map(x => langLower(x.lang)).join(', ');
   const status = busy ? voiceDlText(dl) : (v.present && !s.engine.present) ? t('есть в папке; нужна программа озвучки')
-    : n === st.length ? t('читает все эти языки') : n ? t('читает языков: {n} из {m}; нажмите, чтобы читал все', { n, m: st.length })
+    : all ? t('читает все эти языки') : n ? t('читает {n} из {m} языков; другим голосом: {l}; нажмите, чтобы читал все', { n, m: st.length, l: others })
     : v.present ? t('скачан; нажмите, чтобы читал все эти языки') : (v.partial ? t('скачано {p} %', { p: Math.round(100 * v.partial / v.size) }) : t('нужно скачать'));
   const sub = el('span', 'sub', `${fmtBytes(v.size)} · ${status} · ${t('один файл на {n} языков', { n: st.length })} · ${t('лицензия: {l}', { l: v.license })}`);
   pick.appendChild(sub);
@@ -3065,7 +3076,7 @@ function renderSupertonicRows(menu, s, dl) {
       if (dl.active) { toast(t('Идёт скачивание голоса, дождитесь окончания')); return; }
       showTTSProgramConfirm(row, s); return;
     }
-    if (n === st.length) { toast(t('Этот голос уже выбран')); return; }
+    if (all) { toast(t('Этот голос уже выбран')); return; }
     if (dl.active) { toast(t('Идёт скачивание голоса, дождитесь окончания')); return; }
     if (!v.present || !s.engine.present) { showVoiceConfirm(row, v, s, t('Supertonic 3 (все языки, кроме китайского и латыни)')); return; }
     try { await post('/api/voice', { id: v.id }); await refreshState(); renderModelMenu(); } catch (e) { toast(e.message); }
@@ -3874,6 +3885,7 @@ function askReset() {
   setAskBusy(false);
   askHistory = []; askFirst = 0;
   $('#askLog').querySelectorAll('.msg').forEach(m => m.remove());
+  if (speech && !speech.host.isConnected) stopSpeech();   // читался стёртый ответ — в том числе на паузе
   $('#askEmpty').hidden = false;
   $('#askInfo').textContent = '';
   $('#askInput').value = ''; askGrow();
@@ -5667,7 +5679,8 @@ const I18N = {
   'Supertonic 3 · все языки, кроме китайского и латыни': ['Supertonic 3 · all languages except Chinese and Latin', 'Supertonic 3 · alle Sprachen außer Chinesisch und Latein', 'Supertonic 3 · todos los idiomas excepto el chino y el latín', 'Supertonic 3 · 除中文和拉丁语外的所有语言'],
   'Supertonic 3 (все языки, кроме китайского и латыни)': ['Supertonic 3 (all languages except Chinese and Latin)', 'Supertonic 3 (alle Sprachen außer Chinesisch und Latein)', 'Supertonic 3 (todos los idiomas excepto el chino y el latín)', 'Supertonic 3（除中文和拉丁语外的所有语言）'],
   'читает все эти языки': ['reads all these languages', 'liest alle diese Sprachen', 'lee todos estos idiomas', '朗读所有这些语言'],
-  'читает языков: {n} из {m}; нажмите, чтобы читал все': ['reads {n} of {m} languages; click to make it read all', 'liest {n} von {m} Sprachen; klicken, damit sie alle liest', 'lee {n} de {m} idiomas; haga clic para que lea todos', '朗读 {m} 种语言中的 {n} 种；点击即可朗读全部'],
+  'читает {n} из {m} языков; другим голосом: {l}; нажмите, чтобы читал все': ['reads {n} of {m} languages; another voice reads: {l}; click to make it read all', 'liest {n} von {m} Sprachen; eine andere Stimme liest: {l}; klicken, damit sie alle liest', 'lee {n} de {m} idiomas; otra voz lee: {l}; haga clic para que lea todos', '朗读 {m} 种语言中的 {n} 种；由其他语音朗读：{l}；点击即可朗读全部'],
+  'скачан; сейчас этот язык читает Supertonic — нажмите, чтобы выбрать этот голос': ['downloaded; Supertonic reads this language now — click to choose this voice', 'heruntergeladen; diese Sprache liest jetzt Supertonic – klicken, um diese Stimme zu wählen', 'descargada; ahora este idioma lo lee Supertonic: pulse para elegir esta voz', '已下载；目前此语言由 Supertonic 朗读——点击选择此语音'],
   'скачан; нажмите, чтобы читал все эти языки': ['downloaded; click to make it read all these languages', 'heruntergeladen; klicken, damit sie alle diese Sprachen liest', 'descargada; haga clic para que lea todos estos idiomas', '已下载；点击即可朗读所有这些语言'],
   'один файл на {n} языков': ['one file for {n} languages', 'eine Datei für {n} Sprachen', 'un archivo para {n} idiomas', '一个文件支持 {n} 种语言'],
   'Голос Supertonic для всех его языков: {v}': ['The Supertonic voice for all its languages: {v}', 'Die Supertonic-Stimme für alle ihre Sprachen: {v}', 'La voz de Supertonic para todos sus idiomas: {v}', '用于其所有语言的 Supertonic 声音：{v}'],

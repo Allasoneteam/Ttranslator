@@ -104,6 +104,7 @@ type VoiceSpec struct {
 	Respell string      `json:"respell,omitempty"` // the text is respelled first: "la-church" — Latin in Italian spelling, "la-classical" — the stress marked for espeak-ng's Latin (latin.go)
 	Espeak  string      `json:"espeak,omitempty"`  // the voice reads with this espeak-ng voice instead of its own: a copy of its model (espeakModel)
 	Engine  string      `json:"engine,omitempty"`  // "" — a Piper voice (VITS); engineSupertonic — the Supertonic 3 model (one archive for many languages)
+	Pace    float64     `json:"pace,omitempty"`    // the voice reads at this share of the chosen speed (0 — as chosen): Latin is slower (voiceSpeed)
 }
 
 // engineSupertonic: a catalogue entry of the Supertonic 3 model (supertonicCatalog).
@@ -151,6 +152,30 @@ func espeakRules(v VoiceSpec, voice string) VoiceSpec {
 	return v
 }
 
+// paced: the voice reads at pace × the speed chosen in the settings.
+func paced(v VoiceSpec, pace float64) VoiceSpec {
+	v.Pace = pace
+	return v
+}
+
+// latinPace: Paola reads Latin at the pace of Italian — about 6.6 syllables a second, too fast for Latin even at
+// 70 % (the author, 17.11.2026). sherpa-onnx slows a voice down less than the speed says (speed 0.7 makes the speech
+// only about 1.2 times longer), so at 0.65 Latin is about 5 syllables a second at 100 % and about 4 at 70 %
+// (measured with the Caesar and Cicero phrases of the tests, 17.11.2026).
+const latinPace = 0.65
+
+// voiceSpeed: the speed of sherpa-onnx for a request: the speed of the settings (0.5–2, otherwise 1) times the
+// voice's pace.
+func voiceSpeed(v *VoiceSpec, speed float64) float64 {
+	if speed < 0.5 || speed > 2 {
+		speed = 1
+	}
+	if v != nil && v.Pace > 0 {
+		speed *= v.Pace
+	}
+	return speed
+}
+
 // respellFor prepares the text for the voice (Latin for an Italian voice: latin.go).
 func respellFor(v *VoiceSpec, text string) string {
 	switch v.Respell {
@@ -194,6 +219,9 @@ const (
 	supertonicSHA256   = "82fa96f91c4ef8abaae3a14a3f4153facf88bed821d1f7331cec2700f432c427"
 	supertonicSpeakers = 10
 	supertonicPage     = "https://huggingface.co/spaces/Supertone/supertonic-3"
+	// the speaker until one is chosen: M4 — neutral and balanced in almost every language (the author's choice
+	// after listening, 17.11.2026)
+	supertonicDefaultSpeaker = 8
 )
 
 // supertonicFiles: the model's files in its folder (the program needs all of them).
@@ -270,13 +298,13 @@ var voiceSpecs = append(supertonicCatalog(), []VoiceSpec{
 		"1b69bdcf10bb6331c7f8a7591940febeb175c6bb86caa3802d96531f8e4ad211"), "lexicon.txt", "phone.fst", "date.fst", "number.fst"),
 	// Latin (author's choice by samples, 24.10.2026): no Piper voice reads Latin, so the Italian voice Paola does,
 	// with the church pronunciation (latin.go). Its data set (huggingface.co/datasets/paolapersico1/Voice-Dataset-Italian)
-	// is CC0.
-	otherLanguage(piperVoice("la-paola", "la", "Paola", "female", "CC0", false, "it_IT-paola-medium", 67221173,
-		"7541f75778afa164e44e34baaef63befad7698595df26a95ca944b63ef1a16b4"), "it", "la-church"),
+	// is CC0. Both Latin voices read slower than Italian (latinPace, 1.3).
+	paced(otherLanguage(piperVoice("la-paola", "la", "Paola", "female", "CC0", false, "it_IT-paola-medium", 67221173,
+		"7541f75778afa164e44e34baaef63befad7698595df26a95ca944b63ef1a16b4"), "it", "la-church"), latinPace),
 	// the same voice with the classical pronunciation (author's choice, 25.10.2026): espeak-ng's Latin rules, the
 	// stress marked by latin.go; the same archive (Dir) — downloaded once for both
-	espeakRules(otherLanguage(piperVoice("la-paola-classical", "la", "Paola", "female", "CC0", false, "it_IT-paola-medium", 67221173,
-		"7541f75778afa164e44e34baaef63befad7698595df26a95ca944b63ef1a16b4"), "it", "la-classical"), "la"),
+	paced(espeakRules(otherLanguage(piperVoice("la-paola-classical", "la", "Paola", "female", "CC0", false, "it_IT-paola-medium", 67221173,
+		"7541f75778afa164e44e34baaef63befad7698595df26a95ca944b63ef1a16b4"), "it", "la-classical"), "la"), latinPace),
 	// 1.2, the new languages of translation (checked with voice_check.py, 13–14.11.2026). Italian: Paola (the same
 	// archive as the Latin voices: downloaded once for all three) and the male Riccardo (M-AILABS data set: LibriVox
 	// recordings, a BSD-style licence). Brazilian Portuguese: Faber (CC0 data); Cadu and Jeff were checked too, but
@@ -406,13 +434,13 @@ func (a *App) chooseVoice(v *VoiceSpec) {
 	a.saveConfig(a.cfg)
 }
 
-// supertonicSpeaker: the Supertonic speaker chosen in the voice menu (config.json "supertonic_speaker", 0–9).
-// Caller holds a.mu.
+// supertonicSpeaker: the Supertonic speaker chosen in the voice menu (config.json "supertonic_speaker", 0–9), or
+// the default one. Caller holds a.mu.
 func (a *App) supertonicSpeaker() int {
-	if s := a.cfg.SupertonicSpeaker; s >= 0 && s < supertonicSpeakers {
-		return s
+	if p := a.cfg.SupertonicSpeaker; p != nil && *p >= 0 && *p < supertonicSpeakers {
+		return *p
 	}
-	return 0
+	return supertonicDefaultSpeaker
 }
 
 // activeVoiceID is the voice that reads a language: the one chosen for it (config.json "voices"), or else the
@@ -1063,8 +1091,9 @@ func (a *App) ttsRoutes(mux *http.ServeMux) {
 			jsonError(w, 400, tr("неверное значение настройки"))
 			return
 		}
+		sp := *req.Speaker
 		a.mu.Lock()
-		a.cfg.SupertonicSpeaker = *req.Speaker
+		a.cfg.SupertonicSpeaker = &sp
 		a.saveConfig(a.cfg)
 		a.mu.Unlock()
 		writeJSON(w, 200, map[string]any{"ok": true, "speaker": *req.Speaker})
@@ -1139,10 +1168,6 @@ func (a *App) ttsRoutes(mux *http.ServeMux) {
 			jsonError(w, 400, tr("слишком длинный текст для чтения вслух"))
 			return
 		}
-		speed := req.Speed
-		if speed < 0.5 || speed > 2 {
-			speed = 1
-		}
 		a.mu.Lock()
 		exe := a.ttsExe()
 		v := findVoice(a.activeVoiceID(req.Lang))
@@ -1160,7 +1185,7 @@ func (a *App) ttsRoutes(mux *http.ServeMux) {
 			jsonError(w, 409, tr("для этого языка нет скачанного голоса"))
 			return
 		}
-		wav, err := a.synthesize(r.Context(), exe, v, respellFor(v, text), speed)
+		wav, err := a.synthesize(r.Context(), exe, v, respellFor(v, text), voiceSpeed(v, req.Speed))
 		if err != nil {
 			if r.Context().Err() != nil {
 				return // the window does not need it any more

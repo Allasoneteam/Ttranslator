@@ -223,6 +223,39 @@ func TestTTSArgs(t *testing.T) {
 	}
 }
 
+// The speed of a request (1.3): the speed of the settings, 0.5–2 (otherwise 1), times the voice's pace — only the two
+// Latin voices have one: Paola reads Latin slower than Italian (the author, 17.11.2026).
+func TestVoiceSpeed(t *testing.T) {
+	for _, v := range voiceSpecs {
+		want := 0.0
+		if v.Lang == "la" {
+			want = latinPace
+		}
+		if v.Pace != want {
+			t.Errorf("%s: pace %v, want %v", v.ID, v.Pace, want)
+		}
+	}
+	near := func(a, b float64) bool { return a > b-1e-9 && a < b+1e-9 }
+	it, la, lc := findVoice("it-paola"), findVoice("la-paola"), findVoice("la-paola-classical")
+	for _, c := range []struct {
+		v           *VoiceSpec
+		speed, want float64
+	}{
+		{it, 1, 1}, {it, 0.7, 0.7}, {it, 1.2, 1.2}, {it, 0, 1}, {it, 3, 1}, {nil, 0.8, 0.8},
+		{la, 1, latinPace}, {la, 0.7, 0.7 * latinPace}, {lc, 1.2, 1.2 * latinPace}, {lc, 0, latinPace},
+	} {
+		if got := voiceSpeed(c.v, c.speed); !near(got, c.want) {
+			t.Errorf("voiceSpeed(%v, %v) = %v, want %v", c.v != nil, c.speed, got, c.want)
+		}
+	}
+	if latinPace < 0.5 || latinPace > 0.9 {
+		t.Errorf("latinPace %v", latinPace)
+	}
+	if all := strings.Join(ttsArgs(la, "Ave.", voiceSpeed(la, 1), "tts-5.wav"), " "); !strings.Contains(all, "--speed=0.65 ") {
+		t.Errorf("Latin args: %s", all)
+	}
+}
+
 // Supertonic (1.3): present when all its files are there; once downloaded, it reads every language without a chosen
 // voice; choosing it chooses it for all its languages, a Piper voice chosen afterwards only for its own; the
 // speaker is one for all; deleting it forgets it for all languages
@@ -275,13 +308,31 @@ func TestSupertonicChoice(t *testing.T) {
 		mux.ServeHTTP(rec, httptest.NewRequest(method, path, strings.NewReader(body)))
 		return rec.Code
 	}
+	// not chosen yet: M4 (the author's choice, 17.11.2026)
+	if a.cfg.SupertonicSpeaker != nil || a.supertonicSpeaker() != 8 || supertonicGender(a.supertonicSpeaker()) != "male" {
+		t.Errorf("default speaker: %d", a.supertonicSpeaker())
+	}
 	for _, bad := range []string{`{}`, `{"speaker":-1}`, `{"speaker":10}`, `{"speaker":"3"}`} {
-		if code := call("POST", "/api/voice-speaker", bad); code != 400 {
+		if code := call("POST", "/api/voice-speaker", bad); code != 400 || a.cfg.SupertonicSpeaker != nil {
 			t.Errorf("speaker %s: %d", bad, code)
 		}
 	}
-	if code := call("POST", "/api/voice-speaker", `{"speaker":7}`); code != 200 || a.cfg.SupertonicSpeaker != 7 || a.supertonicSpeaker() != 7 {
-		t.Errorf("speaker 7: %d, %d", code, a.cfg.SupertonicSpeaker)
+	// the female speaker F1 (0) is stored as well and stays after a restart (config.json)
+	if code := call("POST", "/api/voice-speaker", `{"speaker":0}`); code != 200 || a.supertonicSpeaker() != 0 {
+		t.Errorf("speaker 0: %d, %d", code, a.supertonicSpeaker())
+	}
+	if b, _ := json.Marshal(a.cfg); !strings.Contains(string(b), `"supertonic_speaker":0`) {
+		t.Errorf("speaker 0 is not in config.json: %s", b)
+	}
+	var back Config
+	if b, _ := json.Marshal(a.cfg); json.Unmarshal(b, &back) != nil || back.SupertonicSpeaker == nil || *back.SupertonicSpeaker != 0 {
+		t.Errorf("speaker 0 is lost after a restart")
+	}
+	if b, _ := json.Marshal(defaultConfig()); strings.Contains(string(b), "supertonic_speaker") {
+		t.Errorf("a new config.json chooses a speaker: %s", b)
+	}
+	if code := call("POST", "/api/voice-speaker", `{"speaker":7}`); code != 200 || a.cfg.SupertonicSpeaker == nil || *a.cfg.SupertonicSpeaker != 7 || a.supertonicSpeaker() != 7 {
+		t.Errorf("speaker 7: %d, %d", code, a.supertonicSpeaker())
 	}
 	st := a.ttsStateJSON()
 	for _, v := range st["voices"].([]map[string]any) {
@@ -292,8 +343,9 @@ func TestSupertonicChoice(t *testing.T) {
 	if s := st["supertonic"].(map[string]any); s["speaker"] != 7 || s["speakers"] != supertonicSpeakers {
 		t.Errorf("state: %v", s)
 	}
-	a.cfg.SupertonicSpeaker = 42 // a hand-edited config.json
-	if a.supertonicSpeaker() != 0 {
+	bad := 42 // a hand-edited config.json
+	a.cfg.SupertonicSpeaker = &bad
+	if a.supertonicSpeaker() != supertonicDefaultSpeaker {
 		t.Errorf("speaker out of range: %d", a.supertonicSpeaker())
 	}
 	// delete through any of its entries: the folder goes, every language forgets it, the Piper choice stays
