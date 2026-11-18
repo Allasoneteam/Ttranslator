@@ -111,10 +111,10 @@ body[data-model="bye"] header.top > :not(.brand) { display: none; }
 #unloadBtn { margin-left: -6px; }
 #unloadBtn.on { color: var(--ok); }
 #quitBtn.confirm, #randomBtn.confirm, #lessonBtn.confirm { color: var(--danger); background: var(--danger-bg); border-color: transparent; }
-#randomBtn, #lessonBtn { padding: 3px 8px; }
+#randomBtn, #lessonBtn, #fileBtn { padding: 3px 8px; }
 #lessonMore { padding: 3px 3px; margin-left: -7px; color: var(--muted); }
 .src-tools { flex-wrap: wrap; row-gap: 2px; }
-#randomBtn, #lessonBtn, #counter { white-space: nowrap; }
+#randomBtn, #lessonBtn, #fileBtn, #counter { white-space: nowrap; }
 #cleanNote.own-line { order: 9; flex: 1 1 100%; }
 #lessonMore:hover { color: var(--text); }
 #cleanNote button { border: none; padding: 0 2px; margin-left: 4px; color: var(--accent-text); text-decoration: underline; text-underline-offset: 2px; background: none; }
@@ -4872,6 +4872,7 @@ function showPane(which) {
   for (const k of ['results', 'doc', 'saved', 'test', 'settings', 'help', 'about']) $('#' + k + 'View').hidden = which !== k;
   document.body.classList.toggle('doc-open', which === 'doc');   // окно документа — во всю ширину
   if (typeof renderDocButton === 'function') renderDocButton();
+  fitSrc();   // подпись кнопки «Файл» / «Документ» — помещается ли она в строку под полем текста
   // узкое окно и телефон: панель — на месте рабочего окна (стили: @media 760px); прокрутка — к её началу, а при
   // возвращении к вариантам — туда, где была
   const open = which !== 'results';
@@ -7172,6 +7173,7 @@ const SRC_MIN = 110, ASK_MIN = 230;
 function fitSrc() {
   const t = $('#src'), box = $('#askBox');
   if (!t.offsetParent) return;   // поле скрыто
+  fitSrcTools();
   const top = t.scrollTop, cur = t.style.height;
   t.style.height = SRC_MIN + 'px';
   const want = t.scrollHeight + 2;
@@ -7179,6 +7181,15 @@ function fitSrc() {
   const h = Math.max(SRC_MIN, Math.min(want, SRC_MIN + spare)) + 'px';
   t.style.height = h;
   if (h === cur) t.scrollTop = top;
+}
+
+// Строка под полем текста — по возможности в одну строку: если подпись «Файл» («Документ») не помещается (узкое окно,
+// широкий шрифт, длинные подписи на другом языке), кнопка остаётся значком с подсказкой — иначе счётчик знаков уходит
+// на вторую строку и поле текста становится ниже.
+function fitSrcTools() {
+  const lab = $('#fileLabel'), c = $('#counter'), r = $('#randomBtn');
+  lab.hidden = false;
+  if (c.offsetTop > r.offsetTop + r.offsetHeight / 2) lab.hidden = true;
 }
 
 // Значок вкладки и окна программы — тот же рисунок; в тёмной теме системы — светлее.
