@@ -34,5 +34,12 @@ Source: https://github.com/Allasoneteam/Ttranslator (the tag of this release).
 6. The Go standard library — compiled into the launcher (libttranslator.so)
    BSD-style licence, The Go Authors (the text below). https://go.dev/LICENSE
 
-Not in the APK: the models (Gemma 4: Google, Apache 2.0) and the voices (Piper, packed by sherpa-onnx) are downloaded
-when you choose them, each with its own licence (shown in the menu of models).
+7. PDF.js 6.5.438 — opens PDF files in the window (inside the launcher, with the page)
+   Apache License 2.0, Mozilla Foundation (the text below). The npm package pdfjs-dist 6.5.438 (legacy build),
+   the same version as https://github.com/mozilla/pdf.js/releases/tag/v6.5.438. With it come three decoders
+   compiled to WebAssembly: JBIG2 from PDFium (BSD-3-Clause), OpenJPEG (BSD-2-Clause) and qcms (MIT); their
+   licences are below.
+
+Not in the APK: the models (Gemma 4: Google, Apache 2.0) with their picture files (mmproj of ggml-org) and the voices
+(Supertonic 3, Piper; packed by sherpa-onnx) are downloaded when you choose them, each with its own licence (shown in
+the menu of models).

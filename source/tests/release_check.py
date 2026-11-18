@@ -25,6 +25,7 @@ def check(files, read, isexec, plat, progs, server_name, start):
     top = {f.split('/')[1] for f in files if f.count('/') >= 1}
     ok(all(f.startswith('Ttranslator/') for f in files), '%s: one folder Ttranslator/' % plat)
     need = progs + [start, 'README.txt', 'LICENSE.txt', 'THIRD-PARTY.txt', 'ui/index.html', 'ui/tests.txt',
+                    'ui/pdfjs/pdf.min.mjs', 'ui/pdfjs/pdf.worker.min.mjs', 'ui/pdfjs/wasm/jbig2.wasm', 'ui/pdfjs/LICENSE',
                     'source/launcher/main.go', 'source/docs/CHANGELOG.md', 'engine/%s/engine.json' % plat]
     missing = [x for x in need if 'Ttranslator/' + x not in files]
     ok(not missing, '%s: everything inside (missing: %s)' % (plat, missing))

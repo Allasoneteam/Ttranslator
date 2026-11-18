@@ -31,7 +31,7 @@ trap 'rm -rf "$STAGE"' EXIT
 
 # the version and the engine archives, from main.go
 rm -rf source/launcher/ui_fallback; mkdir -p source/launcher/ui_fallback
-cp ui/index.html ui/tests.txt source/launcher/ui_fallback/
+cp ui/index.html ui/tests.txt source/launcher/ui_fallback/ && cp -R ui/pdfjs source/launcher/ui_fallback/
 (cd source/launcher && TDOC_DUMP_RELEASE="$STAGE/release.json" go test -count=1 -run '^TestDumpReleaseInfo$' . > /dev/null) \
   || { echo "ERROR: go test -run TestDumpReleaseInfo"; exit 1; }
 field() { python3 -c 'import json, sys; d = json.load(open(sys.argv[1]))
@@ -62,7 +62,7 @@ LLAMA_LICENSE=$(find "$STAGE/lic" -name LICENSE | head -1)
 
 common() {   # folder: what both archives hold
   mkdir -p "$1/ui"
-  cp ui/index.html ui/tests.txt "$1/ui/"
+  cp ui/index.html ui/tests.txt "$1/ui/" && cp -R ui/pdfjs "$1/ui/"
   cp README.txt README.md LICENSE.txt "$1/"
   tar -cf - --exclude='source/launcher/ui_fallback' --exclude='__pycache__' --exclude='*.part' source | tar -xf - -C "$1"
   python3 - "$1/THIRD-PARTY.txt" "$APP" "$LLAMA_LICENSE" <<'PY'
@@ -81,10 +81,15 @@ text = [
     "4. The Go standard library — compiled into Ttranslator.exe and ttranslator-linux (BSD-style licence,",
     "   https://go.dev/LICENSE).",
     "",
+    "5. PDF.js 6.5.438 — in the folder ui/pdfjs, opens PDF files in the window (Apache License 2.0, Mozilla",
+    "   Foundation; the full text: ui/pdfjs/LICENSE). Its decoders, compiled to WebAssembly: JBIG2 from PDFium",
+    "   (BSD-3-Clause), OpenJPEG (BSD-2-Clause), qcms (MIT) — their licences: ui/pdfjs/wasm/LICENSE_*.",
+    "",
     "Downloaded only when you ask for them (not in this archive):",
-    "- models: Gemma 4 (Google, Apache 2.0); your own .gguf files have their own licences;",
+    "- models: Gemma 4 (Google, Apache 2.0) and their picture files (mmproj, ggml-org, Apache 2.0); your own",
+    "  .gguf files have their own licences;",
     "- sherpa-onnx for reading aloud (Apache 2.0, with espeak-ng inside, GPL-3.0);",
-    "- Piper voices: the licence of each voice is shown in the model menu and in README.txt.",
+    "- voices (Supertonic 3, Piper): the licence of each voice is shown in the model menu and in README.txt.",
 ]
 open(out, "w", encoding="utf-8", newline="\r\n").write("\n".join(text) + "\n")
 PY

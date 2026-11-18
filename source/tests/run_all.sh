@@ -26,7 +26,7 @@ SUMMARY=""; FAILED=0; PIDS=""
 
 say() { printf '\n=== %s\n' "$*"; }
 cleanup() {
-  for p in 18771 18772 18773 18774 18775 18776 18777 18778 18780 18781 18782 18783 18785 18786 18787 18788 18789; do curl -s -m 1 -o /dev/null -X POST -H "Origin: http://127.0.0.1:$p" "http://127.0.0.1:$p/api/quit"; done
+  for p in 18771 18772 18773 18774 18775 18776 18777 18778 18780 18781 18782 18783 18785 18786 18787 18788 18789 18791 18792; do curl -s -m 1 -o /dev/null -X POST -H "Origin: http://127.0.0.1:$p" "http://127.0.0.1:$p/api/quit"; done
   [ -n "$PIDS" ] && kill $PIDS 2>/dev/null
 }
 trap cleanup EXIT
@@ -65,7 +65,7 @@ run() {              # name command...
 
 say "launcher: vet, unit tests, Linux build; the macOS launcher (Intel, Apple Silicon) vets and builds"
 rm -rf "$SRC/launcher/ui_fallback"; mkdir -p "$SRC/launcher/ui_fallback"
-cp "$UI/index.html" "$UI/tests.txt" "$SRC/launcher/ui_fallback/"
+cp "$UI/index.html" "$UI/tests.txt" "$SRC/launcher/ui_fallback/" && cp -R "$UI/pdfjs" "$SRC/launcher/ui_fallback/"
 (cd "$SRC/launcher" && go vet ./... && GOOS=windows go vet ./... && GOOS=darwin GOARCH=amd64 go vet ./... \
    && GOOS=darwin GOARCH=arm64 go vet ./... && go test ./... \
    && CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 go build -trimpath -o /dev/null . \
@@ -156,6 +156,19 @@ json.dump(sp, open(os.path.join(w, 'voices094.json'), 'w'), ensure_ascii=False, 
 st = [dict(v, url='http://127.0.0.1:18080/' + os.path.basename(v['url'])) for v in cat['voices'] if v.get('engine') == 'supertonic']
 json.dump(st + [voice('ru-dmitri', 'ru', 'Dmitri', 'male', 'CC0', False, 'ru_RU-dmitri-medium')],
           open(os.path.join(w, 'voices13.json'), 'w'), ensure_ascii=False, indent=1)
+# 1.3, documents: a stand-in picture file (mmproj) of the test models on the mirror; the engine is not given it
+# (TDOC_TEST_VISION) — the tiny model has no picture encoder, the test answers the picture requests itself
+blob = hashlib.sha256(b'mmproj').digest() * 9000
+open(os.path.join(w, 'mirror', 'mmproj-test.gguf'), 'wb').write(blob)
+# the second test model gets a broken picture file that IS given to the real engine ("engine": true): the engine
+# cannot load it and stops — the launcher starts it again without the file (visionFallback)
+bad = hashlib.sha256(b'broken mmproj').digest() * 1000
+open(os.path.join(w, 'mirror', 'mmproj-broken.gguf'), 'wb').write(bad)
+json.dump([{'id': 'mm-test', 'name': 'Test', 'for': ['q4'], 'file': 'mmproj-test.gguf', 'url': 'http://127.0.0.1:18080/mmproj-test.gguf',
+            'page': '127.0.0.1:18080', 'size': len(blob), 'sha256': hashlib.sha256(blob).hexdigest()},
+           {'id': 'mm-broken', 'name': 'Broken', 'for': ['q8'], 'file': 'mmproj-broken.gguf', 'url': 'http://127.0.0.1:18080/mmproj-broken.gguf',
+            'page': '127.0.0.1:18080', 'size': len(bad), 'sha256': hashlib.sha256(bad).hexdigest(), 'engine': True}],
+          open(os.path.join(w, 'vision13.json'), 'w'), indent=1)
 PY
 python3 "$T/mirror_server.py" "$W/mirror" $MIRROR 8000000 > "$W/mirror.log" 2>&1 &
 PIDS="$PIDS $!"
@@ -284,6 +297,13 @@ XENV="TDOC_TTS_URL=http://127.0.0.1:$MIRROR/$TTS TDOC_TEST_VOICES=$W/voices13.js
 make_ready 18791
 run "e2e v1.3: Supertonic 3 for 13 languages (download, speakers, choice, delete); Japanese, Korean, Hindi" \
   python3 "$T/e2e_v13.py" "$W" http://127.0.0.1:18791/ "$W/r18"
+
+# 1.3: documents — a picture, a PDF (a text page and a scan), text files; the picture file of the model (download,
+# restart, delete); recognition and translation by paragraphs side by side (canned replies), «Стоп», «Сохранить .txt»
+XENV="TDOC_TEST_VISION=$W/vision13.json" start_launcher "$W/r19" 18792
+make_ready 18792
+run "e2e 1.3: documents — pictures, PDF (text and scans), text files; the picture file of the model; translation by paragraphs" \
+  python3 "$T/e2e_files.py" "$W" http://127.0.0.1:18792/ "$W/r19"
 
 # v0.9.1–0.9.3: the app window (ttranslator-window, source/window): the Windows program builds and needs only system
 # DLLs; the Linux program on WebKitGTK under a virtual screen (with openbox, if there is one: the maximized start) —

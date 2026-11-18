@@ -129,7 +129,7 @@ try:
       page.screenshot(path=os.path.join(shots, '3-main-es.png'))
       page.click('#helpBtn'); page.wait_for_selector('#helpView:not([hidden])')
       hb = page.inner_text('#helpBody')
-      ok(page.locator('#helpBody h3').count() == 12 and page.locator('#helpBody h3').first.inner_text() == 'Traducción' and 'la eclesiástica (italiana)' in hb and 'o la clásica' in hb,
+      ok(page.locator('#helpBody h3').count() == 13 and page.locator('#helpBody h3').first.inner_text() == 'Traducción' and 'la eclesiástica (italiana)' in hb and 'o la clásica' in hb,
          'help in Spanish (with both pronunciations of Latin)')
       ok(texts(page, '#helpBody h3')[-2] == 'Actualizar y desinstalar' and 'Desinstalar en Windows' in hb and '~/.cache/ttranslator' in hb and 'Prueba rápida' in hb,
          'help: updating and uninstalling, the quick test: %s' % texts(page, '#helpBody h3')[-3:])
@@ -246,7 +246,7 @@ try:
       page.click('#tabGloss'); page.wait_for_timeout(300)
       ok('5 个词条' in page.inner_text('#glossStatus'), 'number forms in Chinese: %s' % page.inner_text('#glossStatus'))
       page.click('#helpBtn'); page.wait_for_selector('#helpView:not([hidden])')
-      ok(page.locator('#helpBody h3').first.inner_text() == '翻译' and page.locator('#helpBody h3').count() == 12 and texts(page, '#helpBody h3')[-2] == '更新与卸载', 'help in Chinese: %s' % texts(page, '#helpBody h3')[-3:])
+      ok(page.locator('#helpBody h3').first.inner_text() == '翻译' and page.locator('#helpBody h3').count() == 13 and texts(page, '#helpBody h3')[-2] == '更新与卸载', 'help in Chinese: %s' % texts(page, '#helpBody h3')[-3:])
       page.click('#testBtn'); page.wait_for_timeout(300)
       ok('句子对：6' in page.inner_text('#testIntro') and '快速测试。两句拉丁语名言' in page.inner_text('#testIntro') and '拉丁语 ↔ 中文' in page.inner_text('#testIntro')
          and '“中性”、“口语”' in page.inner_text('#testIntro'),

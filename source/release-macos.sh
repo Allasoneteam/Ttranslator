@@ -11,7 +11,7 @@
 #   Contents/MacOS/Ttranslator                 the launcher (Go)
 #   Contents/MacOS/ttranslator-window          the own window (source/window: Cocoa and WKWebView)
 #   Contents/Resources/Ttranslator.icns        the icon (source/launcher/make_icon.go)
-#   Contents/Resources/ui/                     index.html, tests.txt
+#   Contents/Resources/ui/                     index.html, tests.txt, pdfjs/
 #   Contents/Resources/engine/darwin-<arch>/   the official llama.cpp engine, unpacked as the program itself does it
 #                                              (<version>/llama-<version>/…, the links between its libraries kept), and
 #                                              engine.json — so the first start downloads only a model
@@ -41,7 +41,7 @@ trap 'rm -rf "$STAGE"' EXIT
 
 # the version and the engine archive, from main.go
 rm -rf source/launcher/ui_fallback; mkdir -p source/launcher/ui_fallback
-cp ui/index.html ui/tests.txt source/launcher/ui_fallback/
+cp ui/index.html ui/tests.txt source/launcher/ui_fallback/ && cp -R ui/pdfjs source/launcher/ui_fallback/
 (cd source/launcher && TDOC_DUMP_RELEASE="$STAGE/release.json" go test -count=1 -run '^TestDumpReleaseInfo$' . > /dev/null) \
   || { echo "ERROR: go test -run TestDumpReleaseInfo"; exit 1; }
 field() { python3 -c 'import json, sys; d = json.load(open(sys.argv[1]))
@@ -73,7 +73,7 @@ printf 'APPL????' > "$APP/Contents/PkgInfo"
 ARCH=$CARCH OUT="$APP/Contents/MacOS" sh source/window/build.sh macos > "$STAGE/window.log" 2>&1 \
   || { cat "$STAGE/window.log"; echo "ERROR: the window program"; exit 1; }
 cp source/launcher/Ttranslator.icns "$APP/Contents/Resources/"
-cp ui/index.html ui/tests.txt "$APP/Contents/Resources/ui/"
+cp ui/index.html ui/tests.txt "$APP/Contents/Resources/ui/" && cp -R ui/pdfjs "$APP/Contents/Resources/ui/"
 E=$APP/Contents/Resources/engine/$PLATFORM
 mkdir -p "$E/$ENGINE_VERSION"
 tar -xzf "$ENGINE" -C "$E/$ENGINE_VERSION"
@@ -99,10 +99,15 @@ text = [
     "3. The Go standard library — compiled into Ttranslator.app/Contents/MacOS/Ttranslator (BSD-style licence,",
     "   https://go.dev/LICENSE).",
     "",
+    "4. PDF.js 6.5.438 — in Ttranslator.app/Contents/Resources/ui/pdfjs, opens PDF files in the window (Apache",
+    "   License 2.0, Mozilla Foundation; the full text: ui/pdfjs/LICENSE there). Its decoders, compiled to",
+    "   WebAssembly: JBIG2 from PDFium (BSD-3-Clause), OpenJPEG (BSD-2-Clause), qcms (MIT) — ui/pdfjs/wasm/LICENSE_*.",
+    "",
     "Downloaded only when you ask for them (not in this archive):",
-    "- models: Gemma 4 (Google, Apache 2.0); your own .gguf files have their own licences;",
+    "- models: Gemma 4 (Google, Apache 2.0) and their picture files (mmproj, ggml-org, Apache 2.0); your own",
+    "  .gguf files have their own licences;",
     "- sherpa-onnx for reading aloud (Apache 2.0, with espeak-ng inside, GPL-3.0);",
-    "- Piper voices: the licence of each voice is shown in the model menu and in README.txt.",
+    "- voices (Supertonic 3, Piper): the licence of each voice is shown in the model menu and in README.txt.",
 ]
 open(out, "w", encoding="utf-8").write("\n".join(text) + "\n")
 PY

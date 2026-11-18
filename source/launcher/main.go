@@ -200,6 +200,7 @@ func applyTestOverrides() {
 			logger.Printf("test models from %s", p)
 		}
 	}
+	visionTestOverrides()
 }
 
 func (a *App) engineURL() string {
@@ -364,6 +365,7 @@ type EngineInfo struct {
 	NCtx    int    `json:"n_ctx"`
 	Threads int    `json:"threads"`
 	LoadMs  int64  `json:"load_ms"`
+	Vision  bool   `json:"vision"` // reads pictures (vision.go)
 }
 
 type Machine struct {
@@ -399,7 +401,12 @@ type App struct {
 	dlCancel       context.CancelFunc
 	vdl            DownloadState // download of a voice for reading aloud (and of sherpa-onnx), separate from dl
 	vdlCancel      context.CancelFunc
-	ttsNoUTF8      bool // Windows: the copy of sherpa-onnx with the UTF-8 manifest does not start here
+	mdl            DownloadState // download of a picture file (vision.go), separate from dl
+	mdlCancel      context.CancelFunc
+	visionOn       bool   // pictures were asked for in this run (/api/vision): the engine starts with the picture file
+	visionErr      string // the engine failed with the picture file in this run: what it said (visionFallback)
+	engVision      bool   // the engine process was started to read pictures
+	ttsNoUTF8      bool   // Windows: the copy of sherpa-onnx with the UTF-8 manifest does not start here
 	machine        Machine
 	accessKey      string       // Android: every request must carry it (android.go); "" on computers
 	engBusy        atomic.Int32 // requests to the engine under way (a translation, a question): "engine_busy" of /api/state
@@ -813,6 +820,7 @@ func (a *App) stateJSON() map[string]any {
 		"data_root":         a.root,       // config.json, data, models, engine (macOS: ~/Library/Application Support/Ttranslator)
 		"platform":          runtime.GOOS, // windows, linux, darwin
 		"tts":               a.ttsStateJSON(),
+		"vision":            a.visionStateJSON(),
 		"window":            a.windowStateJSON(),
 		// Android: the app keeps its notification (a foreground service) while the engine works, so that Android
 		// does not stop a translation in the background
@@ -857,12 +865,17 @@ func (a *App) startEngine() {
 	server := a.serverPath()
 	m := a.findModel(a.cfg.ActiveModel)
 	cfg := a.cfg
+	mmproj, vision := a.visionToLoad(m)
 	a.engStatus, a.engErr, a.engLog = "starting", "", ""
 	a.engInfo = EngineInfo{}
+	a.engVision = vision
 	a.mu.Unlock()
 
 	fail := func(msg, logTail string) {
 		logger.Printf("engine error: %s", msg)
+		if vision && a.visionFallback(msg, logTail) {
+			return
+		}
 		a.mu.Lock()
 		a.engStatus, a.engErr, a.engLog = "error", msg, logTail
 		a.mu.Unlock()
@@ -887,6 +900,10 @@ func (a *App) startEngine() {
 	}
 	if cfg.Threads > 0 {
 		args = append(args, "-t", strconv.Itoa(cfg.Threads))
+	}
+	if mmproj != "" {
+		args = append(args, visionArgs(mmproj)...)
+		logger.Printf("engine reads %s", visionNote(mmproj))
 	}
 	args = append(args, cfg.ExtraEngineArgs...)
 	logPath := filepath.Join(a.logsDir, "engine.log")
@@ -965,7 +982,7 @@ func (a *App) startEngine() {
 		}
 		time.Sleep(300 * time.Millisecond)
 	}
-	info := EngineInfo{LoadMs: time.Since(t0).Milliseconds(), NCtx: cfg.CtxSize}
+	info := EngineInfo{LoadMs: time.Since(t0).Milliseconds(), NCtx: cfg.CtxSize, Vision: vision}
 	req, _ := http.NewRequest("GET", fmt.Sprintf("http://127.0.0.1:%d/props", port), nil)
 	req.Header.Set("Authorization", "Bearer "+key)
 	if resp, err := client.Do(req); err == nil {
@@ -1827,6 +1844,7 @@ func (a *App) routes() http.Handler {
 	a.glossaryRoutes(mux)
 	a.savedRoutes(mux)
 	a.ttsRoutes(mux)
+	a.visionRoutes(mux)
 	mux.HandleFunc("/api/", func(w http.ResponseWriter, r *http.Request) { jsonError(w, 404, "not found") })
 
 	proxy := http.HandlerFunc(a.handleProxy)
@@ -1867,9 +1885,10 @@ func (a *App) handleProxy(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, 503, map[string]any{"error": map[string]any{"code": 503, "message": msg, "type": "unavailable_error"}})
 		return
 	}
-	// read the (small) request body first, so the engine request does not depend on the browser connection
+	// read the request body first, so the engine request does not depend on the browser connection; a page of a scan
+	// comes as a JPEG of 1–3 MB in base64
 	if r.Body != nil {
-		body, err := io.ReadAll(io.LimitReader(r.Body, 4<<20))
+		body, err := io.ReadAll(io.LimitReader(r.Body, maxEngineRequest))
 		r.Body.Close()
 		if err != nil {
 			jsonError(w, 400, tr("не удалось прочитать запрос"))
@@ -1918,8 +1937,8 @@ func (a *App) handleStatic(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Cache-Control", "no-store")
 	w.Header().Set("X-Content-Type-Options", "nosniff")
-	if strings.HasSuffix(name, ".txt") {
-		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+	if ct := staticType(name); ct != "" {
+		w.Header().Set("Content-Type", ct)
 	}
 	p := filepath.Join(a.uiDir, filepath.FromSlash(name))
 	if name == "index.html" {
@@ -1951,6 +1970,23 @@ func (a *App) handleStatic(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	}
 	_, _ = w.Write(b)
+}
+
+// maxEngineRequest: the largest request to the engine (a picture of a page in base64 and the question).
+const maxEngineRequest = 32 << 20
+
+// staticType: the content type of files of the interface folder that the system may not know — the PDF.js modules
+// (a module script is refused unless its type is JavaScript, with nosniff even more so) and its decoders.
+func staticType(name string) string {
+	switch strings.ToLower(filepath.Ext(name)) {
+	case ".txt":
+		return "text/plain; charset=utf-8"
+	case ".mjs", ".js":
+		return "text/javascript; charset=utf-8"
+	case ".wasm":
+		return "application/wasm"
+	}
+	return ""
 }
 
 // injectSettings replaces the page's <html …> tag with one that carries the interface settings.

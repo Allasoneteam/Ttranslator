@@ -74,7 +74,7 @@ say "the Mac of the runner"
 MACOS=$(sw_vers -productVersion)
 
 say "unit tests of the launcher on macOS"
-(cd source/launcher && rm -rf ui_fallback && mkdir ui_fallback && cp ../../ui/index.html ../../ui/tests.txt ui_fallback/ \
+(cd source/launcher && rm -rf ui_fallback && mkdir ui_fallback && cp ../../ui/index.html ../../ui/tests.txt ui_fallback/ && cp -R ../../ui/pdfjs ui_fallback/ \
   && go vet ./... && go test -count=1 ./...) > "$OUT/unit-tests-$ARCH.log" 2>&1
 r=$?; tail -5 "$OUT/unit-tests-$ARCH.log"; [ $r = 0 ] || tail -40 "$OUT/unit-tests-$ARCH.log"
 check $r "unit tests of the launcher on macOS $MACOS"
@@ -95,7 +95,8 @@ APP=$W/plain/Ttranslator/Ttranslator.app
 ls "$W/plain/Ttranslator"
 for f in README.txt LICENSE.txt THIRD-PARTY.txt Ttranslator.app/Contents/Info.plist Ttranslator.app/Contents/MacOS/Ttranslator \
          Ttranslator.app/Contents/MacOS/ttranslator-window Ttranslator.app/Contents/Resources/Ttranslator.icns \
-         Ttranslator.app/Contents/Resources/ui/index.html Ttranslator.app/Contents/Resources/ui/tests.txt; do
+         Ttranslator.app/Contents/Resources/ui/index.html Ttranslator.app/Contents/Resources/ui/tests.txt \
+         Ttranslator.app/Contents/Resources/ui/pdfjs/pdf.min.mjs Ttranslator.app/Contents/Resources/ui/pdfjs/pdf.worker.min.mjs; do
   [ -s "$W/plain/Ttranslator/$f" ] || { fail "the archive has no $f"; }
 done
 E=$(ls -d "$APP"/Contents/Resources/engine/darwin-*)

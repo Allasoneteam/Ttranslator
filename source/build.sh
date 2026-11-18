@@ -10,6 +10,7 @@ cd "$(dirname "$0")"
 rm -rf launcher/ui_fallback
 mkdir -p launcher/ui_fallback
 cp ../ui/index.html ../ui/tests.txt launcher/ui_fallback/
+cp -R ../ui/pdfjs launcher/ui_fallback/   # PDF.js (1.3): files read inside the window
 cd launcher
 CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -trimpath -ldflags "-s -w -H windowsgui" -o ../../Ttranslator.exe .
 CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -ldflags "-s -w" -o ../../ttranslator-linux .

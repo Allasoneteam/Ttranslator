@@ -157,7 +157,7 @@ build_launcher() { # abi goarch clang-triple
   done
   cp "$REPO/source/launcher/go.mod" "$REPO/source/launcher/Ttranslator.png" "$src/"
   # the copy of the interface inside the program, as source/build.sh makes it (the program folder has no ui/ here)
-  cp "$REPO/ui/index.html" "$REPO/ui/tests.txt" "$src/ui_fallback/"
+  cp "$REPO/ui/index.html" "$REPO/ui/tests.txt" "$src/ui_fallback/" && cp -R "$REPO/ui/pdfjs" "$src/ui_fallback/"
   say "launcher for $abi (GOOS=android GOARCH=$goarch, cgo: Android's DNS resolver)"
   (cd "$src" && CGO_ENABLED=1 GOOS=android GOARCH=$goarch CC=$cc go build -trimpath -ldflags "-s -w" -o "$JNI/$abi/libttranslator.so" .)
 }
@@ -208,7 +208,9 @@ L=$HERE/licenses
 { cat "$HERE/THIRD-PARTY.txt"
   for part in "1. llama.cpp — MIT licence|$LLAMA_ARM64/LICENSE" "2. sherpa-onnx — Apache License 2.0|$L/Apache-2.0.txt" \
               "3. espeak-ng — GNU General Public License, version 3|$L/GPL-3.0.txt" "4. piper-phonemize — MIT licence|$L/piper-phonemize-MIT.txt" \
-              "5. ONNX Runtime — MIT licence|$L/onnxruntime-MIT.txt" "6. The Go standard library — BSD-style licence|$L/Go-BSD-3-Clause.txt"; do
+              "5. ONNX Runtime — MIT licence|$L/onnxruntime-MIT.txt" "6. The Go standard library — BSD-style licence|$L/Go-BSD-3-Clause.txt" \
+              "7. PDF.js — Apache License 2.0|$REPO/ui/pdfjs/LICENSE" "7a. the JBIG2 decoder of PDFium (in PDF.js) — BSD-3-Clause|$REPO/ui/pdfjs/wasm/LICENSE_JBIG2" \
+              "7b. OpenJPEG (in PDF.js) — BSD-2-Clause|$REPO/ui/pdfjs/wasm/LICENSE_OPENJPEG" "7c. qcms (in PDF.js) — MIT licence|$REPO/ui/pdfjs/wasm/LICENSE_QCMS"; do
     [ -s "${part#*|}" ] || die "no licence text ${part#*|}"
     printf '\n\n==================== %s\n\n' "${part%%|*}"; cat "${part#*|}"
   done; } > "$ASSETS/THIRD-PARTY.txt"

@@ -144,6 +144,35 @@ main.grid {
 }
 .left { padding: 16px; border-right: 1px solid var(--border); overflow: auto; display: flex; flex-direction: column; gap: 12px; }
 .right { padding: 16px; overflow: auto; min-width: 0; }
+/* Документ (1.3): файл — картинка, PDF или текст; у каждой страницы — картинка, текст и перевод рядом. Окно документа
+   занимает всю ширину: левая колонка рабочего окна прячется. */
+body.doc-open main.grid { grid-template-columns: 1fr; }
+body.doc-open .left { display: none; }
+.doc-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; max-width: 40vw; }
+.doc-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 4px 0 12px; }
+.doc-pages { display: flex; flex-direction: column; gap: 14px; }
+.doc-page { border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; background: var(--panel); }
+.doc-page.working { border-color: var(--accent); }
+.doc-page-head { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; margin-bottom: 8px; font-size: .9286rem; }
+.doc-meta { color: var(--muted); }
+.doc-meta.stale, .doc-meta.err { color: var(--warn); }
+.doc-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; align-items: start; }
+.doc-page.has-img .doc-cols { grid-template-columns: minmax(110px, 190px) 1fr 1fr; }
+.doc-img { margin: 0; cursor: zoom-in; }
+.doc-img img { width: 100%; height: auto; min-height: 60px; display: block; border: 1px solid var(--border); border-radius: 6px; background: #fff; }
+.doc-src { width: 100%; min-height: 150px; resize: vertical; }
+.doc-tgt { white-space: pre-wrap; overflow-wrap: break-word; min-height: 150px; padding: 8px 10px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--panel2); }
+.doc-tgt:empty::before { content: attr(data-empty); color: var(--faint); }
+.doc-tools { display: flex; gap: 4px; justify-content: flex-end; margin-top: 4px; }
+.doc-zoom { position: fixed; inset: 0; z-index: 60; background: rgba(0,0,0,.78); display: flex; align-items: center; justify-content: center; padding: 24px; }
+.doc-zoom img { max-width: 100%; max-height: 100%; background: #fff; box-shadow: 0 4px 30px rgba(0,0,0,.5); }
+.doc-zoom button { position: absolute; top: 12px; right: 12px; background: var(--panel); }
+body.drag-file::after { content: attr(data-drop); position: fixed; inset: 10px; z-index: 70; pointer-events: none; display: flex; align-items: center;
+  justify-content: center; border: 3px dashed var(--accent); border-radius: 14px; background: rgba(24,95,165,.08); color: var(--accent-text); font-size: 1.3rem; }
+@media (max-width: 760px) {
+  .doc-cols, .doc-page.has-img .doc-cols { grid-template-columns: 1fr; }
+  .doc-img { max-width: 240px; }
+}
 .label { font-size: .8571rem; color: var(--muted); margin-bottom: -6px; }
 .chips { display: flex; flex-wrap: wrap; gap: 6px; }
 .chip { font-size: .9286rem; padding: 4px 11px; border-radius: 999px; border: 1px solid var(--border2); color: var(--muted); }
@@ -428,6 +457,8 @@ details.licenses pre { max-height: 60vh; overflow: auto; white-space: pre-wrap; 
   </div>
 </header>
 
+<div id="docZoom" class="doc-zoom" hidden role="dialog" aria-label="Страница крупно"><img alt=""><button id="docZoomClose" class="icon" type="button" title="Закрыть (Esc)" aria-label="Закрыть">✕</button></div>
+
 <div id="modelBanner" class="banner" role="status" hidden>
   <div id="bnStarting" class="banner-part" hidden>
     <div class="spinner"></div>
@@ -457,7 +488,7 @@ details.licenses pre { max-height: 60vh; overflow: auto; white-space: pre-wrap; 
     <div>
       <textarea id="src" dir="auto" placeholder="Введите или вставьте текст (до 1000 знаков)" aria-label="Исходный текст"></textarea>
       <div id="langHint" class="hint lang-hint" hidden><span class="txt"></span><button type="button"></button></div>
-      <div class="row small src-tools"><button id="randomBtn" class="ghost needs-model" type="button" title="Попросить модель придумать случайную пословицу, поговорку или устойчивое выражение на языке текста"><span id="randomIcon"></span><span id="randomLabel">Случайно</span></button><button id="lessonBtn" class="ghost needs-model" type="button" title="Попросить модель придумать короткий учебный пример на языке текста: правило, упражнение, «найдите ошибку» или два слова, которые легко перепутать. Маленькие модели иногда ошибаются в правилах — проверяйте."><span id="lessonIcon"></span><span id="lessonLabel">Учебный пример</span></button><button id="lessonMore" class="ghost" type="button" title="Учебный пример: уровень, тема и упражнение в «Спросить модель» (вы отвечаете — модель проверяет)" aria-label="Учебный пример: уровень, тема и упражнение в «Спросить модель» (вы отвечаете — модель проверяет)"></button><span id="cleanNote" class="muted"></span><span class="spacer"></span><button id="srcSpeak" class="icon speak" type="button" title="Прочитать вслух" aria-label="Прочитать вслух"></button><span id="counter" class="muted">0 из 1000</span></div>
+      <div class="row small src-tools"><button id="randomBtn" class="ghost needs-model" type="button" title="Попросить модель придумать случайную пословицу, поговорку или устойчивое выражение на языке текста"><span id="randomIcon"></span><span id="randomLabel">Случайно</span></button><button id="lessonBtn" class="ghost needs-model" type="button" title="Попросить модель придумать короткий учебный пример на языке текста: правило, упражнение, «найдите ошибку» или два слова, которые легко перепутать. Маленькие модели иногда ошибаются в правилах — проверяйте."><span id="lessonIcon"></span><span id="lessonLabel">Учебный пример</span></button><button id="lessonMore" class="ghost" type="button" title="Учебный пример: уровень, тема и упражнение в «Спросить модель» (вы отвечаете — модель проверяет)" aria-label="Учебный пример: уровень, тема и упражнение в «Спросить модель» (вы отвечаете — модель проверяет)"></button><button id="fileBtn" class="ghost" type="button" title="Открыть файл: картинку (скан, фото страницы, снимок экрана), PDF или текст (.txt, .tex) — модель прочитает его, перевод встанет рядом с оригиналом. Картинку можно и перетащить в окно или вставить (Ctrl+V)"><span id="fileIcon"></span><span id="fileLabel">Файл</span></button><input id="fileInput" type="file" accept="image/*,.pdf,application/pdf,.txt,.tex,.md,text/plain" hidden><span id="cleanNote" class="muted"></span><span class="spacer"></span><button id="srcSpeak" class="icon speak" type="button" title="Прочитать вслух" aria-label="Прочитать вслух"></button><span id="counter" class="muted">0 из 1000</span></div>
     </div>
     <div class="label" id="chipsLabel">Стили вариантов</div>
     <div id="chips" class="chips"></div>
@@ -529,6 +560,26 @@ details.licenses pre { max-height: 60vh; overflow: auto; white-space: pre-wrap; 
         </div>
         <textarea id="ownText" dir="auto" rows="2" maxlength="4000" placeholder="Напишите свой перевод — его можно сохранить в «Сохранённые»" aria-label="Свой вариант"></textarea>
       </div>
+    </div>
+
+    <div id="docView" hidden>
+      <div class="pane-head">
+        <h2>Документ</h2>
+        <span id="docName" class="muted doc-name"></span>
+        <span class="spacer"></span>
+        <button id="docOpenBtn" class="ghost" type="button">Открыть другой файл</button>
+        <button id="closeDocBtn" type="button">Назад</button>
+      </div>
+      <div class="doc-bar">
+        <button id="docReadBtn" class="primary needs-model" type="button" title="Модель прочитает текст страниц-картинок (сканов, фото) — по очереди, с первой нераспознанной">Распознать</button>
+        <button id="docTransBtn" class="primary needs-model" type="button" title="Перевести страницы, у которых есть текст, — по абзацам, на язык результата вверху">Перевести</button>
+        <button id="docStopBtn" type="button" hidden>Стоп</button>
+        <button id="docSaveBtn" type="button" title="Сохранить перевод в текстовый файл (.txt)">Сохранить .txt</button>
+        <label class="check" title="В файле — сначала текст страницы, за ним перевод"><input type="checkbox" id="docWithSrc"> с оригиналом</label>
+        <span id="docStatus" class="note" aria-live="polite"></span>
+      </div>
+      <div id="docNote" class="hint" hidden></div>
+      <div id="docPages" class="doc-pages"></div>
     </div>
 
     <div id="savedView" hidden>
@@ -797,6 +848,21 @@ const QUICK_TEST = {
     { la: 'Cogito, ergo sum.', en: 'I think, therefore I am.', ru: 'Мыслю, следовательно, существую.',
       de: 'Ich denke, also bin ich.', es: 'Pienso, luego existo.', zh: '我思故我在。' },
   ],
+};
+// Документ (1.3): картинка, PDF или текстовый файл — текст страниц и перевод рядом (кнопка «Файл»).
+const DOCS = {
+  maxPages: 500,          // страниц PDF — не больше
+  maxTextChars: 300000,   // текстовый файл — не длиннее (около 150 страниц)
+  textPage: 3000,         // текстовый файл делится на «страницы» примерно по столько знаков (по абзацам)
+  pdfTextMin: 40,         // на странице PDF столько букв и больше — берётся её текст; меньше — это скан (картинка)
+  imageSide: 1600,        // длинная сторона картинки для модели, пикселей (модель читает её как 1120 токенов)
+  jpegQuality: 0.88,
+  thumbSide: 320,         // маленькая картинка страницы
+  chunkChars: 900,        // переводится по кускам: абзацы подряд, пока помещаются (длинный абзац — по предложениям)
+  // Запрос к модели: переписать текст картинки как есть, абзацы — через пустую строку, формулы — LaTeX ($…$)
+  ocrPrompt: 'Transcribe all the text in this picture exactly as written, in its original language. Do not translate, correct, summarize or describe it. Keep the reading order (columns one after another). Join the lines of one paragraph into one line and join words hyphenated at line ends. Separate paragraphs, headings and list items with a blank line. Write mathematical formulas in LaTeX between $ signs ($$ for displayed formulas). If there is no text, answer with nothing.',
+  ocrMaxTokens: 2600,     // текст одной страницы (вместе с картинкой — меньше 4096 токенов памяти модели)
+  ocrSampling: { temperature: 0, top_p: 1, top_k: 1, repeat_penalty: 1.05 },   // без случайности
 };
 
 // Что показывать, когда нужна модель, а она выгружена или не запущена. По решению автора — всегда по-английски.
@@ -1187,7 +1253,7 @@ const ABOUT = {
     support: 'Создатели будут рады любой поддержке через GitHub Sponsors:',
     thanks: 'Особая благодарность Ивану Гоноскову и Claude Opus 5.5 (Anthropic).',
     license: 'Лицензия: MIT, © 2026 Allasoneteam and Ttranslator authors (файл LICENSE.txt в папке программы).',
-    credits: 'Используются: движок llama.cpp (лицензия MIT) и модели Gemma 4 (Google, лицензия Apache 2.0); для чтения вслух — программа sherpa-onnx (лицензия Apache 2.0, внутри — espeak-ng, лицензия GPL-3.0) и голоса Piper (лицензия каждого голоса указана в меню моделей); окно приложения — библиотека webview (лицензия MIT), в Windows — Microsoft Edge WebView2.',
+    credits: 'Используются: движок llama.cpp (лицензия MIT) и модели Gemma 4 (Google, лицензия Apache 2.0); для чтения вслух — программа sherpa-onnx (лицензия Apache 2.0, внутри — espeak-ng, лицензия GPL-3.0) и голоса Supertonic и Piper (лицензия каждого голоса указана в меню моделей); файлы PDF открывает библиотека PDF.js (Mozilla, лицензия Apache 2.0); окно приложения — библиотека webview (лицензия MIT), в Windows — Microsoft Edge WebView2.',
   },
   en: {
     intro: 'Meet Ttranslator, a free, open-source, multifunctional offline translator. Its features:',
@@ -1202,7 +1268,7 @@ const ABOUT = {
     support: 'The creators will be glad of any support via GitHub Sponsors:',
     thanks: 'Special thanks to Ivan Gonoskov and Claude Opus 5.5 (Anthropic).',
     license: 'Licence: MIT, © 2026 Allasoneteam and Ttranslator authors (the file LICENSE.txt in the program folder).',
-    credits: 'Built with the llama.cpp engine (MIT licence) and the Gemma 4 models (Google, Apache 2.0 licence); reading aloud uses the sherpa-onnx program (Apache 2.0 licence, with espeak-ng inside, GPL-3.0 licence) and Piper voices (the licence of each voice is shown in the model menu); the app window uses the webview library (MIT licence) and, on Windows, Microsoft Edge WebView2.',
+    credits: 'Built with the llama.cpp engine (MIT licence) and the Gemma 4 models (Google, Apache 2.0 licence); reading aloud uses the sherpa-onnx program (Apache 2.0 licence, with espeak-ng inside, GPL-3.0 licence) and Supertonic and Piper voices (the licence of each voice is shown in the model menu); PDF files are opened by the PDF.js library (Mozilla, Apache 2.0 licence); the app window uses the webview library (MIT licence) and, on Windows, Microsoft Edge WebView2.',
   },
   de: {
     intro: 'Wir stellen Ihnen Ttranslator vor – einen kostenlosen multifunktionalen Offline-Übersetzer mit offenem Quellcode. Seine Funktionen:',
@@ -1217,7 +1283,7 @@ const ABOUT = {
     support: 'Die Entwickler freuen sich über jede Unterstützung über GitHub Sponsors:',
     thanks: 'Besonderer Dank an Ivan Gonoskov und Claude Opus 5.5 (Anthropic).',
     license: 'Lizenz: MIT, © 2026 Allasoneteam and Ttranslator authors (Datei LICENSE.txt im Programmordner).',
-    credits: 'Verwendet werden die Engine llama.cpp (MIT-Lizenz) und die Modelle Gemma 4 (Google, Apache-2.0-Lizenz); zum Vorlesen das Programm sherpa-onnx (Apache-2.0-Lizenz, darin espeak-ng, GPL-3.0-Lizenz) und Piper-Stimmen (die Lizenz jeder Stimme steht im Modellmenü); das App-Fenster nutzt die Bibliothek webview (MIT-Lizenz) und unter Windows Microsoft Edge WebView2.',
+    credits: 'Verwendet werden die Engine llama.cpp (MIT-Lizenz) und die Modelle Gemma 4 (Google, Apache-2.0-Lizenz); zum Vorlesen das Programm sherpa-onnx (Apache-2.0-Lizenz, darin espeak-ng, GPL-3.0-Lizenz) und Supertonic- und Piper-Stimmen (die Lizenz jeder Stimme steht im Modellmenü); PDF-Dateien öffnet die Bibliothek PDF.js (Mozilla, Apache-2.0-Lizenz); das App-Fenster nutzt die Bibliothek webview (MIT-Lizenz) und unter Windows Microsoft Edge WebView2.',
   },
   es: {
     intro: 'Le presentamos Ttranslator, un traductor multifuncional sin conexión, gratuito y de código abierto. Sus funciones:',
@@ -1232,7 +1298,7 @@ const ABOUT = {
     support: 'Los creadores agradecerán cualquier apoyo a través de GitHub Sponsors:',
     thanks: 'Agradecimiento especial a Ivan Gonoskov y Claude Opus 5.5 (Anthropic).',
     license: 'Licencia: MIT, © 2026 Allasoneteam and Ttranslator authors (archivo LICENSE.txt en la carpeta del programa).',
-    credits: 'Se utilizan el motor llama.cpp (licencia MIT) y los modelos Gemma 4 (Google, licencia Apache 2.0); para la lectura en voz alta, el programa sherpa-onnx (licencia Apache 2.0, con espeak-ng dentro, licencia GPL-3.0) y voces de Piper (la licencia de cada voz se indica en el menú de modelos); la ventana de la aplicación usa la biblioteca webview (licencia MIT) y, en Windows, Microsoft Edge WebView2.',
+    credits: 'Se utilizan el motor llama.cpp (licencia MIT) y los modelos Gemma 4 (Google, licencia Apache 2.0); para la lectura en voz alta, el programa sherpa-onnx (licencia Apache 2.0, con espeak-ng dentro, licencia GPL-3.0) y voces de Supertonic y Piper (la licencia de cada voz se indica en el menú de modelos); los archivos PDF los abre la biblioteca PDF.js (Mozilla, licencia Apache 2.0); la ventana de la aplicación usa la biblioteca webview (licencia MIT) y, en Windows, Microsoft Edge WebView2.',
   },
   zh: {
     intro: '向您介绍 Ttranslator——一款免费、离线、开源的多功能翻译器。它的功能：',
@@ -1247,7 +1313,7 @@ const ABOUT = {
     support: '创作者欢迎您通过 GitHub Sponsors 给予任何支持：',
     thanks: '特别感谢 Ivan Gonoskov 和 Claude Opus 5.5（Anthropic）。',
     license: '许可证：MIT，© 2026 Allasoneteam and Ttranslator authors（程序文件夹中的 LICENSE.txt 文件）。',
-    credits: '使用了 llama.cpp 引擎（MIT 许可证）和 Gemma 4 模型（Google，Apache 2.0 许可证）；朗读使用 sherpa-onnx 程序（Apache 2.0 许可证，内含 espeak-ng，GPL-3.0 许可证）和 Piper 语音（每个语音的许可证见模型菜单）；应用窗口使用 webview 库（MIT 许可证），在 Windows 上使用 Microsoft Edge WebView2。',
+    credits: '使用了 llama.cpp 引擎（MIT 许可证）和 Gemma 4 模型（Google，Apache 2.0 许可证）；朗读使用 sherpa-onnx 程序（Apache 2.0 许可证，内含 espeak-ng，GPL-3.0 许可证）和 Supertonic、Piper 语音（每个语音的许可证见模型菜单）；PDF 文件由 PDF.js 库打开（Mozilla，Apache 2.0 许可证）；应用窗口使用 webview 库（MIT 许可证），在 Windows 上使用 Microsoft Edge WebView2。',
   },
 };
 
@@ -1306,6 +1372,12 @@ const HELP = {
       'Вкладка «Словарь» рядом с перепиской. Термины, найденные в тексте, передаются модели; кнопка рядом с «Перевести» показывает, сколько их. Словарей может быть несколько; меню «⋯» — новый словарь, копия, импорт таблицы (.tsv, .csv, .txt, в том числе из Excel) и экспорт.'],
     ['Сохранённые',
       'Закладка у варианта сохраняет перевод в выбранный файл (папка data\\saved). В панели «Сохранённые»: выбор файла, поиск, «В поле» — вернуть текст записи в поле перевода; меню «⋯» — новый файл, копия, импорт, экспорт в таблицу (.tsv) или в текст (.txt).'],
+    ['Файлы: картинки, PDF, тексты',
+      'Кнопка «Файл» под полем текста открывает картинку (скан, фото страницы, снимок экрана), PDF или текстовый файл (.txt, .tex). Картинку можно и перетащить в окно или вставить (Ctrl+V). Откроется окно документа: у каждой страницы — картинка, текст и перевод рядом.',
+      '- «Распознать»: модель Gemma 4 читает текст страниц-картинок (сканов, фото). Для этого ей нужен ещё один файл — около 0,6 ГБ на размер модели (E2B или E4B); программа предложит скачать его при первом распознавании (его можно скачать и в меню моделей). Пока читаются картинки, модель занимает в памяти примерно на 0,6 ГБ больше; страница распознаётся от нескольких десятков секунд до пары минут.',
+      '- В PDF с текстом (большинство статей и документов) текст страниц берётся как есть, без модели; распознаются только страницы-сканы. PDF открывает библиотека PDF.js прямо в окне, без интернета.',
+      '- Распознанный текст можно поправить перед переводом. «Перевести» переводит страницы по абзацам на язык результата вверху — со словарём и формулами, как в рабочем окне. Если поправить текст после перевода, перевод помечается устаревшим; «Перевести» обновит его.',
+      '- «Сохранить .txt» сохраняет перевод (с галочкой «с оригиналом» — и текст страниц). Модель может ошибиться при распознавании — сверяйте важное с картинкой (щелчок по ней показывает её крупно).'],
     ['Чтение вслух',
       'Кнопка 🔊 у поля текста, у каждого варианта, у «Своего варианта» и у ответов модели читает текст вслух. Пока текст звучит, кнопка и текст подсвечены зелёным; второе нажатие — пауза (подсветка текста снимается), третье — продолжить. Кнопка ■ рядом, Esc или другая кнопка 🔊 останавливают чтение; правка текста — тоже. Формулы LaTeX не читаются.',
       '- Голоса скачиваются в меню моделей (кнопка с названием модели вверху), по голосу на язык. Вместе с первым голосом один раз скачивается программа озвучки sherpa-onnx. Голос не занимает память постоянно: он запускается на секунду-две для каждой фразы.',
@@ -1361,6 +1433,12 @@ const HELP = {
       'The “Glossary” tab next to the chat. Terms found in the text are passed to the model; the button next to “Translate” shows how many. You can have several glossaries; the “⋯” menu offers a new glossary, a copy, import of a table (.tsv, .csv, .txt, also from Excel) and export.'],
     ['Saved',
       'The bookmark on a variant saves the translation to the chosen file (folder data\\saved). The “Saved” panel offers file choice, search and “To field” to put the entry’s text back into the input field; the “⋯” menu offers a new file, a copy, import, and export to a table (.tsv) or text (.txt).'],
+    ['Files: pictures, PDF, texts',
+      'The “File” button under the text field opens a picture (a scan, a photo of a page, a screenshot), a PDF or a text file (.txt, .tex). A picture can also be dragged into the window or pasted (Ctrl+V). The document window opens: each page shows its picture, its text and the translation side by side.',
+      '- “Recognize”: Gemma 4 reads the text of picture pages (scans, photos). For this it needs one more file, about 0.6 GB per model size (E2B or E4B); the program offers to download it the first time (it can also be downloaded in the model menu). While it reads pictures, the model takes about 0.6 GB more memory; a page takes from a few dozen seconds to a couple of minutes.',
+      '- In PDFs with text (most papers and documents) the text of the pages is taken as it is, without the model; only scanned pages are recognized. PDFs are opened by the PDF.js library right in the window, without the internet.',
+      '- You can correct the recognized text before translating. “Translate” translates the pages paragraph by paragraph into the result language at the top, with the glossary and formulas as in the main window. If you change the text after translating, the translation is marked out of date; “Translate” updates it.',
+      '- “Save .txt” saves the translation (with “with the original” checked, also the text of the pages). The model can make recognition mistakes: check important things against the picture (a click on it shows it larger).'],
     ['Reading aloud',
       'The 🔊 button at the text field, at every variant, at “Your version” and at the model’s answers reads the text aloud. While the text is read, the button and the text are highlighted in green; a second click pauses (the text is no longer highlighted), a third continues. The ■ button next to it, Esc or another 🔊 button stops reading, and so does editing the text. LaTeX formulas are not read.',
       '- Voices are downloaded in the model menu (the button with the model name at the top), one voice per language. With the first voice, the speech program sherpa-onnx is downloaded once. A voice does not stay in memory: it starts for a second or two for every phrase.',
@@ -1416,6 +1494,12 @@ const HELP = {
       'Der Reiter „Glossar“ neben dem Chat. Im Text gefundene Begriffe werden an das Modell übergeben; die Schaltfläche neben „Übersetzen“ zeigt, wie viele. Es kann mehrere Glossare geben; das Menü „⋯“ bietet ein neues Glossar, eine Kopie, den Import einer Tabelle (.tsv, .csv, .txt, auch aus Excel) und den Export.'],
     ['Gespeichert',
       'Das Lesezeichen an einer Variante speichert die Übersetzung in der gewählten Datei (Ordner data\\saved). Der Bereich „Gespeichert“ bietet Dateiauswahl, Suche und „Ins Feld“ – den Text des Eintrags zurück ins Eingabefeld; das Menü „⋯“ bietet eine neue Datei, eine Kopie, Import sowie Export als Tabelle (.tsv) oder Text (.txt).'],
+    ['Dateien: Bilder, PDF, Texte',
+      'Die Schaltfläche „Datei“ unter dem Textfeld öffnet ein Bild (Scan, Foto einer Seite, Bildschirmfoto), ein PDF oder eine Textdatei (.txt, .tex). Ein Bild kann man auch ins Fenster ziehen oder einfügen (Strg+V). Es öffnet sich das Dokumentfenster: Zu jeder Seite stehen Bild, Text und Übersetzung nebeneinander.',
+      '- „Erkennen“: Gemma 4 liest den Text von Bildseiten (Scans, Fotos). Dafür braucht es eine weitere Datei, etwa 0,6 GB je Modellgröße (E2B oder E4B); das Programm bietet beim ersten Erkennen an, sie herunterzuladen (auch im Modellmenü möglich). Solange es Bilder liest, braucht das Modell etwa 0,6 GB mehr Speicher; eine Seite dauert einige Dutzend Sekunden bis zwei Minuten.',
+      '- In PDFs mit Text (die meisten Artikel und Dokumente) wird der Text der Seiten so übernommen, wie er ist, ohne Modell; erkannt werden nur gescannte Seiten. PDFs öffnet die Bibliothek PDF.js direkt im Fenster, ohne Internet.',
+      '- Den erkannten Text können Sie vor der Übersetzung korrigieren. „Übersetzen“ übersetzt die Seiten absatzweise in die Zielsprache oben, mit Glossar und Formeln wie im Hauptfenster. Ändern Sie den Text nach der Übersetzung, wird die Übersetzung als veraltet markiert; „Übersetzen“ erneuert sie.',
+      '- „.txt speichern“ speichert die Übersetzung (mit Häkchen „mit Original“ auch den Text der Seiten). Das Modell kann sich beim Erkennen irren – prüfen Sie Wichtiges am Bild (ein Klick darauf zeigt es groß).'],
     ['Vorlesen',
       'Die Schaltfläche 🔊 beim Textfeld, bei jeder Variante, bei „Ihre Fassung“ und bei den Antworten des Modells liest den Text vor. Während der Text vorgelesen wird, sind Schaltfläche und Text grün hervorgehoben; ein zweiter Klick pausiert (der Text ist dann nicht mehr hervorgehoben), ein dritter setzt fort. Die Schaltfläche ■ daneben, Esc oder eine andere Schaltfläche 🔊 beendet das Vorlesen, ebenso das Bearbeiten des Textes. LaTeX-Formeln werden nicht vorgelesen.',
       '- Stimmen werden im Modellmenü heruntergeladen (die Schaltfläche mit dem Modellnamen oben), eine Stimme pro Sprache. Mit der ersten Stimme wird einmalig das Sprachausgabe-Programm sherpa-onnx heruntergeladen. Eine Stimme belegt keinen Arbeitsspeicher auf Dauer: Sie startet für jede Phrase für ein bis zwei Sekunden.',
@@ -1471,6 +1555,12 @@ const HELP = {
       'La pestaña «Glosario», junto a la conversación. Los términos que aparecen en el texto se envían al modelo; el botón junto a «Traducir» muestra cuántos. Puede tener varios glosarios; el menú «⋯» ofrece un glosario nuevo, una copia, importar una tabla (.tsv, .csv, .txt, también de Excel) y exportar.'],
     ['Guardados',
       'El marcador de una variante guarda la traducción en el archivo elegido (carpeta data\\saved). El panel «Guardados» ofrece elegir el archivo, buscar y «Al campo» para volver a poner el texto de la entrada en el campo de entrada; el menú «⋯» ofrece un archivo nuevo, una copia, importar y exportar a una tabla (.tsv) o a texto (.txt).'],
+    ['Archivos: imágenes, PDF, textos',
+      'El botón «Archivo» debajo del campo de texto abre una imagen (escaneo, foto de una página, captura de pantalla), un PDF o un archivo de texto (.txt, .tex). También puede arrastrar una imagen a la ventana o pegarla (Ctrl+V). Se abre la ventana del documento: cada página muestra su imagen, su texto y la traducción, uno junto a otro.',
+      '- «Reconocer»: Gemma 4 lee el texto de las páginas de imagen (escaneos, fotos). Para ello necesita un archivo más, de unos 0,6 GB por tamaño de modelo (E2B o E4B); el programa le ofrecerá descargarlo la primera vez (también puede descargarlo en el menú de modelos). Mientras lee imágenes, el modelo ocupa unos 0,6 GB más de memoria; una página tarda desde unas decenas de segundos hasta un par de minutos.',
+      '- En los PDF con texto (la mayoría de artículos y documentos) el texto de las páginas se toma tal cual, sin el modelo; solo se reconocen las páginas escaneadas. Los PDF los abre la biblioteca PDF.js en la propia ventana, sin internet.',
+      '- Puede corregir el texto reconocido antes de traducirlo. «Traducir» traduce las páginas párrafo a párrafo al idioma de destino de arriba, con el glosario y las fórmulas como en la ventana principal. Si cambia el texto después de traducirlo, la traducción se marca como desactualizada; «Traducir» la actualiza.',
+      '- «Guardar .txt» guarda la traducción (con la casilla «con el original», también el texto de las páginas). El modelo puede equivocarse al reconocer: compruebe lo importante con la imagen (al pulsarla se ve en grande).'],
     ['Lectura en voz alta',
       'El botón 🔊 junto al campo de texto, a cada variante, a «Su versión» y a las respuestas del modelo lee el texto en voz alta. Mientras suena, el botón y el texto se resaltan en verde; un segundo clic hace una pausa (el texto deja de estar resaltado) y un tercero continúa. El botón ■ de al lado, Esc u otro botón 🔊 detienen la lectura, y también editar el texto. Las fórmulas LaTeX no se leen.',
       '- Las voces se descargan en el menú de modelos (el botón con el nombre del modelo, arriba), una voz por idioma. Con la primera voz se descarga una sola vez el programa de voz sherpa-onnx. Una voz no ocupa la memoria de forma permanente: se inicia uno o dos segundos para cada frase.',
@@ -1526,6 +1616,12 @@ const HELP = {
       '对话旁边的“术语表”标签页。文本中出现的词条会发送给模型；“翻译”旁的按钮显示词条数量。可以有多个术语表；“⋯”菜单可新建术语表、创建副本、导入表格（.tsv、.csv、.txt，也可来自 Excel）和导出。'],
     ['已保存',
       '版本上的书签会把译文保存到所选文件（data\\saved 文件夹）。“已保存”面板可以选择文件、搜索，以及用“填入”把条目的文本放回输入框；“⋯”菜单可新建文件、创建副本、导入，以及导出为表格（.tsv）或文本（.txt）。'],
+    ['文件：图片、PDF、文本',
+      '文本框下方的“文件”按钮可打开图片（扫描件、页面照片、屏幕截图）、PDF 或文本文件（.txt、.tex）。图片也可以拖进窗口或粘贴（Ctrl+V）。随后会打开文档窗口：每一页的图片、文字和译文并排显示。',
+      '- “识别”：Gemma 4 读取图片页面（扫描件、照片）上的文字。为此它还需要一个文件，每种模型大小（E2B 或 E4B）约 0.6 GB；首次识别时程序会提示下载（也可在模型菜单中下载）。读取图片时，模型多占用约 0.6 GB 内存；每页需要几十秒到两分钟。',
+      '- 对于含文字的 PDF（大多数论文和文档），页面文字直接提取，无需模型；只有扫描页需要识别。PDF 由 PDF.js 库直接在窗口中打开，无需联网。',
+      '- 翻译前可以修改识别出的文字。“翻译”会把页面逐段翻译成上方选择的目标语言，术语表和公式的处理与主窗口相同。翻译后若修改了文字，译文会被标记为过时，再点“翻译”即可更新。',
+      '- “保存 .txt”保存译文（勾选“包含原文”时也保存页面文字）。模型识别可能出错——重要内容请对照图片核对（点击图片可放大查看）。'],
     ['朗读',
       '文本框、每个版本、“您的版本”和模型回答旁的 🔊 按钮可以朗读文本。朗读时按钮和文本以绿色突出显示；再点一次暂停（文本不再突出显示），第三次继续。旁边的 ■ 按钮、Esc 或另一个 🔊 按钮会停止朗读，编辑文本也会停止朗读。LaTeX 公式不会被朗读。',
       '- 语音在模型菜单（顶部显示模型名称的按钮）中下载，每种语言一个语音。下载第一个语音时，会一次性下载语音合成程序 sherpa-onnx。语音不会长期占用内存：每句话只运行一两秒。',
@@ -1626,6 +1722,7 @@ const ICON = {
   book: svg('<path d="M5 4h10a3 3 0 0 1 3 3v13H8a3 3 0 0 1-3-3z"/><path d="M5 17a3 3 0 0 1 3-3h10"/>', 16),
   swap: svg('<path d="M4 12h16"/><path d="M8 8l-4 4 4 4"/><path d="M16 8l4 4-4 4"/>'),
   dice: svg('<rect x="4" y="4" width="16" height="16" rx="3"/><path d="M8.5 8.5h.01M15.5 8.5h.01M12 12h.01M8.5 15.5h.01M15.5 15.5h.01"/>', 16),
+  file: svg('<path d="M7 3h7l5 5v12a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z"/><path d="M14 3v5h5"/><path d="M9 13h6M9 17h4"/>', 16),
   speaker: svg('<path d="M4 9.5v5h3.5L12 18V6L7.5 9.5z"/><path d="M15.5 9a4.2 4.2 0 0 1 0 6"/><path d="M18.2 6.5a8 8 0 0 1 0 11"/>', 16),
   pause: svg('<path d="M9 6.5v11M15 6.5v11" stroke-width="3"/>', 16),
   caret: svg('<path d="M7 10l5 5 5-5"/>', 14),
@@ -3595,7 +3692,12 @@ async function savedExport(kind) {
   const base = MODE === 'launcher' ? savedTitle(SV.file) : t('Сохранённые');
   const txt = kind === 'txt';
   const text = txt ? savedToText(SV.items, base) : savedToTSV(SV.items);
-  const name = base + (txt ? '.txt' : '.tsv');
+  await saveTextFile(base + (txt ? '.txt' : '.tsv'), text, txt);
+}
+
+// Сохранить текст в файл: в своём окне — окно «Сохранить как» системы, в браузере — выбор файла или скачивание.
+// txt — текстовый файл (.txt), иначе таблица (.tsv).
+async function saveTextFile(name, text, txt) {
   if (OWN_WINDOW) {
     try {
       const path = await ownSaveFile(name, text, txt ? 'txt' : 'tsv', txt ? t('Текст') : t('Таблица'));
@@ -4767,7 +4869,9 @@ async function finishTest(results, started, totalMs, kind) {
 
 function showPane(which) {
   const was = document.body.classList.contains('pane-open');
-  for (const k of ['results', 'saved', 'test', 'settings', 'help', 'about']) $('#' + k + 'View').hidden = which !== k;
+  for (const k of ['results', 'doc', 'saved', 'test', 'settings', 'help', 'about']) $('#' + k + 'View').hidden = which !== k;
+  document.body.classList.toggle('doc-open', which === 'doc');   // окно документа — во всю ширину
+  if (typeof renderDocButton === 'function') renderDocButton();
   // узкое окно и телефон: панель — на месте рабочего окна (стили: @media 760px); прокрутка — к её началу, а при
   // возвращении к вариантам — туда, где была
   const open = which !== 'results';
@@ -5121,7 +5225,8 @@ async function refreshState() {
   }
   maybeWelcome();
   renderTTSState();
-  const voiceDl = s.tts && s.tts.download && s.tts.download.active;
+  renderVisionState();
+  const voiceDl = (s.tts && s.tts.download && s.tts.download.active) || (s.vision && s.vision.download && s.vision.download.active);
   pollTimer = setTimeout(refreshState, voiceDl ? 700 : s.phase === 'ready' ? 5000 : s.phase === 'error' ? 4000 : ['unloaded', 'nomodel'].includes(s.phase) ? 3000 : 700);
 }
 
@@ -5248,7 +5353,705 @@ function renderModelMenu() {
     pick.onclick = () => { menu.hidden = true; openDataFolder(); };
     row.appendChild(pick); menu.appendChild(row);
   }
+  renderVisionMenu(menu);
   renderVoiceMenu(menu);
+}
+
+/* ===================== Документ: картинки, PDF и текстовые файлы ===================== */
+// Решение автора от 18.11.2026: сначала картинки и сканы. Файл открывает кнопка «Файл» под полем текста, его можно
+// перетащить в окно, картинку — вставить (Ctrl+V). У каждой страницы — картинка, текст и перевод рядом. Картинку
+// читает сама модель Gemma 4: ей нужен второй файл (mmproj, меню моделей), он загружается в память только когда
+// читаются картинки (/api/vision). PDF открывает PDF.js (ui/pdfjs) прямо в окне: текст страниц, где он есть,
+// берётся как есть, страница-скан — картинкой для модели. Переводится текст по абзацам (DOCS.chunkChars).
+
+let DOC = null;        // открытый документ: { name, kind: 'image' | 'pdf' | 'text', pages, pdf, file }
+let docCtl = null;     // идёт распознавание или перевод — его останавливает «Стоп» (и Esc)
+let pdfjsLib = null;   // PDF.js загружается при первом PDF
+let thumbQueue = Promise.resolve();
+let docObserver = null;
+
+const docOpen = () => !$('#docView').hidden;
+const docAbort = () => { const e = new Error('aborted'); e.name = 'AbortError'; return e; };
+function docAllowed() { return MODE === 'launcher' && !$('#mainView').hidden; }
+
+function initDocs() {
+  $('#fileIcon').innerHTML = ICON.file;
+  $('#fileBtn').onclick = () => { if (DOC && !docOpen()) { showPane('doc'); return; } pickDocFile(); };
+  $('#docOpenBtn').onclick = pickDocFile;
+  $('#fileInput').onchange = (e) => { const f = e.target.files && e.target.files[0]; e.target.value = ''; if (f) openDocFile(f); };
+  $('#closeDocBtn').onclick = () => { closeDocZoom(); showPane('results'); renderDocButton(); };
+  $('#docReadBtn').onclick = () => docRecognize();
+  $('#docTransBtn').onclick = () => docTranslate();
+  $('#docStopBtn').onclick = () => { if (docCtl) docCtl.abort(); };
+  $('#docSaveBtn').onclick = () => docSave();
+  $('#docZoomClose').onclick = closeDocZoom;
+  $('#docZoom').onclick = (e) => { if (e.target === e.currentTarget) closeDocZoom(); };
+  // перетащить файл в окно
+  let depth = 0;
+  const hasFiles = (e) => e.dataTransfer && Array.from(e.dataTransfer.types || []).includes('Files');
+  document.addEventListener('dragenter', (e) => {
+    if (!hasFiles(e) || !docAllowed()) return;
+    depth++;
+    document.body.dataset.drop = t('Отпустите файл: картинку, PDF или текст');
+    document.body.classList.add('drag-file');
+  });
+  document.addEventListener('dragleave', (e) => { if (hasFiles(e) && --depth <= 0) { depth = 0; document.body.classList.remove('drag-file'); } });
+  document.addEventListener('dragover', (e) => { if (hasFiles(e)) e.preventDefault(); });
+  document.addEventListener('drop', (e) => {
+    if (!hasFiles(e)) return;
+    e.preventDefault(); depth = 0; document.body.classList.remove('drag-file');
+    const f = e.dataTransfer.files && e.dataTransfer.files[0];
+    if (f && docAllowed()) openDocFile(f);
+  });
+  // вставить картинку (снимок экрана): если в буфере есть и текст — обычная вставка текста
+  document.addEventListener('paste', (e) => {
+    const cd = e.clipboardData;
+    if (!cd || !docAllowed() || (cd.getData('text/plain') || '').trim()) return;
+    for (const it of Array.from(cd.items || [])) {
+      if (it.kind !== 'file' || !it.type.startsWith('image/')) continue;
+      const f = it.getAsFile();
+      if (!f) return;
+      e.preventDefault();
+      openDocFile(new File([f], t('Снимок экрана') + '.' + (f.type.split('/')[1] || 'png'), { type: f.type }));
+      return;
+    }
+  });
+}
+
+function pickDocFile() {
+  if (docCtl) { toast(t('Дождитесь окончания или нажмите «Стоп»')); return; }
+  $('#fileInput').click();
+}
+
+// Кнопка «Файл»: если документ открыт и окно документа закрыто — она возвращает к нему.
+function renderDocButton() {
+  const back = DOC && !docOpen();
+  $('#fileLabel').textContent = back ? t('Документ') : t('Файл');
+  $('#fileBtn').title = back ? t('Вернуться к документу «{n}»', { n: DOC.name }) : t('Открыть файл: картинку (скан, фото страницы, снимок экрана), PDF или текст (.txt, .tex) — модель прочитает его, перевод встанет рядом с оригиналом. Картинку можно и перетащить в окно или вставить (Ctrl+V)');
+}
+
+function docKind(file) {
+  const name = (file.name || '').toLowerCase(), type = file.type || '';
+  if (type.startsWith('image/') || /\.(png|jpe?g|webp|gif|bmp|avif)$/.test(name)) return 'image';
+  if (type === 'application/pdf' || name.endsWith('.pdf')) return 'pdf';
+  if (type.startsWith('text/') || /\.(txt|tex|md)$/.test(name)) return 'text';
+  return '';
+}
+
+async function openDocFile(file) {
+  if (!file) return;
+  if (docCtl) { toast(t('Дождитесь окончания или нажмите «Стоп»')); return; }
+  const kind = docKind(file);
+  if (!kind) { toast(t('Этот файл не открыть: нужна картинка (PNG, JPEG, WebP), PDF или текст (.txt, .tex)')); return; }
+  stopSpeech();
+  closeDocZoom();
+  docRelease();
+  const doc = { name: file.name || t('Снимок экрана'), kind, pages: [], pdf: null, file };
+  DOC = doc;
+  $('#docName').textContent = doc.name;
+  $('#docName').title = doc.name;
+  $('#docPages').innerHTML = '';
+  docNote('');
+  showPane('doc');
+  renderDocButton();
+  docStatus(t('Открываю файл…'));
+  try {
+    if (kind === 'image') await docOpenImage(doc);
+    else if (kind === 'pdf') await docOpenPdf(doc);
+    else await docOpenText(doc);
+  } catch (e) {
+    if (DOC === doc) { docStatus(''); docNote(t('Не удалось открыть файл: {e}', { e: errText(e) })); }
+    return;
+  }
+  if (DOC !== doc) return;
+  docStatus('');
+  renderDocPages();
+  const scans = doc.pages.filter(p => p.kind === 'scan').length;
+  if (scans && !docVisionReady()) docNote(docVisionHint());
+  docRefresh();
+}
+
+// Освободить прежний документ: PDF.js держит файл и картинки страниц.
+function docRelease() {
+  if (docObserver) { docObserver.disconnect(); docObserver = null; }
+  if (DOC && DOC.pdf) { try { DOC.pdf.destroy(); } catch (e) { /* уже закрыт */ } }
+  if (DOC) for (const p of DOC.pages) if (p.bitmap && p.bitmap.close) p.bitmap.close();
+}
+
+function docPage(n, kind) {
+  return { n, kind, src: '', from: '', tgt: '', tgtFor: null, tgtLang: '', ocrMs: 0, trMs: 0, err: '', thumb: '', bitmap: null, ui: null };
+}
+
+async function loadBitmap(file) {
+  try { return await createImageBitmap(file, { imageOrientation: 'from-image' }); } catch (e) { /* движок не знает параметра */ }
+  try { return await createImageBitmap(file); } catch (e) {
+    throw new Error(t('картинку не прочитать — нужен PNG, JPEG, WebP, GIF или BMP'));
+  }
+}
+
+// Картинка (ImageBitmap или canvas) → JPEG data: URL; длинная сторона — не больше side, на белом фоне.
+function toJpeg(src, side, quality) {
+  const w = src.width, h = src.height;
+  const k = Math.min(1, side / Math.max(w, h));
+  const c = document.createElement('canvas');
+  c.width = Math.max(1, Math.round(w * k)); c.height = Math.max(1, Math.round(h * k));
+  const g = c.getContext('2d');
+  g.fillStyle = '#fff'; g.fillRect(0, 0, c.width, c.height);
+  g.drawImage(src, 0, 0, c.width, c.height);
+  return c.toDataURL('image/jpeg', quality);
+}
+
+async function docOpenImage(doc) {
+  const p = docPage(1, 'scan');
+  p.bitmap = await loadBitmap(doc.file);
+  p.thumb = toJpeg(p.bitmap, DOCS.thumbSide, 0.8);
+  doc.pages.push(p);
+}
+
+async function loadPdfjs() {
+  if (!pdfjsLib) {
+    const m = await import('/pdfjs/pdf.min.mjs');
+    m.GlobalWorkerOptions.workerSrc = '/pdfjs/pdf.worker.min.mjs';
+    pdfjsLib = m;
+  }
+  return pdfjsLib;
+}
+
+async function docOpenPdf(doc) {
+  let lib;
+  try { lib = await loadPdfjs(); } catch (e) { throw new Error(t('не загрузилась библиотека PDF.js ({e})', { e: errText(e) })); }
+  const data = new Uint8Array(await doc.file.arrayBuffer());
+  let pdf;
+  try {
+    pdf = await lib.getDocument({ data, wasmUrl: '/pdfjs/wasm/', isEvalSupported: false, enableXfa: false }).promise;
+  } catch (e) {
+    throw new Error(e && e.name === 'PasswordException' ? t('PDF защищён паролем') : errText(e));
+  }
+  doc.pdf = pdf;
+  const n = Math.min(pdf.numPages, DOCS.maxPages);
+  for (let i = 1; i <= n; i++) {
+    if (DOC !== doc) return;
+    docStatus(t('Читаю PDF: страница {i} из {n}', { i, n }));
+    const page = await pdf.getPage(i);
+    const text = await pdfPageText(page);
+    page.cleanup();
+    const p = docPage(i, text.replace(/\s/g, '').length >= DOCS.pdfTextMin ? 'text' : 'scan');
+    if (p.kind === 'text') { p.src = text; p.from = 'pdf'; }
+    doc.pages.push(p);
+  }
+  if (pdf.numPages > n) docNote(t('Открыты первые {n} страниц из {m}.', { n, m: pdf.numPages }));
+}
+
+// Текст страницы PDF: строки — по признаку конца строки, абзацы — по увеличенному промежутку между строками; дальше —
+// та же очистка, что у вставленного из PDF текста (переносы, лигатуры, строки абзаца).
+async function pdfPageText(page) {
+  const tc = await page.getTextContent();
+  const lines = [];
+  let cur = null;
+  for (const it of tc.items) {
+    if (typeof it.str !== 'string') continue;
+    const tr = it.transform || [0, 0, 0, 0, 0, 0];
+    const h = Math.abs(it.height || tr[3]) || 10;
+    if (!cur) cur = { s: '', y: tr[5], h };
+    cur.s += it.str;
+    cur.h = Math.max(cur.h, h);
+    if (it.hasEOL) { lines.push(cur); cur = null; }
+  }
+  if (cur && cur.s) lines.push(cur);
+  let out = '';
+  lines.forEach((L, i) => {
+    const prev = lines[i - 1];
+    if (prev) out += (!L.s.trim() || !prev.s.trim() || Math.abs(prev.y - L.y) > 1.7 * Math.max(prev.h, L.h)) ? '\n\n' : '\n';
+    out += L.s;
+  });
+  return cleanInput(out);
+}
+
+// Текстовый файл: UTF-8 или UTF-16 (с меткой), иначе — однобайтовая кодировка Windows: кириллица (1251) или
+// западноевропейская (1252), какая даёт больше букв.
+function decodeText(buf) {
+  const b = new Uint8Array(buf);
+  if (b[0] === 0xFF && b[1] === 0xFE) return new TextDecoder('utf-16le').decode(b);
+  if (b[0] === 0xFE && b[1] === 0xFF) return new TextDecoder('utf-16be').decode(b);
+  try { return new TextDecoder('utf-8', { fatal: true }).decode(b); } catch (e) { /* не UTF-8 */ }
+  const cyr = new TextDecoder('windows-1251').decode(b), lat = new TextDecoder('windows-1252').decode(b);
+  const n = (s, re) => (s.match(re) || []).length;
+  return n(cyr, /[А-яЁё]/g) >= n(lat, /[À-ÿ]/g) ? cyr : lat;
+}
+
+async function docOpenText(doc) {
+  if (doc.file.size > DOCS.maxTextChars * 4) throw new Error(t('файл слишком большой'));
+  let text = decodeText(await doc.file.arrayBuffer()).replace(/^﻿/, '');
+  if (!/\.tex$/i.test(doc.name)) text = cleanInput(text); else text = text.replace(/\r\n?/g, '\n').trim();
+  if (text.length > DOCS.maxTextChars) {
+    text = text.slice(0, DOCS.maxTextChars);
+    docNote(t('Файл длинный: открыты первые {n} знаков.', { n: DOCS.maxTextChars.toLocaleString(LOCALE) }));
+  }
+  if (!text.trim()) throw new Error(t('в файле нет текста'));
+  // «страницы» по DOCS.textPage знаков, по границам абзацев: так их удобно читать и переводить по частям
+  const paras = text.split(/\n{2,}/);
+  let cur = '';
+  const push = () => { if (cur.trim()) { const p = docPage(doc.pages.length + 1, 'text'); p.src = cur.trim(); p.from = 'file'; doc.pages.push(p); } cur = ''; };
+  for (const para of paras) {
+    if (cur && cur.length + para.length + 2 > DOCS.textPage) push();
+    cur = cur ? cur + '\n\n' + para : para;
+  }
+  push();
+}
+
+/* --- окно документа --- */
+
+function docStatus(s) { $('#docStatus').textContent = s || ''; }
+// Поле текста страницы — по высоте текста (вся страница видна рядом с переводом), не ниже 150 пикселей.
+function fitDocSrc(ta) { ta.style.height = 'auto'; ta.style.height = Math.max(150, ta.scrollHeight + 2) + 'px'; }
+function docNote(s) { $('#docNote').textContent = s || ''; $('#docNote').hidden = !s; }
+
+function docVisionReady() { return !!(STATE && STATE.vision && STATE.vision.loaded); }
+function docVisionHint() {
+  const v = STATE && STATE.vision;
+  if (!v || !v.current) return t('Страницы-картинки читает модель Gemma 4 из каталога (E2B или E4B). Выберите её в меню моделей.');
+  const f = (v.files || []).find(x => x.id === v.current);
+  return f && !f.present
+    ? t('Чтобы прочитать картинки, модели нужен ещё один файл ({s}) — программа предложит скачать его при «Распознать».', { s: fmtBytes(f.size) })
+    : t('Для картинок модель загрузится ещё раз, вместе с файлом для картинок (несколько секунд).');
+}
+
+function renderDocPages() {
+  const box = $('#docPages');
+  box.innerHTML = '';
+  if (docObserver) docObserver.disconnect();
+  docObserver = 'IntersectionObserver' in window ? new IntersectionObserver((es) => {
+    for (const e of es) if (e.isIntersecting) { const p = e.target._page; docObserver.unobserve(e.target); if (p && !p.thumb) queueThumb(p); }
+  }, { rootMargin: '400px' }) : null;
+  const many = DOC.pages.length > 1;
+  for (const p of DOC.pages) {
+    const sec = el('section', 'doc-page' + (DOC.kind !== 'text' ? ' has-img' : ''));
+    sec._page = p;
+    const head = el('div', 'doc-page-head');
+    head.appendChild(el('b', '', many ? t('Страница {n}', { n: p.n }) : (DOC.kind === 'text' ? t('Текст') : t('Страница'))));
+    const meta = el('span', 'doc-meta');
+    head.appendChild(meta);
+    head.appendChild(el('span', 'spacer'));
+    const readB = el('button', 'ghost small-btn needs-model', t('Распознать'));
+    readB.type = 'button';
+    readB.onclick = () => docRecognize([p]);
+    const trB = el('button', 'ghost small-btn needs-model', t('Перевести'));
+    trB.type = 'button';
+    trB.onclick = () => docTranslate([p]);
+    head.appendChild(readB); head.appendChild(trB);
+    sec.appendChild(head);
+    const cols = el('div', 'doc-cols');
+    let img = null;
+    if (DOC.kind !== 'text') {
+      const fig = el('figure', 'doc-img');
+      img = el('img');
+      img.alt = t('Страница {n}', { n: p.n });
+      if (p.thumb) img.src = p.thumb;
+      fig.appendChild(img);
+      fig.title = t('Показать крупно');
+      fig.onclick = () => openDocZoom(p);
+      cols.appendChild(fig);
+    }
+    const src = el('textarea', 'doc-src');
+    src.dir = 'auto';
+    src.value = p.src;
+    src.placeholder = p.kind === 'scan' ? t('Здесь появится текст страницы — нажмите «Распознать». Его можно поправить перед переводом.') : '';
+    src.setAttribute('aria-label', t('Текст страницы {n}', { n: p.n }));
+    src.addEventListener('input', () => { p.src = src.value; if (p.from === 'ocr') p.edited = true; fitDocSrc(src); docPageMeta(p); docRefresh(); });
+    stopSpeechOnEdit(src);
+    cols.appendChild(src);
+    const right = el('div');
+    const tgt = el('div', 'doc-tgt');
+    tgt.dir = 'auto';
+    tgt.dataset.empty = t('Здесь появится перевод — нажмите «Перевести».');
+    tgt.textContent = p.tgt;
+    right.appendChild(tgt);
+    const tools = el('div', 'doc-tools');
+    const sp = speakButton(p.tgtLang, (b) => speakToggle(b, tgt, p.tgt, p.tgtLang));
+    const cp = el('button', 'icon'); cp.type = 'button'; cp.innerHTML = ICON.copy;
+    cp.title = t('Копировать перевод'); cp.setAttribute('aria-label', cp.title);
+    cp.onclick = () => { if (p.tgt) copyText(p.tgt); };
+    tools.appendChild(sp); tools.appendChild(cp);
+    right.appendChild(tools);
+    cols.appendChild(right);
+    sec.appendChild(cols);
+    box.appendChild(sec);
+    p.ui = { sec, meta, readB, trB, img, src, tgt, sp };
+    docPageMeta(p);
+    if (p.src) requestAnimationFrame(() => fitDocSrc(src));
+    if (DOC.kind === 'pdf' && !p.thumb) { if (docObserver) docObserver.observe(sec); else queueThumb(p); }
+  }
+}
+
+// Маленькие картинки страниц PDF рисуются по одной, когда страница видна.
+function queueThumb(p) {
+  const doc = DOC;
+  thumbQueue = thumbQueue.then(async () => {
+    if (DOC !== doc || p.thumb) return;
+    try {
+      const c = await renderPdfPage(doc.pdf, p.n, DOCS.thumbSide);
+      p.thumb = toJpeg(c, DOCS.thumbSide, 0.8);
+      if (p.ui && p.ui.img) p.ui.img.src = p.thumb;
+    } catch (e) { /* без картинки */ }
+  });
+}
+
+async function renderPdfPage(pdf, n, side) {
+  const page = await pdf.getPage(n);
+  const v1 = page.getViewport({ scale: 1 });
+  const vp = page.getViewport({ scale: side / Math.max(v1.width, v1.height) });
+  const c = document.createElement('canvas');
+  c.width = Math.max(1, Math.round(vp.width)); c.height = Math.max(1, Math.round(vp.height));
+  const g = c.getContext('2d');
+  g.fillStyle = '#fff'; g.fillRect(0, 0, c.width, c.height);
+  await page.render({ canvasContext: g, viewport: vp }).promise;
+  page.cleanup();
+  return c;
+}
+
+// Картинка страницы для модели: JPEG, длинная сторона — DOCS.imageSide.
+async function docPageImage(p) {
+  if (p.bitmap) return toJpeg(p.bitmap, DOCS.imageSide, DOCS.jpegQuality);
+  return toJpeg(await renderPdfPage(DOC.pdf, p.n, DOCS.imageSide), DOCS.imageSide, DOCS.jpegQuality);
+}
+
+async function openDocZoom(p) {
+  const z = $('#docZoom'), img = z.querySelector('img');
+  img.src = p.thumb || '';
+  img.alt = t('Страница {n}', { n: p.n });
+  z.hidden = false;
+  try { img.src = await docPageImage(p); } catch (e) { /* остаётся маленькая */ }
+}
+function closeDocZoom() { const z = $('#docZoom'); if (z) { z.hidden = true; z.querySelector('img').removeAttribute('src'); } }
+
+function docPageMeta(p) {
+  if (!p.ui) return;
+  const parts = [];
+  parts.push(p.kind === 'scan' ? t('картинка') : p.from === 'pdf' ? t('текст из PDF') : t('текст'));
+  if (p.from === 'ocr' && p.ocrMs) parts.push(t('распознано за {t}', { t: fmtSec(p.ocrMs) }) + (p.ocrInfo ? ' (' + p.ocrInfo + ')' : ''));
+  if (p.src) parts.push(p.src.length.toLocaleString(LOCALE) + ' ' + plural(p.src.length, 'знак', 'знака', 'знаков'));
+  const stale = p.tgt && p.tgtFor !== p.src;
+  if (p.tgt && !stale && p.trMs) parts.push(t('переведено за {t}', { t: fmtSec(p.trMs) }));
+  if (stale) parts.push(t('текст изменён — перевод устарел'));
+  if (p.err) parts.push(p.err);
+  p.ui.meta.textContent = parts.join(' · ');
+  p.ui.meta.className = 'doc-meta' + (p.err ? ' err' : stale ? ' stale' : '');
+  p.ui.readB.hidden = p.kind !== 'scan';
+  p.ui.readB.textContent = p.src && p.from === 'ocr' ? t('Распознать заново') : t('Распознать');
+  p.ui.sp.dataset.lang = p.tgtLang || '';
+  updateSpeakBtn(p.ui.sp);
+}
+
+function docWorking(p, what) {
+  for (const q of (DOC ? DOC.pages : [])) if (q.ui) q.ui.sec.classList.toggle('working', q === p);
+  if (p && p.ui) { p.ui.meta.textContent = what; p.ui.meta.className = 'doc-meta'; }
+}
+
+function docRefresh() {
+  const has = !!DOC, run = !!docCtl;
+  const unread = has ? DOC.pages.filter(p => p.kind === 'scan' && !p.src.trim()) : [];
+  $('#docReadBtn').hidden = run || !unread.length;
+  $('#docTransBtn').hidden = run;
+  $('#docStopBtn').hidden = !run;
+  $('#docOpenBtn').disabled = run;
+  $('#docSaveBtn').disabled = !has || !DOC.pages.some(p => p.tgt);
+  for (const p of (has ? DOC.pages : [])) if (p.ui) { p.ui.readB.disabled = run; p.ui.trB.disabled = run; }
+}
+
+/* --- распознавание и перевод --- */
+
+// Модель готова читать картинки: файл для картинок есть (иначе — спросить и скачать), модель загружена вместе с ним
+// (иначе — загрузить заново). Ждёт, пока всё готово; false — пользователь отказался или модель не та.
+async function ensureVision(sig) {
+  await refreshState();
+  let v = STATE && STATE.vision;
+  if (!v || !v.current) { docNote(t('Страницы-картинки читает модель Gemma 4 из каталога (E2B или E4B). Выберите её в меню моделей.')); return false; }
+  if (v.loaded && STATE.phase === 'ready') return true;
+  const f = (v.files || []).find(x => x.id === v.current);
+  if (!f.present) {
+    if (!(await docConfirmVision(f, sig))) return false;
+    await post('/api/vision', { action: 'download' });
+  } else {
+    await post('/api/vision', { action: 'on' });
+  }
+  for (;;) {
+    if (sig.aborted) throw docAbort();
+    await sleep(700);
+    await refreshState();
+    v = STATE.vision;
+    const dl = v.download || {};
+    if (dl.active) {
+      docStatus(t('Скачиваю файл для картинок: {p} %', { p: dl.total ? Math.floor(100 * dl.done / dl.total) : 0 }));
+      continue;
+    }
+    const ff = (v.files || []).find(x => x.id === v.current);
+    if (!ff || !ff.present) throw new Error(t('Файл для картинок не скачан: {e}', { e: dl.error || t('нет файла') }));
+    if (!v.on && v.error) throw new Error(visionFailText(v.error));
+    if (STATE.phase === 'error') throw new Error(STATE.error || t('Движок не запустился.'));
+    if (STATE.phase === 'unloaded') throw new Error(t('Модель выгружена из памяти.'));
+    if (v.loaded && STATE.phase === 'ready') { docStatus(''); docNote(''); return true; }
+    docStatus(t('Загружаю модель вместе с файлом для картинок…'));
+  }
+}
+
+// Спросить, скачать ли файл для картинок: откуда, куда, какой файл (как у моделей).
+function docConfirmVision(f, sig) {
+  return new Promise((resolve) => {
+    const box = el('div', 'dl-confirm');
+    box.appendChild(el('div', 'q', t('Чтобы читать картинки, модели нужен ещё один файл — «{n}» ({s}). Он пригодится и для распознавания речи. Скачать?',
+      { n: t('{m} · картинки и речь', { m: f.name }), s: fmtBytes(f.size - (f.partial || 0)) })));
+    box.appendChild(kvList([[t('Откуда:'), f.url], [t('Куда:'), (STATE && STATE.models_dir) || ''], [t('Файл:'), f.file]]));
+    box.appendChild(el('div', 'note', t('Пока читаются картинки, модель занимает в памяти примерно на 0,6 ГБ больше.')));
+    const btns = el('div', 'row');
+    const done = (ok) => { box.remove(); sig.removeEventListener('abort', onAbort); resolve(ok); };
+    const onAbort = () => done(false);
+    sig.addEventListener('abort', onAbort);
+    const yes = el('button', 'primary', t('Скачать')); yes.type = 'button'; yes.onclick = () => done(true);
+    const no = el('button', '', t('Отмена')); no.type = 'button'; no.onclick = () => done(false);
+    btns.appendChild(yes); btns.appendChild(no); box.appendChild(btns);
+    $('#docNote').hidden = true;
+    $('#docNote').after(box);
+    yes.focus();
+  });
+}
+
+async function docRun(work) {
+  if (!DOC || docCtl) return;
+  if (!isReady()) { needModel(); return; }
+  stopSpeech();
+  docCtl = new AbortController();
+  const sig = docCtl.signal;
+  docRefresh();
+  try { await work(sig); } catch (e) {
+    if (e.name !== 'AbortError') { docNote(errText(e)); refreshState(); }
+  } finally {
+    docCtl = null;
+    docWorking(null);
+    for (const p of (DOC ? DOC.pages : [])) docPageMeta(p);
+    docStatus('');
+    docRefresh();
+  }
+}
+
+// «Распознать»: страницы-картинки без текста (или выбранная — заново), по очереди.
+function docRecognize(list) {
+  return docRun(async (sig) => {
+    const pages = list || DOC.pages.filter(p => p.kind === 'scan' && !p.src.trim());
+    if (!pages.length) { toast(t('Все страницы-картинки уже распознаны')); return; }
+    if (!(await ensureVision(sig))) return;
+    let i = 0;
+    for (const p of pages) {
+      if (sig.aborted) throw docAbort();
+      docStatus(pages.length > 1 ? t('Распознаю: страница {i} из {n}', { i: ++i, n: pages.length }) : '');
+      try { await docOcrPage(p, sig); } catch (e) { throw await visionFailed(e); }
+    }
+  });
+}
+
+// Движок не справился с файлом для картинок (мало памяти, файл повреждён): программа запустила его снова без
+// картинок (vision.error — слова самого движка). Сказать это вместо «не удалось»: модель работает, но без картинок.
+function visionFailText(e) {
+  return t('Модель не смогла работать с файлом для картинок и снова работает без картинок. Возможно, не хватает памяти: закройте другие программы или выберите модель поменьше (E2B или Q4_0). Сообщение движка: {e}', { e });
+}
+
+// Запрос с картинкой оборвался: не упал ли движок (тогда программа запускает его без картинок — пара секунд)?
+async function visionFailed(e) {
+  if (e && e.name === 'AbortError') return e;
+  for (let i = 0; i < 6; i++) {
+    await refreshState();
+    const v = STATE && STATE.vision;
+    if (v && v.error && !v.on) return new Error(visionFailText(v.error));
+    if (STATE && STATE.phase === 'ready' && v && v.loaded) break;   // движок с картинками жив: ошибка другая
+    await sleep(500);
+  }
+  return e;
+}
+
+async function docOcrPage(p, sig) {
+  docWorking(p, t('Распознаю… (модель смотрит на страницу, потом пишет её текст)'));
+  p.ui.sec.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  const img = await docPageImage(p);
+  const t0 = performance.now();
+  p.err = '';
+  const r = await chat(null, {
+    messages: [{ role: 'user', content: [{ type: 'image_url', image_url: { url: img } }, { type: 'text', text: DOCS.ocrPrompt }] }],
+    maxTokens: DOCS.ocrMaxTokens, seed: BASE_SEED, signal: sig, sampling: DOCS.ocrSampling,
+    onText: (x) => { p.ui.src.value = cleanOcr(x); fitDocSrc(p.ui.src); },
+  });
+  p.src = cleanOcr(r.text);
+  p.from = 'ocr'; p.edited = false;
+  p.ocrMs = performance.now() - t0;
+  const tm = r.timings || {};
+  p.ocrInfo = tm.prompt_ms && tm.predicted_n ? t('картинка {a}, текст {b}', { a: fmtSec(tm.prompt_ms), b: fmtSec(tm.predicted_ms || 0) }) : '';
+  if (r.finish === 'length') p.err = t('текст страницы не поместился в ответ модели — конец может быть обрезан');
+  if (!p.src) p.err = t('модель не нашла текста');
+  p.ui.src.value = p.src;
+  fitDocSrc(p.ui.src);
+  docPageMeta(p);
+}
+
+// Ответ модели — текст страницы: без вступлений, рамок ``` и лишних строк.
+function cleanOcr(x) {
+  let s = String(x || '').replace(/<think>[\s\S]*?<\/think>/g, '').trim();
+  s = s.replace(/^```[\w-]*\n?/, '').replace(/\n?```\s*$/, '');
+  s = s.replace(/^(?:here is|here's|sure)[^\n]*:\s*\n+/i, '');
+  return cleanInput(s);
+}
+
+// «Перевести»: страницы с текстом, у которых нет перевода или он устарел (или выбранная — заново).
+function docTranslate(list) {
+  return docRun(async (sig) => {
+    const pages = list || DOC.pages.filter(p => p.src.trim() && p.tgtFor !== p.src);
+    if (!pages.length) {
+      toast(DOC.pages.some(p => p.src.trim()) ? t('Все страницы уже переведены') : t('Сначала нажмите «Распознать»: у страниц ещё нет текста'));
+      return;
+    }
+    let i = 0;
+    for (const p of pages) {
+      if (sig.aborted) throw docAbort();
+      docStatus(pages.length > 1 ? t('Перевожу: страница {i} из {n}', { i: ++i, n: pages.length }) : '');
+      if (!p.src.trim()) { p.err = t('нет текста — сначала «Распознать»'); docPageMeta(p); continue; }
+      await docTranslatePage(p, sig);
+    }
+  });
+}
+
+async function docTranslatePage(p, sig) {
+  const d = resolveDir(p.src);
+  p.err = '';
+  if (d.edit) { p.err = t('язык текста и язык результата одинаковые — выберите язык результата вверху'); docPageMeta(p); return; }
+  const chunks = docChunks(p.src);
+  const out = [];
+  const t0 = performance.now();
+  const src = p.src;
+  p.ui.tgt.textContent = '';
+  for (let i = 0; i < chunks.length; i++) {
+    if (sig.aborted) throw docAbort();
+    docWorking(p, chunks.length > 1 ? t('Перевожу: часть {i} из {n}', { i: i + 1, n: chunks.length }) : t('Перевожу…'));
+    const text = chunks[i];
+    const run = { text, ctx: '', dir: { src: d.src, tgt: d.tgt }, edit: false, terms: glossMatches(text, d.src, d.tgt), math: maskMath(text) };
+    const r = await askVariant(run, 'neutral', { seed: BASE_SEED, signal: sig, onText: (x) => { p.ui.tgt.textContent = out.concat(x).join('\n\n'); } });
+    out.push(r.text);
+    p.ui.tgt.textContent = out.join('\n\n');
+  }
+  p.tgt = out.join('\n\n'); p.tgtFor = src; p.tgtLang = d.tgt;
+  p.trMs = performance.now() - t0;
+  docPageMeta(p);
+}
+
+// Куски для перевода: абзацы подряд, пока помещаются в DOCS.chunkChars; длинный абзац — по предложениям.
+function docChunks(text) {
+  const out = [];
+  let cur = '';
+  const push = () => { if (cur.trim()) out.push(cur.trim()); cur = ''; };
+  for (const para of text.split(/\n{2,}/).map(x => x.trim()).filter(Boolean)) {
+    if (para.length > DOCS.chunkChars) {
+      push();
+      let c = '';
+      for (const s of para.match(/[^.!?…。！？]+(?:[.!?…。！？]+["»”’)\]]*\s*|$)/g) || [para]) {
+        if (c && c.length + s.length > DOCS.chunkChars) { out.push(c.trim()); c = ''; }
+        c += s;
+      }
+      if (c.trim()) out.push(c.trim());
+      continue;
+    }
+    if (cur && cur.length + 2 + para.length > DOCS.chunkChars) push();
+    cur = cur ? cur + '\n\n' + para : para;
+  }
+  push();
+  return out;
+}
+
+// «Сохранить .txt»: перевод (с галочкой — сначала текст страницы, за ним перевод), страницы — с заголовками.
+async function docSave() {
+  if (!DOC) return;
+  const withSrc = $('#docWithSrc').checked;
+  const many = DOC.pages.length > 1;
+  const parts = [];
+  for (const p of DOC.pages) {
+    if (!p.tgt && !(withSrc && p.src.trim())) continue;
+    const b = [];
+    if (many) b.push(t('— Страница {n} —', { n: p.n }));
+    if (withSrc && p.src.trim()) b.push(p.src.trim());
+    if (p.tgt) b.push(p.tgt);
+    parts.push(b.join('\n\n'));
+  }
+  if (!parts.length) { toast(t('Перевода ещё нет — нажмите «Перевести»')); return; }
+  const lang = (DOC.pages.find(p => p.tgtLang) || {}).tgtLang;
+  const base = DOC.name.replace(/\.[^.]+$/, '') || t('Документ');
+  const name = base + (lang && LANGS[lang] ? ' (' + langLower(lang) + ')' : '') + '.txt';
+  await saveTextFile(name, '﻿' + parts.join('\n\n\n').replace(/\r?\n/g, '\r\n'), true);
+}
+
+// Меню моделей: файлы для картинок (и речи) у моделей Gemma 4 — скачать, удалить, состояние.
+function renderVisionMenu(menu) {
+  const v = STATE && STATE.vision;
+  if (!v || !(v.files || []).length) return;
+  menu.appendChild(el('div', 'group', t('Картинки и речь для Gemma 4 (файлы mmproj)')));
+  const dl = v.download || {};
+  for (const f of v.files) {
+    const loaded = f.id === v.current && v.loaded;
+    const busyThis = dl.active && dl.name === f.id;
+    const row = el('div', 'mitem' + (loaded ? ' active' : ''));
+    const pick = el('button', 'pick');
+    pick.appendChild(el('span', 'title', (loaded ? '✓ ' : '') + t('{m} · картинки и речь', { m: f.name })));
+    const status = busyThis ? t('скачивается: {p} %', { p: dl.total ? Math.floor(100 * dl.done / dl.total) : 0 })
+      : loaded ? t('работает: модель читает картинки')
+      : f.present ? t('скачан; включится, когда вы откроете картинку или PDF')
+      : f.partial ? t('скачано {p} %', { p: Math.round(100 * f.partial / f.size) }) : t('нужно скачать');
+    const sub = el('span', 'sub', `${fmtBytes(f.size)} · ${status}`);
+    pick.appendChild(sub);
+    pick.onclick = () => {
+      if (busyThis) return;
+      if (f.present) { toast(t('Файл скачан. Картинки и PDF открывает кнопка «Файл» под полем текста.')); return; }
+      if (dl.active) { toast(t('Идёт скачивание, дождитесь окончания')); return; }
+      showVisionDlConfirm(row, f);
+    };
+    row.appendChild(pick);
+    if (f.present && !loaded) {
+      const del = el('button', 'icon'); del.innerHTML = ICON.trash;
+      del.title = t('Удалить файл'); del.setAttribute('aria-label', t('Удалить файл {m}', { m: f.file }));
+      del.onclick = async () => {
+        if (!del.dataset.confirm) { del.dataset.confirm = '1'; sub.textContent = t('Нажмите значок ещё раз, чтобы удалить файл ({s})', { s: fmtBytes(f.size) }); return; }
+        try {
+          const r = await fetch('/api/vision/' + encodeURIComponent(f.id), { method: 'DELETE' });
+          if (!r.ok) { const j = await r.json().catch(() => ({})); throw new Error(j.error || 'HTTP ' + r.status); }
+          toast(t('Файл удалён')); await refreshState(); renderModelMenu();
+        } catch (e) { toast(e.message); }
+      };
+      row.appendChild(del);
+    }
+    menu.appendChild(row);
+  }
+  menu.appendChild(el('div', 'foot', t('Модель Gemma 4 читает картинки (сканы, фото страниц, снимки экрана) и страницы PDF с помощью этого файла — один на размер модели (E2B или E4B). Откройте файл кнопкой «Файл» под полем текста. Пока читаются картинки, модель занимает в памяти примерно на 0,6 ГБ больше.')));
+}
+
+function showVisionDlConfirm(row, f) {
+  const old = $('#modelMenu .dl-confirm');
+  if (old) { const same = old.previousElementSibling === row; old.remove(); if (same) return; }
+  const box = el('div', 'dl-confirm');
+  box.appendChild(el('div', 'q', t('Скачать «{m}» ({s})?', { m: t('{m} · картинки и речь', { m: f.name }), s: fmtBytes(f.size - (f.partial || 0)) })));
+  box.appendChild(kvList([[t('Откуда:'), f.url], [t('Куда:'), (STATE && STATE.models_dir) || ''], [t('Файл:'), f.file]]));
+  const btns = el('div', 'row');
+  const yes = el('button', 'primary', t('Скачать'));
+  yes.onclick = async (e) => {
+    e.stopPropagation();
+    try { await post('/api/vision', { action: 'download', id: f.id }); await refreshState(); renderModelMenu(); } catch (err) { toast(err.message); }
+  };
+  const no = el('button', '', t('Отмена'));
+  no.onclick = (e) => { e.stopPropagation(); box.remove(); };
+  btns.appendChild(yes); btns.appendChild(no); box.appendChild(btns);
+  row.after(box);
+}
+
+// Скачивание файла для картинок: меню моделей обновляется, в конце — сообщение.
+let visionDlWas = false;
+function renderVisionState() {
+  const dl = (STATE && STATE.vision && STATE.vision.download) || {};
+  const menu = $('#modelMenu');
+  if ((dl.active || visionDlWas) && !menu.hidden && !menu.querySelector('.dl-confirm')) renderModelMenu();
+  if (visionDlWas && !dl.active) toast(dl.error ? t('Файл для картинок не скачан: {e}', { e: dl.error }) : t('Файл для картинок скачан.'));
+  visionDlWas = !!dl.active;
 }
 
 /* ===================== Настройки, справка, «О программе» ===================== */
@@ -6012,6 +6815,88 @@ const I18N = {
   'В поле': ['To field', 'Ins Feld', 'Al campo', '填入'],
   'Вставить исходный текст в поле перевода; языки — как у этой записи. Перевод сам не запускается': ['Put the source text into the input field, with the languages of this entry. The translation does not start by itself', 'Den Ausgangstext ins Eingabefeld setzen, mit den Sprachen dieses Eintrags. Die Übersetzung startet nicht von selbst', 'Poner el texto original en el campo de entrada, con los idiomas de esta entrada. La traducción no empieza sola', '把原文填入输入框，语言与此条目相同。不会自动开始翻译'],
   'Копировать перевод': ['Copy the translation', 'Übersetzung kopieren', 'Copiar la traducción', '复制译文'],
+  // документ: картинки, PDF и текстовые файлы (1.3)
+  'PDF защищён паролем': ['the PDF is password-protected', 'das PDF ist passwortgeschützt', 'el PDF está protegido con contraseña', 'PDF 受密码保护'],
+  '{m} · картинки и речь': ['{m} · pictures and speech', '{m} · Bilder und Sprache', '{m} · imágenes y voz', '{m} · 图片和语音'],
+  'В файле — сначала текст страницы, за ним перевод': ['In the file: the text of each page first, then its translation', 'In der Datei: zuerst der Text der Seite, dann die Übersetzung', 'En el archivo: primero el texto de la página y después la traducción', '文件中先写页面原文，再写译文'],
+  'Вернуться к документу «{n}»': ['Back to the document “{n}”', 'Zurück zum Dokument „{n}“', 'Volver al documento «{n}»', '返回文档“{n}”'],
+  'Все страницы уже переведены': ['All pages are translated already', 'Alle Seiten sind bereits übersetzt', 'Todas las páginas ya están traducidas', '所有页面都已翻译'],
+  'Все страницы-картинки уже распознаны': ['All picture pages are recognized already', 'Alle Bildseiten sind bereits erkannt', 'Todas las páginas de imagen ya están reconocidas', '所有图片页面都已识别'],
+  'Для картинок модель загрузится ещё раз, вместе с файлом для картинок (несколько секунд).': ['For pictures the model is loaded once more, together with the picture file (a few seconds).', 'Für Bilder wird das Modell noch einmal geladen, zusammen mit der Bilddatei (einige Sekunden).', 'Para las imágenes, el modelo se carga otra vez junto con el archivo de imágenes (unos segundos).', '为了读取图片，模型会连同图片文件重新加载一次（几秒钟）。'],
+  'Документ': ['Document', 'Dokument', 'Documento', '文档'],
+  'Загружаю модель вместе с файлом для картинок…': ['Loading the model together with the picture file…', 'Lade das Modell zusammen mit der Bilddatei …', 'Cargando el modelo junto con el archivo de imágenes…', '正在连同图片文件加载模型…'],
+  'Закрыть': ['Close', 'Schließen', 'Cerrar', '关闭'],
+  'Закрыть (Esc)': ['Close (Esc)', 'Schließen (Esc)', 'Cerrar (Esc)', '关闭（Esc）'],
+  'Здесь появится перевод — нажмите «Перевести».': ['The translation appears here: click “Translate”.', 'Hier erscheint die Übersetzung – klicken Sie auf „Übersetzen“.', 'Aquí aparecerá la traducción: pulse «Traducir».', '译文会显示在这里——请点击“翻译”。'],
+  'Здесь появится текст страницы — нажмите «Распознать». Его можно поправить перед переводом.': ['The text of the page appears here: click “Recognize”. You can correct it before translating.', 'Hier erscheint der Text der Seite – klicken Sie auf „Erkennen“. Sie können ihn vor der Übersetzung korrigieren.', 'Aquí aparecerá el texto de la página: pulse «Reconocer». Puede corregirlo antes de traducirlo.', '页面文字会显示在这里——请点击“识别”。翻译前可以修改。'],
+  'Картинки и речь для Gemma 4 (файлы mmproj)': ['Pictures and speech for Gemma 4 (mmproj files)', 'Bilder und Sprache für Gemma 4 (mmproj-Dateien)', 'Imágenes y voz para Gemma 4 (archivos mmproj)', 'Gemma 4 的图片和语音（mmproj 文件）'],
+  'Модель Gemma 4 читает картинки (сканы, фото страниц, снимки экрана) и страницы PDF с помощью этого файла — один на размер модели (E2B или E4B). Откройте файл кнопкой «Файл» под полем текста. Пока читаются картинки, модель занимает в памяти примерно на 0,6 ГБ больше.': ['With this file Gemma 4 reads pictures (scans, photos of pages, screenshots) and PDF pages; one file per model size (E2B or E4B). Open a file with the “File” button under the text field. While it reads pictures, the model takes about 0.6 GB more memory.', 'Mit dieser Datei liest Gemma 4 Bilder (Scans, Fotos von Seiten, Bildschirmfotos) und PDF-Seiten; eine Datei je Modellgröße (E2B oder E4B). Öffnen Sie eine Datei mit der Schaltfläche „Datei“ unter dem Textfeld. Solange es Bilder liest, braucht das Modell etwa 0,6 GB mehr Speicher.', 'Con este archivo, Gemma 4 lee imágenes (escaneos, fotos de páginas, capturas de pantalla) y páginas PDF; un archivo por tamaño de modelo (E2B o E4B). Abra un archivo con el botón «Archivo» debajo del campo de texto. Mientras lee imágenes, el modelo ocupa unos 0,6 GB más de memoria.', 'Gemma 4 借助此文件读取图片（扫描件、页面照片、屏幕截图）和 PDF 页面；每种模型大小（E2B 或 E4B）一个文件。请用文本框下方的“文件”按钮打开文件。读取图片时，模型多占用约 0.6 GB 内存。'],
+  'Модель прочитает текст страниц-картинок (сканов, фото) — по очереди, с первой нераспознанной': ['The model reads the text of the picture pages (scans, photos) one by one, from the first one not recognized yet', 'Das Modell liest den Text der Bildseiten (Scans, Fotos) nacheinander, ab der ersten noch nicht erkannten', 'El modelo lee el texto de las páginas de imagen (escaneos, fotos) una por una, desde la primera sin reconocer', '模型逐页读取图片页面（扫描件、照片）上的文字，从第一页未识别的开始'],
+  'Не удалось открыть файл: {e}': ['Could not open the file: {e}', 'Die Datei konnte nicht geöffnet werden: {e}', 'No se pudo abrir el archivo: {e}', '无法打开文件：{e}'],
+  'Открываю файл…': ['Opening the file…', 'Öffne die Datei …', 'Abriendo el archivo…', '正在打开文件…'],
+  'Открыты первые {n} страниц из {m}.': ['The first {n} of {m} pages are open.', 'Die ersten {n} von {m} Seiten sind geöffnet.', 'Se han abierto las primeras {n} de {m} páginas.', '已打开 {m} 页中的前 {n} 页。'],
+  'Открыть другой файл': ['Open another file', 'Andere Datei öffnen', 'Abrir otro archivo', '打开其他文件'],
+  'Открыть файл: картинку (скан, фото страницы, снимок экрана), PDF или текст (.txt, .tex) — модель прочитает его, перевод встанет рядом с оригиналом. Картинку можно и перетащить в окно или вставить (Ctrl+V)': ['Open a file: a picture (a scan, a photo of a page, a screenshot), a PDF or a text (.txt, .tex). The model reads it, and the translation stands next to the original. A picture can also be dragged into the window or pasted (Ctrl+V)', 'Eine Datei öffnen: ein Bild (Scan, Foto einer Seite, Bildschirmfoto), ein PDF oder einen Text (.txt, .tex). Das Modell liest sie, die Übersetzung steht neben dem Original. Ein Bild kann man auch ins Fenster ziehen oder einfügen (Strg+V)', 'Abrir un archivo: una imagen (escaneo, foto de una página, captura de pantalla), un PDF o un texto (.txt, .tex). El modelo lo lee y la traducción aparece junto al original. También puede arrastrar una imagen a la ventana o pegarla (Ctrl+V)', '打开文件：图片（扫描件、页面照片、屏幕截图）、PDF 或文本（.txt、.tex）。模型会读取它，译文显示在原文旁边。图片也可以拖进窗口或粘贴（Ctrl+V）'],
+  'Отпустите файл: картинку, PDF или текст': ['Drop the file: a picture, a PDF or a text', 'Datei loslassen: ein Bild, ein PDF oder ein Text', 'Suelte el archivo: una imagen, un PDF o un texto', '松开以打开文件：图片、PDF 或文本'],
+  'Перевести страницы, у которых есть текст, — по абзацам, на язык результата вверху': ['Translate the pages that have text, paragraph by paragraph, into the result language at the top', 'Die Seiten mit Text absatzweise in die Zielsprache oben übersetzen', 'Traducir las páginas que tienen texto, párrafo a párrafo, al idioma de destino de arriba', '把有文字的页面逐段翻译成上方选择的目标语言'],
+  'Перевода ещё нет — нажмите «Перевести»': ['There is no translation yet: click “Translate”', 'Noch keine Übersetzung – klicken Sie auf „Übersetzen“', 'Todavía no hay traducción: pulse «Traducir»', '还没有译文——请点击“翻译”'],
+  'Перевожу: страница {i} из {n}': ['Translating: page {i} of {n}', 'Übersetze: Seite {i} von {n}', 'Traduciendo: página {i} de {n}', '正在翻译：第 {i} 页，共 {n} 页'],
+  'Перевожу: часть {i} из {n}': ['Translating: part {i} of {n}', 'Übersetze: Teil {i} von {n}', 'Traduciendo: parte {i} de {n}', '正在翻译：第 {i} 部分，共 {n} 部分'],
+  'Перевожу…': ['Translating…', 'Übersetze …', 'Traduciendo…', '正在翻译…'],
+  'Пока читаются картинки, модель занимает в памяти примерно на 0,6 ГБ больше.': ['While it reads pictures, the model takes about 0.6 GB more memory.', 'Solange es Bilder liest, braucht das Modell etwa 0,6 GB mehr Speicher.', 'Mientras lee imágenes, el modelo ocupa unos 0,6 GB más de memoria.', '读取图片时，模型多占用约 0.6 GB 内存。'],
+  'Показать крупно': ['Show larger', 'Größer anzeigen', 'Ver en grande', '放大查看'],
+  'Распознать': ['Recognize', 'Erkennen', 'Reconocer', '识别'],
+  'Распознать заново': ['Recognize again', 'Erneut erkennen', 'Reconocer de nuevo', '重新识别'],
+  'Распознаю: страница {i} из {n}': ['Recognizing: page {i} of {n}', 'Erkenne: Seite {i} von {n}', 'Reconociendo: página {i} de {n}', '正在识别：第 {i} 页，共 {n} 页'],
+  'Распознаю… (модель смотрит на страницу, потом пишет её текст)': ['Recognizing… (the model looks at the page, then writes its text)', 'Erkenne … (das Modell betrachtet die Seite und schreibt dann ihren Text)', 'Reconociendo… (el modelo mira la página y luego escribe su texto)', '正在识别…（模型先查看页面，再写出其中的文字）'],
+  'Скачать «{m}» ({s})?': ['Download “{m}” ({s})?', '„{m}“ herunterladen ({s})?', '¿Descargar «{m}» ({s})?', '下载“{m}”（{s}）？'],
+  'Скачиваю файл для картинок: {p} %': ['Downloading the picture file: {p} %', 'Lade die Bilddatei herunter: {p} %', 'Descargando el archivo de imágenes: {p} %', '正在下载图片文件：{p}%'],
+  'Сначала нажмите «Распознать»: у страниц ещё нет текста': ['Click “Recognize” first: the pages have no text yet', 'Klicken Sie zuerst auf „Erkennen“: Die Seiten haben noch keinen Text', 'Pulse primero «Reconocer»: las páginas todavía no tienen texto', '请先点击“识别”：页面还没有文字'],
+  'Снимок экрана': ['Screenshot', 'Bildschirmfoto', 'Captura de pantalla', '屏幕截图'],
+  'Сохранить .txt': ['Save .txt', '.txt speichern', 'Guardar .txt', '保存 .txt'],
+  'Сохранить перевод в текстовый файл (.txt)': ['Save the translation to a text file (.txt)', 'Übersetzung als Textdatei (.txt) speichern', 'Guardar la traducción en un archivo de texto (.txt)', '将译文保存为文本文件（.txt）'],
+  'Страница': ['Page', 'Seite', 'Página', '页面'],
+  'Страница {n}': ['Page {n}', 'Seite {n}', 'Página {n}', '第 {n} 页'],
+  'Страница крупно': ['Page, large', 'Seite, groß', 'Página en grande', '页面大图'],
+  'Страницы-картинки читает модель Gemma 4 из каталога (E2B или E4B). Выберите её в меню моделей.': ['Picture pages are read by a Gemma 4 model of the catalogue (E2B or E4B). Choose it in the model menu.', 'Bildseiten liest ein Gemma-4-Modell aus dem Katalog (E2B oder E4B). Wählen Sie es im Modellmenü.', 'Las páginas de imagen las lee un modelo Gemma 4 del catálogo (E2B o E4B). Elíjalo en el menú de modelos.', '图片页面由目录中的 Gemma 4 模型（E2B 或 E4B）读取。请在模型菜单中选择它。'],
+  'Текст страницы {n}': ['Text of page {n}', 'Text der Seite {n}', 'Texto de la página {n}', '第 {n} 页的文字'],
+  'Удалить файл': ['Delete the file', 'Datei löschen', 'Eliminar el archivo', '删除文件'],
+  'Удалить файл {m}': ['Delete the file {m}', 'Datei {m} löschen', 'Eliminar el archivo {m}', '删除文件 {m}'],
+  'Файл': ['File', 'Datei', 'Archivo', '文件'],
+  'Файл длинный: открыты первые {n} знаков.': ['The file is long: the first {n} characters are open.', 'Die Datei ist lang: Die ersten {n} Zeichen sind geöffnet.', 'El archivo es largo: se han abierto los primeros {n} caracteres.', '文件较长：已打开前 {n} 个字符。'],
+  'Модель не смогла работать с файлом для картинок и снова работает без картинок. Возможно, не хватает памяти: закройте другие программы или выберите модель поменьше (E2B или Q4_0). Сообщение движка: {e}': [
+    'The model could not work with the picture file and works without pictures again. Perhaps there is not enough memory: close other programs or choose a smaller model (E2B or Q4_0). The engine said: {e}',
+    'Das Modell konnte mit der Bilddatei nicht arbeiten und arbeitet wieder ohne Bilder. Vielleicht reicht der Speicher nicht: Schließen Sie andere Programme oder wählen Sie ein kleineres Modell (E2B oder Q4_0). Meldung der Engine: {e}',
+    'El modelo no pudo trabajar con el archivo de imágenes y vuelve a funcionar sin imágenes. Quizá falte memoria: cierre otros programas o elija un modelo más pequeño (E2B o Q4_0). Mensaje del motor: {e}',
+    '模型无法使用图片文件，现已恢复为不读取图片的工作方式。可能是内存不足：请关闭其他程序，或选择更小的模型（E2B 或 Q4_0）。引擎提示：{e}'],
+  'Файл для картинок не скачан: {e}': ['The picture file was not downloaded: {e}', 'Die Bilddatei wurde nicht heruntergeladen: {e}', 'No se descargó el archivo de imágenes: {e}', '图片文件未下载：{e}'],
+  'Файл для картинок скачан.': ['The picture file is downloaded.', 'Die Bilddatei ist heruntergeladen.', 'Se descargó el archivo de imágenes.', '图片文件已下载。'],
+  'Файл скачан. Картинки и PDF открывает кнопка «Файл» под полем текста.': ['The file is downloaded. Pictures and PDFs are opened with the “File” button under the text field.', 'Die Datei ist heruntergeladen. Bilder und PDFs öffnet die Schaltfläche „Datei“ unter dem Textfeld.', 'El archivo está descargado. Las imágenes y los PDF se abren con el botón «Archivo» debajo del campo de texto.', '文件已下载。图片和 PDF 用文本框下方的“文件”按钮打开。'],
+  'Читаю PDF: страница {i} из {n}': ['Reading the PDF: page {i} of {n}', 'Lese das PDF: Seite {i} von {n}', 'Leyendo el PDF: página {i} de {n}', '正在读取 PDF：第 {i} 页，共 {n} 页'],
+  'Чтобы прочитать картинки, модели нужен ещё один файл ({s}) — программа предложит скачать его при «Распознать».': ['To read pictures the model needs one more file ({s}); the program offers to download it when you click “Recognize”.', 'Um Bilder zu lesen, braucht das Modell eine weitere Datei ({s}); das Programm bietet beim Klick auf „Erkennen“ an, sie herunterzuladen.', 'Para leer imágenes, el modelo necesita un archivo más ({s}); el programa le ofrecerá descargarlo al pulsar «Reconocer».', '要读取图片，模型还需要一个文件（{s}）；点击“识别”时程序会提示下载。'],
+  'Чтобы читать картинки, модели нужен ещё один файл — «{n}» ({s}). Он пригодится и для распознавания речи. Скачать?': ['To read pictures the model needs one more file, “{n}” ({s}). It will also serve for speech recognition. Download it?', 'Um Bilder zu lesen, braucht das Modell eine weitere Datei: „{n}“ ({s}). Sie dient auch der Spracherkennung. Herunterladen?', 'Para leer imágenes, el modelo necesita un archivo más: «{n}» ({s}). También servirá para el reconocimiento de voz. ¿Descargarlo?', '要读取图片，模型还需要一个文件“{n}”（{s}）。它也可用于语音识别。要下载吗？'],
+  'Этот файл не открыть: нужна картинка (PNG, JPEG, WebP), PDF или текст (.txt, .tex)': ['This file cannot be opened: a picture (PNG, JPEG, WebP), a PDF or a text (.txt, .tex) is needed', 'Diese Datei lässt sich nicht öffnen: nötig ist ein Bild (PNG, JPEG, WebP), ein PDF oder ein Text (.txt, .tex)', 'Este archivo no se puede abrir: se necesita una imagen (PNG, JPEG, WebP), un PDF o un texto (.txt, .tex)', '无法打开此文件：需要图片（PNG、JPEG、WebP）、PDF 或文本（.txt、.tex）'],
+  'в файле нет текста': ['the file has no text', 'die Datei enthält keinen Text', 'el archivo no tiene texto', '文件中没有文字'],
+  'картинка': ['picture', 'Bild', 'imagen', '图片'],
+  'картинка {a}, текст {b}': ['picture {a}, text {b}', 'Bild {a}, Text {b}', 'imagen {a}, texto {b}', '图片 {a}，文字 {b}'],
+  'картинку не прочитать — нужен PNG, JPEG, WebP, GIF или BMP': ['the picture cannot be read: PNG, JPEG, WebP, GIF or BMP is needed', 'das Bild lässt sich nicht lesen: nötig ist PNG, JPEG, WebP, GIF oder BMP', 'no se puede leer la imagen: se necesita PNG, JPEG, WebP, GIF o BMP', '无法读取图片：需要 PNG、JPEG、WebP、GIF 或 BMP'],
+  'модель не нашла текста': ['the model found no text', 'das Modell hat keinen Text gefunden', 'el modelo no encontró texto', '模型没有找到文字'],
+  'не загрузилась библиотека PDF.js ({e})': ['the PDF.js library did not load ({e})', 'die Bibliothek PDF.js wurde nicht geladen ({e})', 'no se cargó la biblioteca PDF.js ({e})', 'PDF.js 库未能加载（{e}）'],
+  'нет текста — сначала «Распознать»': ['no text: “Recognize” first', 'kein Text – zuerst „Erkennen“', 'sin texto: primero «Reconocer»', '没有文字——请先“识别”'],
+  'нет файла': ['no file', 'keine Datei', 'no hay archivo', '没有文件'],
+  'переведено за {t}': ['translated in {t}', 'übersetzt in {t}', 'traducido en {t}', '翻译用时 {t}'],
+  'работает: модель читает картинки': ['in use: the model reads pictures', 'in Betrieb: Das Modell liest Bilder', 'en uso: el modelo lee imágenes', '使用中：模型正在读取图片'],
+  'распознано за {t}': ['recognized in {t}', 'erkannt in {t}', 'reconocido en {t}', '识别用时 {t}'],
+  'с оригиналом': ['with the original', 'mit Original', 'con el original', '包含原文'],
+  'скачан; включится, когда вы откроете картинку или PDF': ['downloaded; it turns on when you open a picture or a PDF', 'heruntergeladen; wird aktiv, wenn Sie ein Bild oder ein PDF öffnen', 'descargado; se activa al abrir una imagen o un PDF', '已下载；打开图片或 PDF 时启用'],
+  'скачивается: {p} %': ['downloading: {p} %', 'wird heruntergeladen: {p} %', 'descargando: {p} %', '正在下载：{p}%'],
+  'текст': ['text', 'Text', 'texto', '文字'],
+  'текст из PDF': ['text from the PDF', 'Text aus dem PDF', 'texto del PDF', 'PDF 中的文字'],
+  'текст изменён — перевод устарел': ['the text has changed: the translation is out of date', 'der Text wurde geändert – die Übersetzung ist veraltet', 'el texto ha cambiado: la traducción está desactualizada', '文字已修改——译文已过时'],
+  'текст страницы не поместился в ответ модели — конец может быть обрезан': ['the text of the page did not fit into the model\'s answer: the end may be cut off', 'der Text der Seite passte nicht in die Antwort des Modells – das Ende kann fehlen', 'el texto de la página no cupo en la respuesta del modelo: puede faltar el final', '页面文字超出了模型回答的长度——结尾可能被截断'],
+  'файл слишком большой': ['the file is too large', 'die Datei ist zu groß', 'el archivo es demasiado grande', '文件太大'],
+  'язык текста и язык результата одинаковые — выберите язык результата вверху': ['the language of the text and the result language are the same: choose the result language at the top', 'Textsprache und Zielsprache sind gleich – wählen Sie oben die Zielsprache', 'el idioma del texto y el de destino son iguales: elija el idioma de destino arriba', '文本语言与目标语言相同——请在上方选择目标语言'],
+  '— Страница {n} —': ['— Page {n} —', '— Seite {n} —', '— Página {n} —', '— 第 {n} 页 —'],
   'Скопировано': ['Copied', 'Kopiert', 'Copiado', '已复制'],
   'Удалить': ['Delete', 'Löschen', 'Eliminar', '删除'],
   'Не удалось удалить: {e}': ['Could not delete: {e}', 'Löschen nicht möglich: {e}', 'No se pudo eliminar: {e}', '无法删除：{e}'],
@@ -6263,6 +7148,7 @@ const I18N = {
   // формы числа
   'правка': [['change', 'changes'], ['Änderung', 'Änderungen'], ['cambio', 'cambios'], ['处修改', '处修改']],
   'вариант': [['variant', 'variants'], ['Variante', 'Varianten'], ['variante', 'variantes'], ['个版本', '个版本']],
+  'знак': [['character', 'characters'], ['Zeichen', 'Zeichen'], ['carácter', 'caracteres'], ['个字符', '个字符']],
   'запись': [['entry', 'entries'], ['Eintrag', 'Einträge'], ['entrada', 'entradas'], ['条记录', '条记录']],
   'термин': [['term', 'terms'], ['Begriff', 'Begriffe'], ['término', 'términos'], ['个词条', '个词条']],
   'перевод': [['translation', 'translations'], ['Übersetzung', 'Übersetzungen'], ['traducción', 'traducciones'], ['次翻译', '次翻译']],
@@ -6320,6 +7206,7 @@ function init() {
   $('#randomIcon').innerHTML = ICON.dice;
   $('#lessonIcon').innerHTML = ICON.cap;
   $('#lessonMore').innerHTML = ICON.caret;
+  initDocs();
   $('#srcSpeak').innerHTML = ICON.speaker; $('#ownSpeak').innerHTML = ICON.speaker;
   $('#srcSpeak').onclick = () => speakToggle($('#srcSpeak'), $('#src'), $('#src').value, resolveDir($('#src').value).src);
   $('#ownSpeak').onclick = () => speakToggle($('#ownSpeak'), $('#ownText'), $('#ownText').value, OWN.run ? OWN.run.dir.tgt : '');
@@ -6367,13 +7254,14 @@ function init() {
   $('#lessonMore').onclick = (e) => { e.stopPropagation(); disarmLesson(); if (popAnchor === e.currentTarget) closePop(); else openLessonMenu(e.currentTarget); };
   $('#quitBtn').onclick = quitApp;
   document.addEventListener('keydown', (e) => {
-    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { e.preventDefault(); translate(); }
+    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { e.preventDefault(); if (docOpen()) docTranslate(); else translate(); }
     else if (e.key === 'Escape') {
       if (!$('#welcomeView').hidden) { closeWelcome(); return; }
+      if (!$('#docZoom').hidden) { closeDocZoom(); return; }
       disarmQuit(); disarmRandom(); disarmLesson(); disarmField();
       if (!$('#popMenu').hidden) { closePop(); return; }
-      if (speech) { stopSpeech(); if (!busy && !askCtl) return; }
-      if (busy) stop(); else if (askCtl) askCtl.abort();
+      if (speech) { stopSpeech(); if (!busy && !askCtl && !docCtl) return; }
+      if (busy) stop(); else if (askCtl) askCtl.abort(); else if (docCtl) docCtl.abort();
       $('#modelMenu').hidden = true;
     }
   });
