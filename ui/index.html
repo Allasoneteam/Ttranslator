@@ -28,6 +28,7 @@
   --warn: #854f0b; --warn-bg: #faeeda;
   --speak: #1e8a4c; --speak-bg: #e3f4e9;
   --logo: #750575;
+  --work: #7c3aed; --work-ring: rgba(124,58,237,.2); --work-text: #5b21b6;
   --radius: 8px;
   color-scheme: light;
 }
@@ -43,6 +44,7 @@
   --speak: #52c983; --speak-bg: #17331f;
   --logo: #d08ad0;
   color-scheme: dark;
+  --work: #b794f6; --work-ring: rgba(183,148,246,.25); --work-text: #d6c4fb;
 }
 /* Размер шрифта («Настройки» → «Размер шрифта»): все размеры текста — в rem от этого значения. */
 html { font-size: 14px; }
@@ -97,7 +99,10 @@ header.top {
   display: flex; align-items: center; gap: 8px; padding: 9px 16px; flex-wrap: wrap;
   border-bottom: 1px solid var(--border); background: var(--panel); position: relative;
 }
-.brand { display: flex; align-items: center; gap: 7px; font-weight: 600; }
+/* Эмблема — буква T, за ней «translator»: вместе читается «Ttranslator» (предложение автора от 21.11.2026). Буква T
+   текстом — для чтения с экрана и копирования, на экране её не видно. */
+.brand { display: flex; align-items: center; gap: 2px; font-weight: 600; }
+.brand-t { display: inline-block; width: 0; overflow: hidden; vertical-align: bottom; }
 #logo { display: inline-flex; color: var(--logo); }
 .dir { display: flex; align-items: center; gap: 6px; margin-left: 10px; color: var(--muted); flex-wrap: wrap; }
 .dir .swap { padding: 4px; margin: 0 -2px; }
@@ -152,7 +157,7 @@ body.doc-open .left { display: none; }
 .doc-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 4px 0 12px; }
 .doc-pages { display: flex; flex-direction: column; gap: 14px; }
 .doc-page { border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; background: var(--panel); }
-.doc-page.working { border-color: var(--accent); }
+.doc-page.working { border-color: var(--work); }
 .doc-page-head { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; margin-bottom: 8px; font-size: .9286rem; }
 .doc-meta { color: var(--muted); }
 .doc-meta.stale, .doc-meta.err { color: var(--warn); }
@@ -369,6 +374,19 @@ details { margin-top: 14px; font-size: .9286rem; color: var(--muted); }
 details code { font-size: .8571rem; background: var(--panel2); padding: 1px 4px; border-radius: 4px; word-break: break-all; }
 .spinner { width: 18px; height: 18px; border: 2px solid var(--border2); border-top-color: var(--accent); border-radius: 50%; animation: spin .8s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
+/* Модель работает (1.3, по просьбе автора): вращающийся фиолетовый значок, а у страницы документа — и время с начала:
+   картинка страницы читается около минуты, и всё это время на экране больше ничего не меняется. */
+.work-spin, #cleanNote.working::before, #docStatus.working:not(:empty)::before, #docNote.working::before {
+  content: ''; display: inline-block; width: 1.05em; height: 1.05em; flex: none; box-sizing: border-box;
+  border: .18em solid var(--work-ring); border-top-color: var(--work); border-right-color: var(--work); border-radius: 50%;
+  animation: spin .9s linear infinite; vertical-align: -.1em; margin-right: 6px;
+}
+#cleanNote.working { color: var(--work-text); }
+.doc-meta.busy { color: var(--work-text); }
+.work-time { margin-left: 8px; color: var(--muted); font-variant-numeric: tabular-nums; }
+@media (prefers-reduced-motion: reduce) {
+  .work-spin, #cleanNote.working::before, #docStatus.working:not(:empty)::before, #docNote.working::before { animation-duration: 3s; }
+}
 pre.log { font-size: .7857rem; background: var(--panel2); border: 1px solid var(--border); border-radius: 8px; padding: 8px; max-height: 220px; overflow: auto; white-space: pre-wrap; }
 
 footer.status {
@@ -437,7 +455,7 @@ details.licenses pre { max-height: 60vh; overflow: auto; white-space: pre-wrap; 
 <body>
 
 <header class="top">
-  <div class="brand"><span id="logo"></span>Ttranslator</div>
+  <div class="brand" title="Ttranslator"><span id="logo" aria-hidden="true"></span><span class="brand-name"><span class="brand-t">T</span>translator</span></div>
   <div class="dir" aria-label="Языки">
     <select id="srcSel" aria-label="Язык исходного текста" title="Язык исходного текста. «Авто» — определять по алфавиту и частым словам"></select>
     <button id="swapBtn" class="icon swap" type="button" aria-label="Поменять языки местами" title="Поменять языки местами (исходный и результата)"></button>
@@ -488,7 +506,7 @@ details.licenses pre { max-height: 60vh; overflow: auto; white-space: pre-wrap; 
     <div>
       <textarea id="src" dir="auto" placeholder="Введите или вставьте текст (до 1000 знаков)" aria-label="Исходный текст"></textarea>
       <div id="langHint" class="hint lang-hint" hidden><span class="txt"></span><button type="button"></button></div>
-      <div class="row small src-tools"><button id="randomBtn" class="ghost needs-model" type="button" title="Попросить модель придумать случайную пословицу, поговорку или устойчивое выражение на языке текста"><span id="randomIcon"></span><span id="randomLabel">Случайно</span></button><button id="lessonBtn" class="ghost needs-model" type="button" title="Попросить модель придумать короткий учебный пример на языке текста: правило, упражнение, «найдите ошибку» или два слова, которые легко перепутать. Маленькие модели иногда ошибаются в правилах — проверяйте."><span id="lessonIcon"></span><span id="lessonLabel">Учебный пример</span></button><button id="lessonMore" class="ghost" type="button" title="Учебный пример: уровень, тема и упражнение в «Спросить модель» (вы отвечаете — модель проверяет)" aria-label="Учебный пример: уровень, тема и упражнение в «Спросить модель» (вы отвечаете — модель проверяет)"></button><button id="fileBtn" class="ghost" type="button" title="Открыть файл: картинку (скан, фото страницы, снимок экрана), PDF или текст (.txt, .tex) — модель прочитает его, перевод встанет рядом с оригиналом. Картинку можно и перетащить в окно или вставить (Ctrl+V)"><span id="fileIcon"></span><span id="fileLabel">Файл</span></button><input id="fileInput" type="file" accept="image/*,.pdf,application/pdf,.txt,.tex,.md,text/plain" hidden><span id="cleanNote" class="muted"></span><span class="spacer"></span><button id="srcSpeak" class="icon speak" type="button" title="Прочитать вслух" aria-label="Прочитать вслух"></button><span id="counter" class="muted">0 из 1000</span></div>
+      <div class="row small src-tools"><button id="randomBtn" class="ghost needs-model" type="button" title="Попросить модель придумать случайную пословицу, поговорку или устойчивое выражение на языке текста"><span id="randomIcon"></span><span id="randomLabel">Случайно</span></button><button id="lessonBtn" class="ghost needs-model" type="button" title="Попросить модель придумать короткий учебный пример на языке текста: правило, упражнение, «найдите ошибку» или два слова, которые легко перепутать. Маленькие модели иногда ошибаются в правилах — проверяйте."><span id="lessonIcon"></span><span id="lessonLabel">Учебный пример</span></button><button id="lessonMore" class="ghost" type="button" title="Учебный пример: уровень, тема и упражнение в «Спросить модель» (вы отвечаете — модель проверяет)" aria-label="Учебный пример: уровень, тема и упражнение в «Спросить модель» (вы отвечаете — модель проверяет)"></button><button id="fileBtn" class="ghost" type="button" title="Открыть файл: картинку (скан, фото страницы, снимок экрана), PDF, документ (.docx, .odt) или текст (.txt, .tex) — перевод встанет рядом с оригиналом. Файл можно и перетащить в окно, а картинку — вставить (Ctrl+V)"><span id="fileIcon"></span><span id="fileLabel">Файл</span></button><input id="fileInput" type="file" accept="image/*,.pdf,application/pdf,.docx,.odt,.doc,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.oasis.opendocument.text,application/msword,.txt,.tex,.md,text/plain" hidden><span id="cleanNote" class="muted"></span><span class="spacer"></span><button id="srcSpeak" class="icon speak" type="button" title="Прочитать вслух" aria-label="Прочитать вслух"></button><span id="counter" class="muted">0 из 1000</span></div>
     </div>
     <div class="label" id="chipsLabel">Стили вариантов</div>
     <div id="chips" class="chips"></div>
@@ -854,7 +872,8 @@ const DOCS = {
   maxPages: 500,          // страниц PDF — не больше
   maxTextChars: 300000,   // текстовый файл — не длиннее (около 150 страниц)
   textPage: 3000,         // текстовый файл делится на «страницы» примерно по столько знаков (по абзацам)
-  pdfTextMin: 40,         // на странице PDF столько букв и больше — берётся её текст; меньше — это скан (картинка)
+  pdfTextMin: 40,
+  maxOfficeBytes: 64 << 20,  // DOCX и ODT: файл целиком (с картинками внутри) — его читает программа запуска         // на странице PDF столько букв и больше — берётся её текст; меньше — это скан (картинка)
   imageSide: 1600,        // длинная сторона картинки для модели, пикселей (модель читает её как 1120 токенов)
   jpegQuality: 0.88,
   thumbSide: 320,         // маленькая картинка страницы
@@ -1321,29 +1340,34 @@ const ABOUT = {
 const WHATS_NEW = {
   version: '1.3',
   ru: [
-    'Новые языки перевода: японский, корейский и хинди — теперь их 15 (интерфейс — по-прежнему на пяти языках). «Авто» узнаёт их по письму.',
-    'Голос Supertonic 3 — один файл (около 130 МБ) на 13 языков, все, кроме китайского и латыни; впервые есть голоса для греческого, арабского, японского, корейского и хинди. В меню моделей — первой строкой среди голосов; десять голосов на выбор (пять женских, пять мужских), выбранный сразу звучит образцом.',
-    'Выбранный в меню моделей, Supertonic читает все свои языки; голос Piper, выбранный потом для отдельного языка, читает только его.',
+    'Документы: кнопка «Файл» открывает картинку (скан, фото страницы, снимок экрана), PDF, документ Word или LibreOffice (.docx, .odt) или текстовый файл. У каждой страницы — её текст и перевод рядом; «Сохранить .txt» сохраняет перевод (по желанию — вместе с оригиналом).',
+    'Сканы и фото читает сама модель Gemma 4: ей нужен ещё один файл, около 0,6 ГБ, — программа предложит его скачать. PDF с текстом открываются сразу, без модели; формулы из документов сохраняются в LaTeX и не переводятся.',
+    'Новые языки перевода: японский, корейский и хинди — теперь их 15. Голос Supertonic 3 — один файл (около 130 МБ) на 13 языков, все, кроме китайского и латыни, десять голосов на выбор; голоса китайского и латыни в меню — сразу под ним.',
+    'Пока модель работает (распознаёт страницу, придумывает или проверяет учебный пример), крутится фиолетовый значок, а у страницы идёт время.',
   ],
   en: [
-    'New translation languages: Japanese, Korean and Hindi — 15 in all (the interface is still in five languages). “Auto” recognizes them by their script.',
-    'The Supertonic 3 voice: one file (about 130 MB) for 13 languages, all but Chinese and Latin; for the first time there are voices for Greek, Arabic, Japanese, Korean and Hindi. In the model menu it is the first row among the voices; ten voices to choose from (five female, five male), and the chosen one plays a sample at once.',
-    'Once chosen in the model menu, Supertonic reads all its languages; a Piper voice chosen later for one language reads only that language.',
+    'Documents: the “File” button opens a picture (a scan, a photo of a page, a screenshot), a PDF, a Word or LibreOffice document (.docx, .odt) or a text file. Each page shows its text and the translation side by side; “Save .txt” saves the translation (with the original, if you wish).',
+    'Scans and photos are read by the Gemma 4 model itself: it needs one more file, about 0.6 GB, and the program offers to download it. PDFs with text open at once, without the model; formulas of documents are kept in LaTeX and are not translated.',
+    'New translation languages: Japanese, Korean and Hindi — 15 in all. The Supertonic 3 voice: one file (about 130 MB) for 13 languages, all but Chinese and Latin, with ten voices to choose from; the Chinese and Latin voices come right under it in the menu.',
+    'While the model works (recognizes a page, thinks up or checks a lesson), a purple icon spins, and a page shows the time it has taken so far.',
   ],
   de: [
-    'Neue Übersetzungssprachen: Japanisch, Koreanisch und Hindi – jetzt 15 (die Oberfläche bleibt in fünf Sprachen). „Auto“ erkennt sie an ihrer Schrift.',
-    'Die Stimme Supertonic 3: eine Datei (etwa 130 MB) für 13 Sprachen, alle außer Chinesisch und Latein; erstmals gibt es Stimmen für Griechisch, Arabisch, Japanisch, Koreanisch und Hindi. Im Modellmenü steht sie als erste Zeile unter den Stimmen; zehn Stimmen zur Auswahl (fünf weibliche, fünf männliche), die gewählte spielt sofort ein Beispiel.',
-    'Im Modellmenü gewählt, liest Supertonic alle ihre Sprachen; eine danach für eine einzelne Sprache gewählte Piper-Stimme liest nur diese.',
+    'Dokumente: Die Schaltfläche „Datei“ öffnet ein Bild (Scan, Foto einer Seite, Bildschirmfoto), ein PDF, ein Word- oder LibreOffice-Dokument (.docx, .odt) oder eine Textdatei. Zu jeder Seite stehen Text und Übersetzung nebeneinander; „.txt speichern“ speichert die Übersetzung (auf Wunsch mit dem Original).',
+    'Scans und Fotos liest das Modell Gemma 4 selbst: Es braucht dafür eine weitere Datei von etwa 0,6 GB, die das Programm zum Herunterladen anbietet. PDFs mit Text öffnen sich sofort, ohne Modell; Formeln aus Dokumenten bleiben als LaTeX erhalten und werden nicht übersetzt.',
+    'Neue Übersetzungssprachen: Japanisch, Koreanisch und Hindi – jetzt 15. Die Stimme Supertonic 3: eine Datei (etwa 130 MB) für 13 Sprachen, alle außer Chinesisch und Latein, mit zehn Stimmen zur Wahl; die Stimmen für Chinesisch und Latein stehen im Menü direkt darunter.',
+    'Solange das Modell arbeitet (eine Seite erkennt, ein Lernbeispiel ausdenkt oder prüft), dreht sich ein violettes Symbol, und bei einer Seite läuft die Zeit.',
   ],
   es: [
-    'Nuevos idiomas de traducción: japonés, coreano e hindi; ahora son 15 (la interfaz sigue en cinco idiomas). «Auto» los reconoce por su escritura.',
-    'La voz Supertonic 3: un solo archivo (unos 130 MB) para 13 idiomas, todos menos el chino y el latín; por primera vez hay voces para el griego, el árabe, el japonés, el coreano y el hindi. En el menú de modelos es la primera línea entre las voces; hay diez voces para elegir (cinco femeninas y cinco masculinas), y la elegida suena al instante con una muestra.',
-    'Elegida en el menú de modelos, Supertonic lee todos sus idiomas; una voz de Piper elegida después para un idioma lee solo ese idioma.',
+    'Documentos: el botón «Archivo» abre una imagen (escaneo, foto de una página, captura de pantalla), un PDF, un documento de Word o LibreOffice (.docx, .odt) o un archivo de texto. Cada página muestra su texto y la traducción, uno junto a otro; «Guardar .txt» guarda la traducción (junto con el original, si lo desea).',
+    'Los escaneos y las fotos los lee el propio modelo Gemma 4: necesita un archivo más, de unos 0,6 GB, y el programa le ofrecerá descargarlo. Los PDF con texto se abren al instante, sin el modelo; las fórmulas de los documentos se conservan en LaTeX y no se traducen.',
+    'Nuevos idiomas de traducción: japonés, coreano e hindi; ahora son 15. La voz Supertonic 3: un solo archivo (unos 130 MB) para 13 idiomas, todos menos el chino y el latín, con diez voces a elegir; las voces del chino y del latín aparecen justo debajo en el menú.',
+    'Mientras el modelo trabaja (reconoce una página, inventa o revisa un ejemplo didáctico), gira un icono violeta y la página muestra el tiempo transcurrido.',
   ],
   zh: [
-    '新增翻译语言：日语、韩语和印地语——现共 15 种（界面仍为五种语言）。“自动”会根据文字识别它们。',
-    'Supertonic 3 语音：一个文件（约 130 MB）支持 13 种语言，即除中文和拉丁语外的全部语言；希腊语、阿拉伯语、日语、韩语和印地语首次有了语音。它位于模型菜单语音列表的第一行；共有十种声音可选（五个女声、五个男声），选中的声音会立即播放示例。',
-    '在模型菜单中选中后，Supertonic 朗读其支持的所有语言；之后为某种语言另选的 Piper 语音只朗读该语言。',
+    '文档：“文件”按钮可打开图片（扫描件、页面照片、屏幕截图）、PDF、Word 或 LibreOffice 文档（.docx、.odt）或文本文件。每一页的文字和译文并排显示；“保存 .txt”保存译文（如需要，可连同原文一起保存）。',
+    '扫描件和照片由 Gemma 4 模型本身读取：为此还需要一个约 0.6 GB 的文件，程序会提示下载。含文字的 PDF 无需模型即可直接打开；文档中的公式以 LaTeX 保留，不会被翻译。',
+    '新增翻译语言：日语、韩语和印地语——现共 15 种。Supertonic 3 语音：一个文件（约 130 MB）支持 13 种语言，即除中文和拉丁语外的全部语言，并有十种声音可选；菜单中中文和拉丁语的语音紧随其后。',
+    '模型工作时（识别页面、构思或检查教学示例），会有紫色图标旋转，页面上还会显示已用时间。',
   ],
 };
 
@@ -1372,10 +1396,11 @@ const HELP = {
       'Вкладка «Словарь» рядом с перепиской. Термины, найденные в тексте, передаются модели; кнопка рядом с «Перевести» показывает, сколько их. Словарей может быть несколько; меню «⋯» — новый словарь, копия, импорт таблицы (.tsv, .csv, .txt, в том числе из Excel) и экспорт.'],
     ['Сохранённые',
       'Закладка у варианта сохраняет перевод в выбранный файл (папка data\\saved). В панели «Сохранённые»: выбор файла, поиск, «В поле» — вернуть текст записи в поле перевода; меню «⋯» — новый файл, копия, импорт, экспорт в таблицу (.tsv) или в текст (.txt).'],
-    ['Файлы: картинки, PDF, тексты',
-      'Кнопка «Файл» под полем текста открывает картинку (скан, фото страницы, снимок экрана), PDF или текстовый файл (.txt, .tex). Картинку можно и перетащить в окно или вставить (Ctrl+V). Откроется окно документа: у каждой страницы — картинка, текст и перевод рядом.',
-      '- «Распознать»: модель Gemma 4 читает текст страниц-картинок (сканов, фото). Для этого ей нужен ещё один файл — около 0,6 ГБ на размер модели (E2B или E4B); программа предложит скачать его при первом распознавании (его можно скачать и в меню моделей). Пока читаются картинки, модель занимает в памяти примерно на 0,6 ГБ больше; страница распознаётся от нескольких десятков секунд до пары минут.',
+    ['Файлы: картинки, PDF, документы',
+      'Кнопка «Файл» под полем текста открывает картинку (скан, фото страницы, снимок экрана), PDF, документ Word или LibreOffice (.docx, .odt) или текстовый файл (.txt, .tex). Файл можно и перетащить в окно, а картинку — вставить (Ctrl+V). Откроется окно документа: у каждой страницы — картинка, текст и перевод рядом.',
+      '- «Распознать»: модель Gemma 4 читает текст страниц-картинок (сканов, фото). Для этого ей нужен ещё один файл — около 0,6 ГБ на размер модели (E2B или E4B); программа предложит скачать его при первом распознавании (его можно скачать и в меню моделей). Пока читаются картинки, модель занимает в памяти примерно на 0,6 ГБ больше. На компьютере страница распознаётся за одну–три минуты: сначала модель около минуты смотрит на страницу — крутится фиолетовый значок и идёт время, — потом пишет её текст.',
       '- В PDF с текстом (большинство статей и документов) текст страниц берётся как есть, без модели; распознаются только страницы-сканы. PDF открывает библиотека PDF.js прямо в окне, без интернета.',
+      '- Документы .docx и .odt: текст по абзацам, таблицы — строка за строкой (ячейки через «|»), списки — с номерами, сноски — в конце текста, формулы — в LaTeX между знаками $ (перевод их не меняет). Страницы — как в файле, если он их помнит. Старый формат .doc не читается — сохраните файл в Word или LibreOffice как .docx.',
       '- Распознанный текст можно поправить перед переводом. «Перевести» переводит страницы по абзацам на язык результата вверху — со словарём и формулами, как в рабочем окне. Если поправить текст после перевода, перевод помечается устаревшим; «Перевести» обновит его.',
       '- «Сохранить .txt» сохраняет перевод (с галочкой «с оригиналом» — и текст страниц). Модель может ошибиться при распознавании — сверяйте важное с картинкой (щелчок по ней показывает её крупно).'],
     ['Чтение вслух',
@@ -1433,10 +1458,11 @@ const HELP = {
       'The “Glossary” tab next to the chat. Terms found in the text are passed to the model; the button next to “Translate” shows how many. You can have several glossaries; the “⋯” menu offers a new glossary, a copy, import of a table (.tsv, .csv, .txt, also from Excel) and export.'],
     ['Saved',
       'The bookmark on a variant saves the translation to the chosen file (folder data\\saved). The “Saved” panel offers file choice, search and “To field” to put the entry’s text back into the input field; the “⋯” menu offers a new file, a copy, import, and export to a table (.tsv) or text (.txt).'],
-    ['Files: pictures, PDF, texts',
-      'The “File” button under the text field opens a picture (a scan, a photo of a page, a screenshot), a PDF or a text file (.txt, .tex). A picture can also be dragged into the window or pasted (Ctrl+V). The document window opens: each page shows its picture, its text and the translation side by side.',
-      '- “Recognize”: Gemma 4 reads the text of picture pages (scans, photos). For this it needs one more file, about 0.6 GB per model size (E2B or E4B); the program offers to download it the first time (it can also be downloaded in the model menu). While it reads pictures, the model takes about 0.6 GB more memory; a page takes from a few dozen seconds to a couple of minutes.',
+    ['Files: pictures, PDF, documents',
+      'The “File” button under the text field opens a picture (a scan, a photo of a page, a screenshot), a PDF, a Word or LibreOffice document (.docx, .odt) or a text file (.txt, .tex). A file can also be dragged into the window, and a picture pasted (Ctrl+V). The document window opens: each page shows its picture, its text and the translation side by side.',
+      '- “Recognize”: Gemma 4 reads the text of picture pages (scans, photos). For this it needs one more file, about 0.6 GB per model size (E2B or E4B); the program offers to download it the first time (it can also be downloaded in the model menu). While it reads pictures, the model takes about 0.6 GB more memory. On a computer a page takes one to three minutes: first the model looks at the page for about a minute (a purple icon spins and the time runs), then it writes out its text.',
       '- In PDFs with text (most papers and documents) the text of the pages is taken as it is, without the model; only scanned pages are recognized. PDFs are opened by the PDF.js library right in the window, without the internet.',
+      '- .docx and .odt documents: the text by paragraphs, tables row by row (cells divided by “|”), lists with their numbers, footnotes at the end of the text, formulas in LaTeX between $ signs (the translation does not change them). The pages are those of the file if it remembers them. The old .doc format cannot be read: save the file in Word or LibreOffice as .docx.',
       '- You can correct the recognized text before translating. “Translate” translates the pages paragraph by paragraph into the result language at the top, with the glossary and formulas as in the main window. If you change the text after translating, the translation is marked out of date; “Translate” updates it.',
       '- “Save .txt” saves the translation (with “with the original” checked, also the text of the pages). The model can make recognition mistakes: check important things against the picture (a click on it shows it larger).'],
     ['Reading aloud',
@@ -1494,10 +1520,11 @@ const HELP = {
       'Der Reiter „Glossar“ neben dem Chat. Im Text gefundene Begriffe werden an das Modell übergeben; die Schaltfläche neben „Übersetzen“ zeigt, wie viele. Es kann mehrere Glossare geben; das Menü „⋯“ bietet ein neues Glossar, eine Kopie, den Import einer Tabelle (.tsv, .csv, .txt, auch aus Excel) und den Export.'],
     ['Gespeichert',
       'Das Lesezeichen an einer Variante speichert die Übersetzung in der gewählten Datei (Ordner data\\saved). Der Bereich „Gespeichert“ bietet Dateiauswahl, Suche und „Ins Feld“ – den Text des Eintrags zurück ins Eingabefeld; das Menü „⋯“ bietet eine neue Datei, eine Kopie, Import sowie Export als Tabelle (.tsv) oder Text (.txt).'],
-    ['Dateien: Bilder, PDF, Texte',
-      'Die Schaltfläche „Datei“ unter dem Textfeld öffnet ein Bild (Scan, Foto einer Seite, Bildschirmfoto), ein PDF oder eine Textdatei (.txt, .tex). Ein Bild kann man auch ins Fenster ziehen oder einfügen (Strg+V). Es öffnet sich das Dokumentfenster: Zu jeder Seite stehen Bild, Text und Übersetzung nebeneinander.',
-      '- „Erkennen“: Gemma 4 liest den Text von Bildseiten (Scans, Fotos). Dafür braucht es eine weitere Datei, etwa 0,6 GB je Modellgröße (E2B oder E4B); das Programm bietet beim ersten Erkennen an, sie herunterzuladen (auch im Modellmenü möglich). Solange es Bilder liest, braucht das Modell etwa 0,6 GB mehr Speicher; eine Seite dauert einige Dutzend Sekunden bis zwei Minuten.',
+    ['Dateien: Bilder, PDF, Dokumente',
+      'Die Schaltfläche „Datei“ unter dem Textfeld öffnet ein Bild (Scan, Foto einer Seite, Bildschirmfoto), ein PDF, ein Word- oder LibreOffice-Dokument (.docx, .odt) oder eine Textdatei (.txt, .tex). Eine Datei kann man auch ins Fenster ziehen und ein Bild einfügen (Strg+V). Es öffnet sich das Dokumentfenster: Zu jeder Seite stehen Bild, Text und Übersetzung nebeneinander.',
+      '- „Erkennen“: Gemma 4 liest den Text von Bildseiten (Scans, Fotos). Dafür braucht es eine weitere Datei, etwa 0,6 GB je Modellgröße (E2B oder E4B); das Programm bietet beim ersten Erkennen an, sie herunterzuladen (auch im Modellmenü möglich). Solange es Bilder liest, braucht das Modell etwa 0,6 GB mehr Speicher. Am Computer dauert eine Seite ein bis drei Minuten: Zuerst betrachtet das Modell die Seite etwa eine Minute lang (ein violettes Symbol dreht sich, die Zeit läuft), dann schreibt es ihren Text.',
       '- In PDFs mit Text (die meisten Artikel und Dokumente) wird der Text der Seiten so übernommen, wie er ist, ohne Modell; erkannt werden nur gescannte Seiten. PDFs öffnet die Bibliothek PDF.js direkt im Fenster, ohne Internet.',
+      '- Dokumente .docx und .odt: der Text absatzweise, Tabellen Zeile für Zeile (Zellen durch „|“ getrennt), Listen mit ihren Nummern, Fußnoten am Ende des Textes, Formeln als LaTeX zwischen $-Zeichen (die Übersetzung ändert sie nicht). Die Seiten sind die der Datei, wenn sie sie kennt. Das alte Format .doc lässt sich nicht lesen – speichern Sie die Datei in Word oder LibreOffice als .docx.',
       '- Den erkannten Text können Sie vor der Übersetzung korrigieren. „Übersetzen“ übersetzt die Seiten absatzweise in die Zielsprache oben, mit Glossar und Formeln wie im Hauptfenster. Ändern Sie den Text nach der Übersetzung, wird die Übersetzung als veraltet markiert; „Übersetzen“ erneuert sie.',
       '- „.txt speichern“ speichert die Übersetzung (mit Häkchen „mit Original“ auch den Text der Seiten). Das Modell kann sich beim Erkennen irren – prüfen Sie Wichtiges am Bild (ein Klick darauf zeigt es groß).'],
     ['Vorlesen',
@@ -1555,10 +1582,11 @@ const HELP = {
       'La pestaña «Glosario», junto a la conversación. Los términos que aparecen en el texto se envían al modelo; el botón junto a «Traducir» muestra cuántos. Puede tener varios glosarios; el menú «⋯» ofrece un glosario nuevo, una copia, importar una tabla (.tsv, .csv, .txt, también de Excel) y exportar.'],
     ['Guardados',
       'El marcador de una variante guarda la traducción en el archivo elegido (carpeta data\\saved). El panel «Guardados» ofrece elegir el archivo, buscar y «Al campo» para volver a poner el texto de la entrada en el campo de entrada; el menú «⋯» ofrece un archivo nuevo, una copia, importar y exportar a una tabla (.tsv) o a texto (.txt).'],
-    ['Archivos: imágenes, PDF, textos',
-      'El botón «Archivo» debajo del campo de texto abre una imagen (escaneo, foto de una página, captura de pantalla), un PDF o un archivo de texto (.txt, .tex). También puede arrastrar una imagen a la ventana o pegarla (Ctrl+V). Se abre la ventana del documento: cada página muestra su imagen, su texto y la traducción, uno junto a otro.',
-      '- «Reconocer»: Gemma 4 lee el texto de las páginas de imagen (escaneos, fotos). Para ello necesita un archivo más, de unos 0,6 GB por tamaño de modelo (E2B o E4B); el programa le ofrecerá descargarlo la primera vez (también puede descargarlo en el menú de modelos). Mientras lee imágenes, el modelo ocupa unos 0,6 GB más de memoria; una página tarda desde unas decenas de segundos hasta un par de minutos.',
+    ['Archivos: imágenes, PDF, documentos',
+      'El botón «Archivo» debajo del campo de texto abre una imagen (escaneo, foto de una página, captura de pantalla), un PDF, un documento de Word o LibreOffice (.docx, .odt) o un archivo de texto (.txt, .tex). También puede arrastrar un archivo a la ventana o pegar una imagen (Ctrl+V). Se abre la ventana del documento: cada página muestra su imagen, su texto y la traducción, uno junto a otro.',
+      '- «Reconocer»: Gemma 4 lee el texto de las páginas de imagen (escaneos, fotos). Para ello necesita un archivo más, de unos 0,6 GB por tamaño de modelo (E2B o E4B); el programa le ofrecerá descargarlo la primera vez (también puede descargarlo en el menú de modelos). Mientras lee imágenes, el modelo ocupa unos 0,6 GB más de memoria. En un ordenador, una página tarda de uno a tres minutos: primero el modelo mira la página durante un minuto aproximadamente (gira un icono violeta y corre el tiempo) y luego escribe su texto.',
       '- En los PDF con texto (la mayoría de artículos y documentos) el texto de las páginas se toma tal cual, sin el modelo; solo se reconocen las páginas escaneadas. Los PDF los abre la biblioteca PDF.js en la propia ventana, sin internet.',
+      '- Documentos .docx y .odt: el texto por párrafos, las tablas fila a fila (celdas separadas por «|»), las listas con sus números, las notas al pie al final del texto y las fórmulas en LaTeX entre signos $ (la traducción no las cambia). Las páginas son las del archivo, si las recuerda. El formato antiguo .doc no se puede leer: guarde el archivo en Word o LibreOffice como .docx.',
       '- Puede corregir el texto reconocido antes de traducirlo. «Traducir» traduce las páginas párrafo a párrafo al idioma de destino de arriba, con el glosario y las fórmulas como en la ventana principal. Si cambia el texto después de traducirlo, la traducción se marca como desactualizada; «Traducir» la actualiza.',
       '- «Guardar .txt» guarda la traducción (con la casilla «con el original», también el texto de las páginas). El modelo puede equivocarse al reconocer: compruebe lo importante con la imagen (al pulsarla se ve en grande).'],
     ['Lectura en voz alta',
@@ -1616,10 +1644,11 @@ const HELP = {
       '对话旁边的“术语表”标签页。文本中出现的词条会发送给模型；“翻译”旁的按钮显示词条数量。可以有多个术语表；“⋯”菜单可新建术语表、创建副本、导入表格（.tsv、.csv、.txt，也可来自 Excel）和导出。'],
     ['已保存',
       '版本上的书签会把译文保存到所选文件（data\\saved 文件夹）。“已保存”面板可以选择文件、搜索，以及用“填入”把条目的文本放回输入框；“⋯”菜单可新建文件、创建副本、导入，以及导出为表格（.tsv）或文本（.txt）。'],
-    ['文件：图片、PDF、文本',
-      '文本框下方的“文件”按钮可打开图片（扫描件、页面照片、屏幕截图）、PDF 或文本文件（.txt、.tex）。图片也可以拖进窗口或粘贴（Ctrl+V）。随后会打开文档窗口：每一页的图片、文字和译文并排显示。',
-      '- “识别”：Gemma 4 读取图片页面（扫描件、照片）上的文字。为此它还需要一个文件，每种模型大小（E2B 或 E4B）约 0.6 GB；首次识别时程序会提示下载（也可在模型菜单中下载）。读取图片时，模型多占用约 0.6 GB 内存；每页需要几十秒到两分钟。',
+    ['文件：图片、PDF、文档',
+      '文本框下方的“文件”按钮可打开图片（扫描件、页面照片、屏幕截图）、PDF、Word 或 LibreOffice 文档（.docx、.odt）或文本文件（.txt、.tex）。文件也可以拖进窗口，图片也可以粘贴（Ctrl+V）。随后会打开文档窗口：每一页的图片、文字和译文并排显示。',
+      '- “识别”：Gemma 4 读取图片页面（扫描件、照片）上的文字。为此它还需要一个文件，每种模型大小（E2B 或 E4B）约 0.6 GB；首次识别时程序会提示下载（也可在模型菜单中下载）。读取图片时，模型多占用约 0.6 GB 内存。在电脑上每页需要一到三分钟：模型先查看页面约一分钟（紫色图标旋转，并显示用时），然后写出页面文字。',
       '- 对于含文字的 PDF（大多数论文和文档），页面文字直接提取，无需模型；只有扫描页需要识别。PDF 由 PDF.js 库直接在窗口中打开，无需联网。',
+      '- .docx 和 .odt 文档：文字按段落提取，表格逐行显示（单元格以“|”分隔），列表保留编号，脚注位于文末，公式以 LaTeX 写在 $ 符号之间（翻译不会改动）。如果文件记录了分页，页面与文件一致。旧的 .doc 格式无法读取：请在 Word 或 LibreOffice 中将文件另存为 .docx。',
       '- 翻译前可以修改识别出的文字。“翻译”会把页面逐段翻译成上方选择的目标语言，术语表和公式的处理与主窗口相同。翻译后若修改了文字，译文会被标记为过时，再点“翻译”即可更新。',
       '- “保存 .txt”保存译文（勾选“包含原文”时也保存页面文字）。模型识别可能出错——重要内容请对照图片核对（点击图片可放大查看）。'],
     ['朗读',
@@ -1733,6 +1762,14 @@ const ICON = {
 
 function fmtNum(x, d = 1) { return Number(x).toLocaleString(LOCALE, { minimumFractionDigits: d, maximumFractionDigits: d }); }
 function fmtSec(ms) { return t('{n} с', { n: fmtNum(ms / 1000, 1) }); }
+// Долгое время (страница документа): от минуты — «2 мин 54 с».
+function fmtDur(ms) {
+  if (ms < 60000) return fmtSec(ms);
+  const s = Math.round(ms / 1000);
+  return t('{m} мин {s} с', { m: Math.floor(s / 60), s: s % 60 });
+}
+// Часы работы: «0:35», «2:54».
+function fmtClock(ms) { const s = Math.floor(ms / 1000); return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); }
 function fmtBytes(b) {
   if (!b && b !== 0) return '';
   if (b >= 1e9) return t('{n} ГБ', { n: fmtNum(b / 1e9, 2) });
@@ -2583,10 +2620,11 @@ function disarmRandom() {
 // Одна строка из ответа модели: без рассуждений, вводных слов, нумерации, кавычек и пояснений.
 // Строка под полем текста (очистка текста, «Придумываю…», напоминание у учебного примера). ownLine — на отдельной
 // строке под кнопками (длинная строка с кнопкой «Проверить»).
-function setNote(text, ownLine = false) {
+function setNote(text, ownLine = false, working = false) {
   const n = $('#cleanNote');
   n.textContent = text; n.title = '';
   n.classList.toggle('own-line', ownLine);
+  n.classList.toggle('working', working && !!text);   // модель думает: вращающийся значок перед строкой
   return n;
 }
 
@@ -2621,7 +2659,7 @@ async function randomText() {
   abortCtl = new AbortController();
   setBusy(true);
   $('#randomBtn').disabled = true; $('#lessonBtn').disabled = true;
-  setNote(t('Придумываю…'));
+  setNote(t('Придумываю…'), false, true);
   formError('');
   try {
     let text = '';
@@ -2766,7 +2804,7 @@ async function lessonText() {
   abortCtl = new AbortController();
   setBusy(true);
   $('#lessonBtn').disabled = true; $('#randomBtn').disabled = true;
-  setNote(t('Придумываю…'));
+  setNote(t('Придумываю…'), false, true);
   formError('');
   let done = false, verdict = '';
   const seen = (x) => lessonSeen.includes(lang + '|' + normForCompare(x));
@@ -2785,7 +2823,7 @@ async function lessonText() {
     remember(text);
     // проверка перед показом: модель ищет ошибки в своём примере и исправляет их
     if (lessonSelfCheckOn()) {
-      setNote(t('Проверяю пример…'));
+      setNote(t('Проверяю пример…'), false, true);
       const r = await chat(LESSON.checkPrompt(lang, level, text), {
         seed: 1, maxTokens: LESSON.maxTokens, signal: abortCtl.signal, sampling: LESSON.checkSampling,
       });
@@ -3092,8 +3130,11 @@ function renderVoiceMenu(menu) {
     menu.appendChild(row);
   }
   renderSupertonicRows(menu, s, dl);
-  for (const v of s.voices) {
-    if (v.engine === 'supertonic') continue;   // одна строка на все языки — выше
+  // Сразу под Supertonic — голоса языков, которых у него нет (китайский, латынь): их быстрее найти (просьба автора от
+  // 21.11.2026); потом — остальные голоса, в порядке каталога.
+  const stLangs = new Set(s.voices.filter(o => o.engine === 'supertonic').map(o => o.lang));
+  const piper = s.voices.filter(o => o.engine !== 'supertonic');   // Supertonic — одна строка на все языки, выше
+  for (const v of piper.filter(o => !stLangs.has(o.lang)).concat(piper.filter(o => stLangs.has(o.lang)))) {
     const busyThis = dl.active && dl.name === v.id;
     const row = el('div', 'mitem' + (v.active ? ' active' : ''));
     const pick = el('button', 'pick');
@@ -5428,13 +5469,14 @@ function pickDocFile() {
 function renderDocButton() {
   const back = DOC && !docOpen();
   $('#fileLabel').textContent = back ? t('Документ') : t('Файл');
-  $('#fileBtn').title = back ? t('Вернуться к документу «{n}»', { n: DOC.name }) : t('Открыть файл: картинку (скан, фото страницы, снимок экрана), PDF или текст (.txt, .tex) — модель прочитает его, перевод встанет рядом с оригиналом. Картинку можно и перетащить в окно или вставить (Ctrl+V)');
+  $('#fileBtn').title = back ? t('Вернуться к документу «{n}»', { n: DOC.name }) : t('Открыть файл: картинку (скан, фото страницы, снимок экрана), PDF, документ (.docx, .odt) или текст (.txt, .tex) — перевод встанет рядом с оригиналом. Файл можно и перетащить в окно, а картинку — вставить (Ctrl+V)');
 }
 
 function docKind(file) {
   const name = (file.name || '').toLowerCase(), type = file.type || '';
   if (type.startsWith('image/') || /\.(png|jpe?g|webp|gif|bmp|avif)$/.test(name)) return 'image';
   if (type === 'application/pdf' || name.endsWith('.pdf')) return 'pdf';
+  if (/\.(docx|odt|doc)$/.test(name) || /officedocument\.wordprocessingml|opendocument\.text|msword/.test(type)) return 'office';
   if (type.startsWith('text/') || /\.(txt|tex|md)$/.test(name)) return 'text';
   return '';
 }
@@ -5443,7 +5485,7 @@ async function openDocFile(file) {
   if (!file) return;
   if (docCtl) { toast(t('Дождитесь окончания или нажмите «Стоп»')); return; }
   const kind = docKind(file);
-  if (!kind) { toast(t('Этот файл не открыть: нужна картинка (PNG, JPEG, WebP), PDF или текст (.txt, .tex)')); return; }
+  if (!kind) { toast(t('Этот файл не открыть: нужна картинка (PNG, JPEG, WebP), PDF, документ (.docx, .odt) или текст (.txt, .tex)')); return; }
   stopSpeech();
   closeDocZoom();
   docRelease();
@@ -5459,6 +5501,7 @@ async function openDocFile(file) {
   try {
     if (kind === 'image') await docOpenImage(doc);
     else if (kind === 'pdf') await docOpenPdf(doc);
+    else if (kind === 'office') await docOpenOffice(doc);
     else await docOpenText(doc);
   } catch (e) {
     if (DOC === doc) { docStatus(''); docNote(t('Не удалось открыть файл: {e}', { e: errText(e) })); }
@@ -5589,15 +5632,46 @@ async function docOpenText(doc) {
     docNote(t('Файл длинный: открыты первые {n} знаков.', { n: DOCS.maxTextChars.toLocaleString(LOCALE) }));
   }
   if (!text.trim()) throw new Error(t('в файле нет текста'));
-  // «страницы» по DOCS.textPage знаков, по границам абзацев: так их удобно читать и переводить по частям
-  const paras = text.split(/\n{2,}/);
+  docTextPages(doc, text, 'file', DOCS.textPage);
+}
+
+// «Страницы» текста по границам абзацев, не длиннее limit знаков: так их удобно читать и переводить по частям.
+function docTextPages(doc, text, from, limit) {
   let cur = '';
-  const push = () => { if (cur.trim()) { const p = docPage(doc.pages.length + 1, 'text'); p.src = cur.trim(); p.from = 'file'; doc.pages.push(p); } cur = ''; };
-  for (const para of paras) {
-    if (cur && cur.length + para.length + 2 > DOCS.textPage) push();
+  const push = () => { if (cur.trim()) { const p = docPage(doc.pages.length + 1, 'text'); p.src = cur.trim(); p.from = from; doc.pages.push(p); } cur = ''; };
+  for (const para of text.split(/\n{2,}/)) {
+    if (cur && cur.length + para.length + 2 > limit) push();
     cur = cur ? cur + '\n\n' + para : para;
   }
   push();
+}
+
+// DOCX и ODT (1.3): текст достаёт программа запуска (такой файл — zip с XML): абзацы, таблицы (строка — абзац,
+// ячейки через « | »), списки с номерами, сноски (в конце), формулы — в LaTeX между $ (перевод их не меняет).
+// Страницы — как в файле, если он их знает (Word и LibreOffice записывают, где разбили страницы); иначе — по
+// DOCS.textPage знаков. Старый формат .doc программа запуска не читает — она так и скажет.
+async function docOpenOffice(doc) {
+  if (doc.file.size > DOCS.maxOfficeBytes) throw new Error(t('файл больше 64 МБ'));
+  const r = await fetch('/api/doctext?name=' + encodeURIComponent(doc.name), {
+    method: 'POST', headers: { 'Content-Type': 'application/octet-stream' }, body: doc.file,
+  });
+  let j = {}; try { j = await r.json(); } catch (e) { /* пусто */ }
+  if (!r.ok) throw new Error(j.error || ('HTTP ' + r.status));
+  const from = j.kind === 'odt' ? 'odt' : 'docx';
+  let total = 0, cut = false;
+  for (let text of (j.pages || [])) {
+    if (total + text.length > DOCS.maxTextChars) { text = text.slice(0, Math.max(0, DOCS.maxTextChars - total)); cut = true; }
+    total += text.length;
+    // страница файла — одна страница окна; слишком длинная (или файл без страниц) — по DOCS.textPage знаков
+    docTextPages(doc, text, from, j.paged ? DOCS.textPage * 2 : DOCS.textPage);
+    if (cut) break;
+  }
+  if (!doc.pages.length) throw new Error(t('в файле нет текста'));
+  const notes = [];
+  if (cut) notes.push(t('Файл длинный: открыты первые {n} знаков.', { n: DOCS.maxTextChars.toLocaleString(LOCALE) }));
+  if (j.formulas) notes.push(t('Формулы из файла записаны в LaTeX между знаками $ — перевод их не меняет.'));
+  if (j.notes) notes.push(t('Сноски — в конце текста.'));
+  docNote(notes.join(' '));
 }
 
 /* --- окно документа --- */
@@ -5728,11 +5802,12 @@ function closeDocZoom() { const z = $('#docZoom'); if (z) { z.hidden = true; z.q
 function docPageMeta(p) {
   if (!p.ui) return;
   const parts = [];
-  parts.push(p.kind === 'scan' ? t('картинка') : p.from === 'pdf' ? t('текст из PDF') : t('текст'));
-  if (p.from === 'ocr' && p.ocrMs) parts.push(t('распознано за {t}', { t: fmtSec(p.ocrMs) }) + (p.ocrInfo ? ' (' + p.ocrInfo + ')' : ''));
+  parts.push(p.kind === 'scan' ? t('картинка') : p.from === 'pdf' ? t('текст из PDF')
+    : p.from === 'docx' || p.from === 'odt' ? t('текст из {f}', { f: p.from.toUpperCase() }) : t('текст'));
+  if (p.from === 'ocr' && p.ocrMs) parts.push(t('распознано за {t}', { t: fmtDur(p.ocrMs) }) + (p.ocrInfo ? ' (' + p.ocrInfo + ')' : ''));
   if (p.src) parts.push(p.src.length.toLocaleString(LOCALE) + ' ' + plural(p.src.length, 'знак', 'знака', 'знаков'));
   const stale = p.tgt && p.tgtFor !== p.src;
-  if (p.tgt && !stale && p.trMs) parts.push(t('переведено за {t}', { t: fmtSec(p.trMs) }));
+  if (p.tgt && !stale && p.trMs) parts.push(t('переведено за {t}', { t: fmtDur(p.trMs) }));
   if (stale) parts.push(t('текст изменён — перевод устарел'));
   if (p.err) parts.push(p.err);
   p.ui.meta.textContent = parts.join(' · ');
@@ -5743,10 +5818,25 @@ function docPageMeta(p) {
   updateSpeakBtn(p.ui.sp);
 }
 
+// Страница в работе: рамка, вращающийся значок, что делается и сколько времени прошло (каждую секунду).
+let docTick = null;
 function docWorking(p, what) {
+  clearInterval(docTick); docTick = null;
   for (const q of (DOC ? DOC.pages : [])) if (q.ui) q.ui.sec.classList.toggle('working', q === p);
-  if (p && p.ui) { p.ui.meta.textContent = what; p.ui.meta.className = 'doc-meta'; }
+  if (!p || !p.ui) return;
+  const meta = p.ui.meta, t0 = performance.now();
+  const clock = el('span', 'work-time', fmtClock(0));
+  const spin = el('span', 'work-spin'); spin.setAttribute('aria-hidden', 'true');
+  p.ui.work = el('span', '', what);
+  meta.textContent = ''; meta.className = 'doc-meta busy';
+  meta.append(spin, p.ui.work, clock);
+  docTick = setInterval(() => {
+    if (!clock.isConnected) { clearInterval(docTick); docTick = null; return; }
+    clock.textContent = fmtClock(performance.now() - t0);
+  }, 1000);
 }
+// Что делается со страницей сейчас (время идёт дальше).
+function docWorkPhase(p, what) { if (p.ui && p.ui.work && p.ui.work.isConnected) p.ui.work.textContent = what; }
 
 function docRefresh() {
   const has = !!DOC, run = !!docCtl;
@@ -5823,10 +5913,13 @@ async function docRun(work) {
   docCtl = new AbortController();
   const sig = docCtl.signal;
   docRefresh();
+  $('#docStatus').classList.add('working');
   try { await work(sig); } catch (e) {
     if (e.name !== 'AbortError') { docNote(errText(e)); refreshState(); }
   } finally {
     docCtl = null;
+    $('#docStatus').classList.remove('working');
+    $('#docNote').classList.remove('working');
     docWorking(null);
     for (const p of (DOC ? DOC.pages : [])) docPageMeta(p);
     docStatus('');
@@ -5869,21 +5962,25 @@ async function visionFailed(e) {
 }
 
 async function docOcrPage(p, sig) {
-  docWorking(p, t('Распознаю… (модель смотрит на страницу, потом пишет её текст)'));
+  docWorking(p, t('Модель смотрит на страницу…'));
   p.ui.sec.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
   const img = await docPageImage(p);
   const t0 = performance.now();
+  let writing = false;
   p.err = '';
   const r = await chat(null, {
     messages: [{ role: 'user', content: [{ type: 'image_url', image_url: { url: img } }, { type: 'text', text: DOCS.ocrPrompt }] }],
     maxTokens: DOCS.ocrMaxTokens, seed: BASE_SEED, signal: sig, sampling: DOCS.ocrSampling,
-    onText: (x) => { p.ui.src.value = cleanOcr(x); fitDocSrc(p.ui.src); },
+    onText: (x) => {
+      if (!writing) { writing = true; docWorkPhase(p, t('Модель пишет текст страницы…')); }
+      p.ui.src.value = cleanOcr(x); fitDocSrc(p.ui.src);
+    },
   });
   p.src = cleanOcr(r.text);
   p.from = 'ocr'; p.edited = false;
   p.ocrMs = performance.now() - t0;
   const tm = r.timings || {};
-  p.ocrInfo = tm.prompt_ms && tm.predicted_n ? t('картинка {a}, текст {b}', { a: fmtSec(tm.prompt_ms), b: fmtSec(tm.predicted_ms || 0) }) : '';
+  p.ocrInfo = tm.prompt_ms && tm.predicted_n ? t('картинка {a}, текст {b}', { a: fmtDur(tm.prompt_ms), b: fmtDur(tm.predicted_ms || 0) }) : '';
   if (r.finish === 'length') p.err = t('текст страницы не поместился в ответ модели — конец может быть обрезан');
   if (!p.src) p.err = t('модель не нашла текста');
   p.ui.src.value = p.src;
@@ -5926,9 +6023,10 @@ async function docTranslatePage(p, sig) {
   const t0 = performance.now();
   const src = p.src;
   p.ui.tgt.textContent = '';
+  docWorking(p, t('Перевожу…'));
   for (let i = 0; i < chunks.length; i++) {
     if (sig.aborted) throw docAbort();
-    docWorking(p, chunks.length > 1 ? t('Перевожу: часть {i} из {n}', { i: i + 1, n: chunks.length }) : t('Перевожу…'));
+    if (chunks.length > 1) docWorkPhase(p, t('Перевожу: часть {i} из {n}', { i: i + 1, n: chunks.length }));
     const text = chunks[i];
     const run = { text, ctx: '', dir: { src: d.src, tgt: d.tgt }, edit: false, terms: glossMatches(text, d.src, d.tgt), math: maskMath(text) };
     const r = await askVariant(run, 'neutral', { seed: BASE_SEED, signal: sig, onText: (x) => { p.ui.tgt.textContent = out.concat(x).join('\n\n'); } });
@@ -6837,7 +6935,7 @@ const I18N = {
   'Открываю файл…': ['Opening the file…', 'Öffne die Datei …', 'Abriendo el archivo…', '正在打开文件…'],
   'Открыты первые {n} страниц из {m}.': ['The first {n} of {m} pages are open.', 'Die ersten {n} von {m} Seiten sind geöffnet.', 'Se han abierto las primeras {n} de {m} páginas.', '已打开 {m} 页中的前 {n} 页。'],
   'Открыть другой файл': ['Open another file', 'Andere Datei öffnen', 'Abrir otro archivo', '打开其他文件'],
-  'Открыть файл: картинку (скан, фото страницы, снимок экрана), PDF или текст (.txt, .tex) — модель прочитает его, перевод встанет рядом с оригиналом. Картинку можно и перетащить в окно или вставить (Ctrl+V)': ['Open a file: a picture (a scan, a photo of a page, a screenshot), a PDF or a text (.txt, .tex). The model reads it, and the translation stands next to the original. A picture can also be dragged into the window or pasted (Ctrl+V)', 'Eine Datei öffnen: ein Bild (Scan, Foto einer Seite, Bildschirmfoto), ein PDF oder einen Text (.txt, .tex). Das Modell liest sie, die Übersetzung steht neben dem Original. Ein Bild kann man auch ins Fenster ziehen oder einfügen (Strg+V)', 'Abrir un archivo: una imagen (escaneo, foto de una página, captura de pantalla), un PDF o un texto (.txt, .tex). El modelo lo lee y la traducción aparece junto al original. También puede arrastrar una imagen a la ventana o pegarla (Ctrl+V)', '打开文件：图片（扫描件、页面照片、屏幕截图）、PDF 或文本（.txt、.tex）。模型会读取它，译文显示在原文旁边。图片也可以拖进窗口或粘贴（Ctrl+V）'],
+  'Открыть файл: картинку (скан, фото страницы, снимок экрана), PDF, документ (.docx, .odt) или текст (.txt, .tex) — перевод встанет рядом с оригиналом. Файл можно и перетащить в окно, а картинку — вставить (Ctrl+V)': ['Open a file: a picture (a scan, a photo of a page, a screenshot), a PDF, a document (.docx, .odt) or a text (.txt, .tex). The translation stands next to the original. A file can also be dragged into the window, and a picture pasted (Ctrl+V)', 'Eine Datei öffnen: ein Bild (Scan, Foto einer Seite, Bildschirmfoto), ein PDF, ein Dokument (.docx, .odt) oder einen Text (.txt, .tex). Die Übersetzung steht neben dem Original. Eine Datei kann man auch ins Fenster ziehen und ein Bild einfügen (Strg+V)', 'Abrir un archivo: una imagen (escaneo, foto de una página, captura de pantalla), un PDF, un documento (.docx, .odt) o un texto (.txt, .tex). La traducción aparece junto al original. También puede arrastrar un archivo a la ventana o pegar una imagen (Ctrl+V)', '打开文件：图片（扫描件、页面照片、屏幕截图）、PDF、文档（.docx、.odt）或文本（.txt、.tex）。译文显示在原文旁边。文件也可以拖进窗口，图片也可以粘贴（Ctrl+V）'],
   'Отпустите файл: картинку, PDF или текст': ['Drop the file: a picture, a PDF or a text', 'Datei loslassen: ein Bild, ein PDF oder ein Text', 'Suelte el archivo: una imagen, un PDF o un texto', '松开以打开文件：图片、PDF 或文本'],
   'Перевести страницы, у которых есть текст, — по абзацам, на язык результата вверху': ['Translate the pages that have text, paragraph by paragraph, into the result language at the top', 'Die Seiten mit Text absatzweise in die Zielsprache oben übersetzen', 'Traducir las páginas que tienen texto, párrafo a párrafo, al idioma de destino de arriba', '把有文字的页面逐段翻译成上方选择的目标语言'],
   'Перевода ещё нет — нажмите «Перевести»': ['There is no translation yet: click “Translate”', 'Noch keine Übersetzung – klicken Sie auf „Übersetzen“', 'Todavía no hay traducción: pulse «Traducir»', '还没有译文——请点击“翻译”'],
@@ -6849,7 +6947,9 @@ const I18N = {
   'Распознать': ['Recognize', 'Erkennen', 'Reconocer', '识别'],
   'Распознать заново': ['Recognize again', 'Erneut erkennen', 'Reconocer de nuevo', '重新识别'],
   'Распознаю: страница {i} из {n}': ['Recognizing: page {i} of {n}', 'Erkenne: Seite {i} von {n}', 'Reconociendo: página {i} de {n}', '正在识别：第 {i} 页，共 {n} 页'],
-  'Распознаю… (модель смотрит на страницу, потом пишет её текст)': ['Recognizing… (the model looks at the page, then writes its text)', 'Erkenne … (das Modell betrachtet die Seite und schreibt dann ihren Text)', 'Reconociendo… (el modelo mira la página y luego escribe su texto)', '正在识别…（模型先查看页面，再写出其中的文字）'],
+  'Модель смотрит на страницу…': ['The model is looking at the page…', 'Das Modell betrachtet die Seite …', 'El modelo está mirando la página…', '模型正在查看页面…'],
+  'Модель пишет текст страницы…': ['The model is writing out the text of the page…', 'Das Modell schreibt den Text der Seite …', 'El modelo está escribiendo el texto de la página…', '模型正在写出页面上的文字…'],
+  '{m} мин {s} с': ['{m} min {s} s', '{m} Min. {s} s', '{m} min {s} s', '{m} 分 {s} 秒'],
   'Скачать «{m}» ({s})?': ['Download “{m}” ({s})?', '„{m}“ herunterladen ({s})?', '¿Descargar «{m}» ({s})?', '下载“{m}”（{s}）？'],
   'Скачиваю файл для картинок: {p} %': ['Downloading the picture file: {p} %', 'Lade die Bilddatei herunter: {p} %', 'Descargando el archivo de imágenes: {p} %', '正在下载图片文件：{p}%'],
   'Сначала нажмите «Распознать»: у страниц ещё нет текста': ['Click “Recognize” first: the pages have no text yet', 'Klicken Sie zuerst auf „Erkennen“: Die Seiten haben noch keinen Text', 'Pulse primero «Reconocer»: las páginas todavía no tienen texto', '请先点击“识别”：页面还没有文字'],
@@ -6876,7 +6976,7 @@ const I18N = {
   'Читаю PDF: страница {i} из {n}': ['Reading the PDF: page {i} of {n}', 'Lese das PDF: Seite {i} von {n}', 'Leyendo el PDF: página {i} de {n}', '正在读取 PDF：第 {i} 页，共 {n} 页'],
   'Чтобы прочитать картинки, модели нужен ещё один файл ({s}) — программа предложит скачать его при «Распознать».': ['To read pictures the model needs one more file ({s}); the program offers to download it when you click “Recognize”.', 'Um Bilder zu lesen, braucht das Modell eine weitere Datei ({s}); das Programm bietet beim Klick auf „Erkennen“ an, sie herunterzuladen.', 'Para leer imágenes, el modelo necesita un archivo más ({s}); el programa le ofrecerá descargarlo al pulsar «Reconocer».', '要读取图片，模型还需要一个文件（{s}）；点击“识别”时程序会提示下载。'],
   'Чтобы читать картинки, модели нужен ещё один файл — «{n}» ({s}). Он пригодится и для распознавания речи. Скачать?': ['To read pictures the model needs one more file, “{n}” ({s}). It will also serve for speech recognition. Download it?', 'Um Bilder zu lesen, braucht das Modell eine weitere Datei: „{n}“ ({s}). Sie dient auch der Spracherkennung. Herunterladen?', 'Para leer imágenes, el modelo necesita un archivo más: «{n}» ({s}). También servirá para el reconocimiento de voz. ¿Descargarlo?', '要读取图片，模型还需要一个文件“{n}”（{s}）。它也可用于语音识别。要下载吗？'],
-  'Этот файл не открыть: нужна картинка (PNG, JPEG, WebP), PDF или текст (.txt, .tex)': ['This file cannot be opened: a picture (PNG, JPEG, WebP), a PDF or a text (.txt, .tex) is needed', 'Diese Datei lässt sich nicht öffnen: nötig ist ein Bild (PNG, JPEG, WebP), ein PDF oder ein Text (.txt, .tex)', 'Este archivo no se puede abrir: se necesita una imagen (PNG, JPEG, WebP), un PDF o un texto (.txt, .tex)', '无法打开此文件：需要图片（PNG、JPEG、WebP）、PDF 或文本（.txt、.tex）'],
+  'Этот файл не открыть: нужна картинка (PNG, JPEG, WebP), PDF, документ (.docx, .odt) или текст (.txt, .tex)': ['This file cannot be opened: a picture (PNG, JPEG, WebP), a PDF, a document (.docx, .odt) or a text (.txt, .tex) is needed', 'Diese Datei lässt sich nicht öffnen: nötig ist ein Bild (PNG, JPEG, WebP), ein PDF, ein Dokument (.docx, .odt) oder ein Text (.txt, .tex)', 'Este archivo no se puede abrir: se necesita una imagen (PNG, JPEG, WebP), un PDF, un documento (.docx, .odt) o un texto (.txt, .tex)', '无法打开此文件：需要图片（PNG、JPEG、WebP）、PDF、文档（.docx、.odt）或文本（.txt、.tex）'],
   'в файле нет текста': ['the file has no text', 'die Datei enthält keinen Text', 'el archivo no tiene texto', '文件中没有文字'],
   'картинка': ['picture', 'Bild', 'imagen', '图片'],
   'картинка {a}, текст {b}': ['picture {a}, text {b}', 'Bild {a}, Text {b}', 'imagen {a}, texto {b}', '图片 {a}，文字 {b}'],
@@ -6893,6 +6993,10 @@ const I18N = {
   'скачивается: {p} %': ['downloading: {p} %', 'wird heruntergeladen: {p} %', 'descargando: {p} %', '正在下载：{p}%'],
   'текст': ['text', 'Text', 'texto', '文字'],
   'текст из PDF': ['text from the PDF', 'Text aus dem PDF', 'texto del PDF', 'PDF 中的文字'],
+  'текст из {f}': ['text from the {f}', 'Text aus der {f}-Datei', 'texto del {f}', '{f} 中的文字'],
+  'файл больше 64 МБ': ['the file is larger than 64 MB', 'die Datei ist größer als 64 MB', 'el archivo ocupa más de 64 MB', '文件大于 64 MB'],
+  'Формулы из файла записаны в LaTeX между знаками $ — перевод их не меняет.': ['The formulas of the file are written in LaTeX between $ signs; the translation does not change them.', 'Die Formeln der Datei stehen als LaTeX zwischen $-Zeichen; die Übersetzung ändert sie nicht.', 'Las fórmulas del archivo están escritas en LaTeX entre signos $; la traducción no las cambia.', '文件中的公式以 LaTeX 写在 $ 符号之间，翻译不会改动它们。'],
+  'Сноски — в конце текста.': ['Footnotes are at the end of the text.', 'Fußnoten stehen am Ende des Textes.', 'Las notas al pie están al final del texto.', '脚注位于文末。'],
   'текст изменён — перевод устарел': ['the text has changed: the translation is out of date', 'der Text wurde geändert – die Übersetzung ist veraltet', 'el texto ha cambiado: la traducción está desactualizada', '文字已修改——译文已过时'],
   'текст страницы не поместился в ответ модели — конец может быть обрезан': ['the text of the page did not fit into the model\'s answer: the end may be cut off', 'der Text der Seite passte nicht in die Antwort des Modells – das Ende kann fehlen', 'el texto de la página no cupo en la respuesta del modelo: puede faltar el final', '页面文字超出了模型回答的长度——结尾可能被截断'],
   'файл слишком большой': ['the file is too large', 'die Datei ist zu groß', 'el archivo es demasiado grande', '文件太大'],

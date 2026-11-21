@@ -2,31 +2,38 @@
 
 A free, open-source **offline translator** that runs a local language model on your own computer — no cloud, no
 account, no telemetry. It shows several translation variants in different styles, edits text in the same language,
-follows your own glossary, answers questions about a translation and can read texts aloud.
+follows your own glossary, answers questions about a translation, reads texts aloud and translates documents page by
+page — pictures and scans, PDFs, Word and LibreOffice files.
 
-> **Version 1.2** for **Windows, Linux, macOS and Android** — [download](#download). The interface is in English,
+> **Version 1.3** for **Windows, Linux, macOS and Android** — [download](#download). The interface is in English,
 > Russian, German, Spanish and Chinese; the program has its full guide (Help) in each of them.
 > [README.txt](README.txt) has the installation in these five languages and the full guide in Russian; the
 > installation is also [below](#installation-in-other-languages) in Russian, German, Spanish and Chinese.
 
 ## Features
 
-- **12 languages:** Russian, English, German, French, Spanish, Italian, Portuguese (Brazil), Greek, Arabic, Simplified
-  Chinese, Latin, Swedish.
+- **15 languages:** Russian, English, German, French, Spanish, Italian, Portuguese (Brazil), Greek, Arabic, Japanese,
+  Korean, Hindi, Simplified Chinese, Latin, Swedish.
+- **Documents** (1.3): open a picture (a scan, a photo of a page, a screenshot), a PDF, a Word or LibreOffice file
+  (.docx, .odt) or a text file — each page shows its text and the translation side by side; save the translation as
+  .txt. Scans and photos are read by the Gemma 4 model itself (with its picture file, about 0.56 GB, downloaded on
+  first use); PDFs with text open at once with the built-in PDF.js; formulas of Word and LibreOffice files become
+  LaTeX and stay out of the translation.
 - **Several variants at once:** neutral first, then the styles you choose (scientific, business, casual, concise or
   your own description), with optional context; another variant, back translation and “why like this?” for each.
 - **Editing in the same language:** a corrected version with the changes highlighted, rephrasings and remarks.
 - **Your glossary:** term tables (TSV, editable in Excel) whose terms are passed to the model when they occur.
 - **LaTeX formulas** (`$…$`, `$$…$$`) are never translated or damaged.
 - **Ask the model:** a chat about translations, terms and grammar; mini lessons and exercises with checking.
-- **Reading aloud:** Piper voices for Russian, English, German, French, Spanish, Italian, Portuguese (Brazil),
-  Chinese and Swedish (a female and a male one for English, German, French, Spanish, Italian and Swedish) through the
-  sherpa-onnx program, downloaded on demand; Latin is read by the Italian voice Paola with the church or the classical
-  pronunciation (your choice; the voice is downloaded once), the stress marked by the rules of Latin.
+- **Reading aloud** through the sherpa-onnx program, downloaded on demand: the **Supertonic 3** voice (one download,
+  13 languages — all but Chinese and Latin — with ten voices to choose from) and Piper voices for Russian, English,
+  German, French, Spanish, Italian, Portuguese (Brazil), Chinese and Swedish; Latin is read by the Italian voice Paola
+  with the church or the classical pronunciation (your choice; the voice is downloaded once), the stress marked by the
+  rules of Latin.
 - **Saved translations** in plain files, import and export (TSV, TXT).
 - A built-in **test** that checks a model on your computer and writes a report: a quick one (two Latin sayings,
   *Audentes fortuna iuvat* and *Cogito, ergo sum*, into the interface language and back — about a minute) and a full
-  one with phrase pairs in any two of the twelve languages; each task shows the source text, the model translation
+  one with phrase pairs in any two of the fifteen languages; each task shows the source text, the model translation
   and the reference.
 - **Settings** for the chat (temperature; short, normal or detailed answers) and the speed of reading aloud.
 - **Interface in five languages:** English (on the first start), Russian, German, Spanish and Chinese.
@@ -48,14 +55,14 @@ follows your own glossary, answers questions about a translation and can read te
 
 | System | Download |
 |---|---|
-| **Windows** 10/11, x64 | [⬇ Download for Windows](https://github.com/Allasoneteam/Ttranslator/releases/download/v1.2/Ttranslator-1.2-windows-x64.zip) |
-| **Linux**, x86-64 | [⬇ Download for Linux](https://github.com/Allasoneteam/Ttranslator/releases/download/v1.2/Ttranslator-1.2-linux-x64.tar.gz) |
-| **macOS** 13.3+, Apple Silicon (M1 and newer) | [⬇ Download for Mac (Apple Silicon)](https://github.com/Allasoneteam/Ttranslator/releases/download/v1.2/Ttranslator-1.2-macos-arm64.zip) |
-| **macOS** 13.3+, Intel | [⬇ Download for Mac (Intel)](https://github.com/Allasoneteam/Ttranslator/releases/download/v1.2/Ttranslator-1.2-macos-x64.zip) |
-| **Android** 9+, 64-bit ARM | [⬇ Download for Android (APK)](https://github.com/Allasoneteam/Ttranslator/releases/download/v1.2/Ttranslator-1.2-android-arm64.apk) |
+| **Windows** 10/11, x64 | [⬇ Download for Windows](https://github.com/Allasoneteam/Ttranslator/releases/download/v1.3/Ttranslator-1.3-windows-x64.zip) |
+| **Linux**, x86-64 | [⬇ Download for Linux](https://github.com/Allasoneteam/Ttranslator/releases/download/v1.3/Ttranslator-1.3-linux-x64.tar.gz) |
+| **macOS** 13.3+, Apple Silicon (M1 and newer) | [⬇ Download for Mac (Apple Silicon)](https://github.com/Allasoneteam/Ttranslator/releases/download/v1.3/Ttranslator-1.3-macos-arm64.zip) |
+| **macOS** 13.3+, Intel | [⬇ Download for Mac (Intel)](https://github.com/Allasoneteam/Ttranslator/releases/download/v1.3/Ttranslator-1.3-macos-x64.zip) |
+| **Android** 9+, 64-bit ARM | [⬇ Download for Android (APK)](https://github.com/Allasoneteam/Ttranslator/releases/download/v1.3/Ttranslator-1.3-android-arm64.apk) |
 
 Which Mac: Apple menu → About This Mac — “Chip Apple M…” is Apple Silicon, “Processor … Intel” is Intel. Checksums:
-[SHA256SUMS.txt](https://github.com/Allasoneteam/Ttranslator/releases/download/v1.2/SHA256SUMS.txt). All versions and what is new in each:
+[SHA256SUMS.txt](https://github.com/Allasoneteam/Ttranslator/releases/download/v1.3/SHA256SUMS.txt). All versions and what is new in each:
 [Releases](https://github.com/Allasoneteam/Ttranslator/releases). The archives contain the program and the engine;
 the model (3.35 GB) is downloaded on the first start, after your confirmation. Installation: Windows — below,
 [Linux](#linux), [macOS](#macos), [Android](#android).
@@ -264,10 +271,13 @@ Third-party components:
 
 - [llama.cpp](https://github.com/ggml-org/llama.cpp) (MIT) — the engine, in the release archives (and in
   `Ttranslator.app`); downloaded on the first start when built from source.
-- Gemma 4 models (Google, Apache 2.0) — downloaded after confirmation; your own `.gguf` files work too.
-- [sherpa-onnx](https://github.com/k2-fsa/sherpa-onnx) (Apache 2.0, with espeak-ng inside, GPL-3.0) and Piper voices
-  (the licence of each voice is shown in the program; some are for non-commercial use) — downloaded on demand from the
-  sherpa-onnx releases.
+- Gemma 4 models (Google, Apache 2.0) and their picture files (mmproj, ggml-org, Apache 2.0) — downloaded after
+  confirmation; your own `.gguf` files work too.
+- [PDF.js](https://github.com/mozilla/pdf.js) 6.5.438 (Mozilla, Apache 2.0) with its decoders — JBIG2 of PDFium
+  (BSD-3-Clause), OpenJPEG (BSD-2-Clause), qcms (MIT) — opens PDF files in the window (`ui/pdfjs`).
+- [sherpa-onnx](https://github.com/k2-fsa/sherpa-onnx) (Apache 2.0, with espeak-ng inside, GPL-3.0), the Supertonic 3
+  voice (OpenRAIL-M) and Piper voices (the licence of each voice is shown in the program; some are for non-commercial
+  use) — downloaded on demand from the sherpa-onnx releases.
 - [webview](https://github.com/webview/webview) 0.12.0 (MIT) — compiled into the app window program.
 - In the Android app: llama.cpp (MIT), sherpa-onnx (Apache 2.0) with espeak-ng (GPL-3.0; the app links the exact
   sources) and onnxruntime (MIT), the Go runtime (BSD) — the full licence texts are inside the APK (About →
@@ -280,9 +290,9 @@ Third-party components:
 <details>
 <summary>Русский</summary>
 
-Скачать: [Windows](https://github.com/Allasoneteam/Ttranslator/releases/download/v1.2/Ttranslator-1.2-windows-x64.zip) · [Linux](https://github.com/Allasoneteam/Ttranslator/releases/download/v1.2/Ttranslator-1.2-linux-x64.tar.gz) ·
-[Mac — Apple Silicon](https://github.com/Allasoneteam/Ttranslator/releases/download/v1.2/Ttranslator-1.2-macos-arm64.zip) · [Mac — Intel](https://github.com/Allasoneteam/Ttranslator/releases/download/v1.2/Ttranslator-1.2-macos-x64.zip)
-· [Android (APK)](https://github.com/Allasoneteam/Ttranslator/releases/download/v1.2/Ttranslator-1.2-android-arm64.apk)
+Скачать: [Windows](https://github.com/Allasoneteam/Ttranslator/releases/download/v1.3/Ttranslator-1.3-windows-x64.zip) · [Linux](https://github.com/Allasoneteam/Ttranslator/releases/download/v1.3/Ttranslator-1.3-linux-x64.tar.gz) ·
+[Mac — Apple Silicon](https://github.com/Allasoneteam/Ttranslator/releases/download/v1.3/Ttranslator-1.3-macos-arm64.zip) · [Mac — Intel](https://github.com/Allasoneteam/Ttranslator/releases/download/v1.3/Ttranslator-1.3-macos-x64.zip)
+· [Android (APK)](https://github.com/Allasoneteam/Ttranslator/releases/download/v1.3/Ttranslator-1.3-android-arm64.apk)
 (все версии — [Releases](https://github.com/Allasoneteam/Ttranslator/releases)).
 
 1. Распакуйте архив `Ttranslator-<версия>-windows-x64.zip` (Windows) или `…-linux-x64.tar.gz` (Linux) в любую папку,
@@ -318,9 +328,9 @@ Play Защита может предупредить о неизвестном 
 <details>
 <summary>Deutsch</summary>
 
-Herunterladen: [Windows](https://github.com/Allasoneteam/Ttranslator/releases/download/v1.2/Ttranslator-1.2-windows-x64.zip) · [Linux](https://github.com/Allasoneteam/Ttranslator/releases/download/v1.2/Ttranslator-1.2-linux-x64.tar.gz) ·
-[Mac – Apple Silicon](https://github.com/Allasoneteam/Ttranslator/releases/download/v1.2/Ttranslator-1.2-macos-arm64.zip) · [Mac – Intel](https://github.com/Allasoneteam/Ttranslator/releases/download/v1.2/Ttranslator-1.2-macos-x64.zip)
-· [Android (APK)](https://github.com/Allasoneteam/Ttranslator/releases/download/v1.2/Ttranslator-1.2-android-arm64.apk)
+Herunterladen: [Windows](https://github.com/Allasoneteam/Ttranslator/releases/download/v1.3/Ttranslator-1.3-windows-x64.zip) · [Linux](https://github.com/Allasoneteam/Ttranslator/releases/download/v1.3/Ttranslator-1.3-linux-x64.tar.gz) ·
+[Mac – Apple Silicon](https://github.com/Allasoneteam/Ttranslator/releases/download/v1.3/Ttranslator-1.3-macos-arm64.zip) · [Mac – Intel](https://github.com/Allasoneteam/Ttranslator/releases/download/v1.3/Ttranslator-1.3-macos-x64.zip)
+· [Android (APK)](https://github.com/Allasoneteam/Ttranslator/releases/download/v1.3/Ttranslator-1.3-android-arm64.apk)
 (alle Versionen: [Releases](https://github.com/Allasoneteam/Ttranslator/releases)).
 
 1. Entpacken Sie das Archiv `Ttranslator-<Version>-windows-x64.zip` (Windows) oder `…-linux-x64.tar.gz` (Linux) in
@@ -358,9 +368,9 @@ behalten).
 <details>
 <summary>Español</summary>
 
-Descargar: [Windows](https://github.com/Allasoneteam/Ttranslator/releases/download/v1.2/Ttranslator-1.2-windows-x64.zip) · [Linux](https://github.com/Allasoneteam/Ttranslator/releases/download/v1.2/Ttranslator-1.2-linux-x64.tar.gz) ·
-[Mac — Apple Silicon](https://github.com/Allasoneteam/Ttranslator/releases/download/v1.2/Ttranslator-1.2-macos-arm64.zip) · [Mac — Intel](https://github.com/Allasoneteam/Ttranslator/releases/download/v1.2/Ttranslator-1.2-macos-x64.zip)
-· [Android (APK)](https://github.com/Allasoneteam/Ttranslator/releases/download/v1.2/Ttranslator-1.2-android-arm64.apk)
+Descargar: [Windows](https://github.com/Allasoneteam/Ttranslator/releases/download/v1.3/Ttranslator-1.3-windows-x64.zip) · [Linux](https://github.com/Allasoneteam/Ttranslator/releases/download/v1.3/Ttranslator-1.3-linux-x64.tar.gz) ·
+[Mac — Apple Silicon](https://github.com/Allasoneteam/Ttranslator/releases/download/v1.3/Ttranslator-1.3-macos-arm64.zip) · [Mac — Intel](https://github.com/Allasoneteam/Ttranslator/releases/download/v1.3/Ttranslator-1.3-macos-x64.zip)
+· [Android (APK)](https://github.com/Allasoneteam/Ttranslator/releases/download/v1.3/Ttranslator-1.3-android-arm64.apk)
 (todas las versiones: [Releases](https://github.com/Allasoneteam/Ttranslator/releases)).
 
 1. Descomprima el archivo `Ttranslator-<versión>-windows-x64.zip` (Windows) o `…-linux-x64.tar.gz` (Linux) en una
@@ -397,9 +407,9 @@ aplicación).
 <details>
 <summary>中文</summary>
 
-下载：[Windows](https://github.com/Allasoneteam/Ttranslator/releases/download/v1.2/Ttranslator-1.2-windows-x64.zip) · [Linux](https://github.com/Allasoneteam/Ttranslator/releases/download/v1.2/Ttranslator-1.2-linux-x64.tar.gz) ·
-[Mac（Apple 芯片）](https://github.com/Allasoneteam/Ttranslator/releases/download/v1.2/Ttranslator-1.2-macos-arm64.zip) · [Mac（Intel）](https://github.com/Allasoneteam/Ttranslator/releases/download/v1.2/Ttranslator-1.2-macos-x64.zip)
-· [Android（APK）](https://github.com/Allasoneteam/Ttranslator/releases/download/v1.2/Ttranslator-1.2-android-arm64.apk)
+下载：[Windows](https://github.com/Allasoneteam/Ttranslator/releases/download/v1.3/Ttranslator-1.3-windows-x64.zip) · [Linux](https://github.com/Allasoneteam/Ttranslator/releases/download/v1.3/Ttranslator-1.3-linux-x64.tar.gz) ·
+[Mac（Apple 芯片）](https://github.com/Allasoneteam/Ttranslator/releases/download/v1.3/Ttranslator-1.3-macos-arm64.zip) · [Mac（Intel）](https://github.com/Allasoneteam/Ttranslator/releases/download/v1.3/Ttranslator-1.3-macos-x64.zip)
+· [Android（APK）](https://github.com/Allasoneteam/Ttranslator/releases/download/v1.3/Ttranslator-1.3-android-arm64.apk)
 （所有版本：[Releases](https://github.com/Allasoneteam/Ttranslator/releases)）。
 
 1. 把压缩包 `Ttranslator-<版本>-windows-x64.zip`（Windows）或 `…-linux-x64.tar.gz`（Linux）解压到您有写入权限的文件夹

@@ -1845,6 +1845,7 @@ func (a *App) routes() http.Handler {
 	a.savedRoutes(mux)
 	a.ttsRoutes(mux)
 	a.visionRoutes(mux)
+	a.docTextRoutes(mux)
 	mux.HandleFunc("/api/", func(w http.ResponseWriter, r *http.Request) { jsonError(w, 404, "not found") })
 
 	proxy := http.HandlerFunc(a.handleProxy)

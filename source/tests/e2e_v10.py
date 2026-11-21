@@ -225,6 +225,12 @@ try:
       ok(menu.count('un solo archivo para ambas pronunciaciones del latín y el italiano') == 2 and menu.count('el mismo archivo que las voces del latín') == 1,
          'both Latin entries say they share one file with Italian; the Italian Paola says it is the Latin one (1.2)')
       ok('Modelos de prueba' in menu, 'a group name of the launcher\'s catalogue in Spanish')
+      titles = page.eval_on_selector_all('#modelMenu .mitem .title', 'es => es.map(e => e.textContent)')
+      vt = [x.lstrip('✓ ') for x in titles if ' · ' in x]
+      st = [i for i, x in enumerate(vt) if x.startswith('Supertonic')]
+      first = [x.split(' · ')[0] for x in vt[st[0] + 1:st[0] + 4]] if st else []
+      ok(st and first == ['Chino', 'Latín', 'Latín'] and all(x.split(' · ')[0] not in ('Chino', 'Latín') for x in vt[st[0] + 4:]),
+         'right after Supertonic come the Chinese and Latin voices (the languages it does not read), then the others: %s' % vt[:6])
       vs = {x['id']: x for x in api('/api/state')['tts']['voices'] if x['lang'] == 'la'}
       v, vc = vs.get('la-paola', {}), vs.get('la-paola-classical', {})
       ok(sorted(vs) == ['la-paola', 'la-paola-classical'] and v.get('via') == vc.get('via') == 'it' and v.get('license') == 'CC0' and v.get('file') == vc.get('file') == 'vits-piper-it_IT-paola-medium.tar.bz2'

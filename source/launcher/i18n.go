@@ -39,6 +39,11 @@ func tr(s string) string {
 }
 
 var msgEN = map[string]string{
+	"не удалось прочитать файл": "could not read the file",
+	"файл больше 64 МБ":         "the file is larger than 64 MB",
+	"старый формат Word (.doc) не читается — сохраните файл в Word или LibreOffice как .docx или .odt": "the old Word format (.doc) cannot be read — save the file in Word or LibreOffice as .docx or .odt",
+	"это не файл DOCX или ODT": "this is not a DOCX or ODT file",
+	"в файле нет текста":       "there is no text in the file",
 	// model catalogue
 	"Gemma 4 — универсальная: перевод, правка, вопросы (Google, Apache 2.0)":            "Gemma 4 — general purpose: translation, editing, questions (Google, Apache 2.0)",
 	"Свои файлы из папки models":                                                        "Your own files from the models folder",
@@ -135,6 +140,11 @@ var msgEN = map[string]string{
 }
 
 var msgDE = map[string]string{
+	"не удалось прочитать файл": "die Datei konnte nicht gelesen werden",
+	"файл больше 64 МБ":         "die Datei ist größer als 64 MB",
+	"старый формат Word (.doc) не читается — сохраните файл в Word или LibreOffice как .docx или .odt": "das alte Word-Format (.doc) kann nicht gelesen werden – speichern Sie die Datei in Word oder LibreOffice als .docx oder .odt",
+	"это не файл DOCX или ODT": "das ist keine DOCX- oder ODT-Datei",
+	"в файле нет текста":       "die Datei enthält keinen Text",
 	// Modellkatalog
 	"Gemma 4 — универсальная: перевод, правка, вопросы (Google, Apache 2.0)":            "Gemma 4 – universell: Übersetzung, Korrektur, Fragen (Google, Apache 2.0)",
 	"Свои файлы из папки models":                                                        "Eigene Dateien aus dem Ordner models",
@@ -232,6 +242,11 @@ var msgDE = map[string]string{
 
 // Spanish (1.0): the same keys as msgEN
 var msgES = map[string]string{
+	"не удалось прочитать файл": "no se pudo leer el archivo",
+	"файл больше 64 МБ":         "el archivo ocupa más de 64 MB",
+	"старый формат Word (.doc) не читается — сохраните файл в Word или LibreOffice как .docx или .odt": "el formato antiguo de Word (.doc) no se puede leer: guarde el archivo en Word o LibreOffice como .docx u .odt",
+	"это не файл DOCX или ODT": "esto no es un archivo DOCX ni ODT",
+	"в файле нет текста":       "el archivo no contiene texto",
 	"Gemma 4 — универсальная: перевод, правка, вопросы (Google, Apache 2.0)":            "Gemma 4 — universal: traducción, corrección, preguntas (Google, Apache 2.0)",
 	"Свои файлы из папки models":                                                        "Archivos propios de la carpeta models",
 	"Тестовые модели":                                                                   "Modelos de prueba",
@@ -321,6 +336,11 @@ var msgES = map[string]string{
 
 // Simplified Chinese (1.0): the same keys as msgEN
 var msgZH = map[string]string{
+	"не удалось прочитать файл": "无法读取文件",
+	"файл больше 64 МБ":         "文件大于 64 MB",
+	"старый формат Word (.doc) не читается — сохраните файл в Word или LibreOffice как .docx или .odt": "无法读取旧版 Word 格式（.doc）——请在 Word 或 LibreOffice 中将文件另存为 .docx 或 .odt",
+	"это не файл DOCX или ODT": "这不是 DOCX 或 ODT 文件",
+	"в файле нет текста":       "文件中没有文字",
 	"Gemma 4 — универсальная: перевод, правка, вопросы (Google, Apache 2.0)":            "Gemma 4 — 通用：翻译、校改、问答（Google，Apache 2.0）",
 	"Свои файлы из папки models":                                                        "models 文件夹中的自有文件",
 	"Тестовые модели":                                                                   "测试模型",

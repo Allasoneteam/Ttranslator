@@ -14,7 +14,7 @@
 #   - the second test model has a broken picture file that the real engine is given: it cannot load it and stops —
 #     the launcher starts it again without the file, the window says so (with the engine's words) and translates.
 # Usage: e2e_files.py <work> <ui_url> <root>   (the launcher runs with TDOC_TEST_VISION, see run_all.sh)
-import sys, json, os, io, time, base64, hashlib, struct, zlib, urllib.request
+import sys, json, os, io, re, time, base64, hashlib, struct, zlib, urllib.request
 from playwright.sync_api import sync_playwright
 from PIL import Image, ImageDraw
 W, URL, ROOT = sys.argv[1], sys.argv[2].rstrip('/'), sys.argv[3]
@@ -71,6 +71,32 @@ txt8 = os.path.join(fx, 'заметка.txt')
 open(txt8, 'w', encoding='utf-8').write('Первый абзац текстового файла.\nОн продолжается на второй строке.\n\nВторой абзац.\n')
 txt1251 = os.path.join(fx, 'old-1251.txt')
 open(txt1251, 'wb').write('Старый текст в кодировке Windows-1251: ёлка, щука, Москва.'.encode('cp1251'))
+# 1.3: a Word document (two pages of its last layout, a formula, a table, a numbered list, a footnote) and the same in ODT
+import zipfile
+W = ('xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" '
+     'xmlns:m="http://schemas.openxmlformats.org/officeDocument/2006/math"')
+docx = os.path.join(fx, 'статья.docx')
+with zipfile.ZipFile(docx, 'w', zipfile.ZIP_DEFLATED) as z:
+    z.writestr('[Content_Types].xml', '<Types/>')
+    z.writestr('word/document.xml', '<w:document ' + W + '><w:body>'
+        '<w:p><w:r><w:t>Введение</w:t></w:r></w:p>'
+        '<w:p><w:r><w:t xml:space="preserve">Энергия частицы равна </w:t></w:r><m:oMath><m:sSup><m:e><m:r><m:t>m</m:t></m:r></m:e>'
+        '<m:sup><m:r><m:t>2</m:t></m:r></m:sup></m:sSup></m:oMath><w:r><w:t>.</w:t></w:r><w:r><w:footnoteReference w:id="1"/></w:r></w:p>'
+        '<w:p><w:pPr><w:numPr><w:ilvl w:val="0"/><w:numId w:val="1"/></w:numPr></w:pPr><w:r><w:t>Первый пункт</w:t></w:r></w:p>'
+        '<w:p><w:pPr><w:numPr><w:ilvl w:val="0"/><w:numId w:val="1"/></w:numPr></w:pPr><w:r><w:t>Второй пункт</w:t></w:r></w:p>'
+        '<w:tbl><w:tr><w:tc><w:p><w:r><w:t>Величина</w:t></w:r></w:p></w:tc><w:tc><w:p><w:r><w:t>Значение</w:t></w:r></w:p></w:tc></w:tr></w:tbl>'
+        '<w:p><w:r><w:lastRenderedPageBreak/><w:t>Вторая страница статьи.</w:t></w:r></w:p></w:body></w:document>')
+    z.writestr('word/numbering.xml', '<w:numbering ' + W + '><w:abstractNum w:abstractNumId="0"><w:lvl w:ilvl="0"><w:start w:val="1"/>'
+        '<w:numFmt w:val="decimal"/><w:lvlText w:val="%1."/></w:lvl></w:abstractNum><w:num w:numId="1"><w:abstractNumId w:val="0"/></w:num></w:numbering>')
+    z.writestr('word/footnotes.xml', '<w:footnotes ' + W + '><w:footnote w:id="1"><w:p><w:r><w:t>Сноска из Word.</w:t></w:r></w:p></w:footnote></w:footnotes>')
+odt = os.path.join(fx, 'заметки.odt')
+with zipfile.ZipFile(odt, 'w', zipfile.ZIP_DEFLATED) as z:
+    z.writestr('mimetype', 'application/vnd.oasis.opendocument.text', compress_type=zipfile.ZIP_STORED)
+    z.writestr('content.xml', '<office:document-content xmlns:office="urn:oasis:names:tc:opendocument:xmlns:office:1.0" '
+        'xmlns:text="urn:oasis:names:tc:opendocument:xmlns:text:1.0"><office:body><office:text>'
+        '<text:h text:outline-level="1">Заметки</text:h><text:p>Абзац из LibreOffice.</text:p></office:text></office:body></office:document-content>')
+olddoc = os.path.join(fx, 'старый.doc')
+open(olddoc, 'wb').write(b'\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1' + b'\0' * 500)
 
 OCR = ('Отсканированная страница: первый абзац текста, который модель прочитала с картинки.\n\n'
        + 'Второй абзац — длинный. ' + 'Это предложение повторяется, чтобы страница не поместилась в один кусок перевода. ' * 14
@@ -82,12 +108,14 @@ def sse(text):
     body += 'data: ' + json.dumps({'choices': [{'delta': {}, 'finish_reason': 'stop'}],
                                    'timings': {'prompt_n': 1130, 'prompt_ms': 9000, 'predicted_n': 300, 'predicted_ms': 21000, 'predicted_per_second': 14.3}}) + '\n\ndata: [DONE]\n\n'
     return body
-hold = {'on': False, 'routes': []}
+hold = {'on': False, 'img': False, 'routes': []}
 def reply(route):
     body = json.loads(route.request.post_data)
     calls.append(body)
     content = body['messages'][0]['content']
     if isinstance(content, list):   # a page as a picture
+        if hold['img']:             # the model «looks at the page» until the test lets it go
+            hold['routes'].append(route); return
         route.fulfill(status=200, headers={'Content-Type': 'text/event-stream'}, body=sse(OCR)); return
     if hold['on']:                  # the model «thinks»: no answer until the test lets it go
         hold['routes'].append(route); return
@@ -215,9 +243,15 @@ with sync_playwright() as pw:
     page.click('#docTransBtn')
     page.wait_for_selector('#docStopBtn:not([hidden])')
     ok(wait(lambda: hold['routes'], 10), 'a translation request is under way')
+    c0 = page.inner_text('.doc-page.working .work-time')
+    page.wait_for_timeout(2200)
+    c1 = page.inner_text('.doc-page.working .work-time')
+    ok(page.locator('.doc-page.working .work-spin').count() == 1 and 'Перевожу' in page.inner_text('.doc-page.working .doc-meta')
+       and re.fullmatch(r'\d+:\d\d', c1 or '') and c1 > c0, 'the page at work: the purple spinner, «Перевожу», the clock goes (%s → %s)' % (c0, c1))
     page.click('#docStopBtn')
     page.wait_for_selector('#docTransBtn:not([hidden])', timeout=10000)
-    ok(page.evaluate('() => docCtl === null') and page.is_hidden('#docStopBtn') and not page.locator('.doc-page.working').count(), '«Стоп»: stopped, the buttons are back')
+    ok(page.evaluate('() => docCtl === null') and page.is_hidden('#docStopBtn') and not page.locator('.doc-page.working').count()
+       and not page.locator('#docPages .work-spin').count() and 'working' not in (page.get_attribute('#docStatus', 'class') or ''), '«Стоп»: stopped, the buttons are back, no spinner')
     hold['on'] = False
     for r in hold['routes']:
         try: r.abort()
@@ -227,6 +261,23 @@ with sync_playwright() as pw:
     page.set_input_files('#fileInput', photo_pdf)
     page.wait_for_function("document.querySelectorAll('.doc-page').length === 1 && document.querySelector('.doc-page .doc-meta').textContent.includes('картинка')", timeout=20000)
     ok(True, 'a PDF made of a photo: one scan page')
+    # while the model looks at the picture, nothing on the screen changes for about a minute: the spinner and the clock
+    hold['img'] = True; hold['routes'].clear()
+    page.click('#docReadBtn')
+    ok(wait(lambda: hold['routes'], 10), 'a picture request is under way')
+    meta = page.inner_text('.doc-page .doc-meta')
+    ok(page.locator('.doc-page.working .work-spin').is_visible() and 'Модель смотрит на страницу…' in meta and re.search(r'\d:\d\d', meta),
+       'recognizing: the purple spinner, what the model does, the clock: ' + meta)
+    page.wait_for_timeout(1200)
+    page.screenshot(path=os.path.join(shots, '6-working.png'))
+    page.click('#docStopBtn')
+    page.wait_for_selector('#docReadBtn:not([hidden])', timeout=10000)
+    ok(not page.locator('#docPages .work-spin').count(), '«Стоп»: the spinner is gone')
+    hold['img'] = False
+    for r in hold['routes']:
+        try: r.abort()
+        except Exception: pass
+    hold['routes'].clear()
     page.set_input_files('#fileInput', txt8)
     page.wait_for_function("(() => { const e = document.querySelector('.doc-page .doc-src'); return document.querySelector('#docName').textContent === 'заметка.txt' && !!e && !!e.value; })()")
     ok(page.input_value('.doc-page .doc-src') == 'Первый абзац текстового файла. Он продолжается на второй строке.\n\nВторой абзац.'
@@ -234,6 +285,28 @@ with sync_playwright() as pw:
     page.set_input_files('#fileInput', txt1251)
     page.wait_for_function("(() => { const e = document.querySelector('.doc-page .doc-src'); return !!e && e.value.includes('Москва'); })()")
     ok(page.input_value('.doc-page .doc-src') == 'Старый текст в кодировке Windows-1251: ёлка, щука, Москва.', 'a text file in Windows-1251')
+    # ================= DOCX and ODT (1.3): the launcher reads them; pages of the file, the formula in LaTeX, the footnote at the end
+    page.set_input_files('#fileInput', docx)
+    page.wait_for_function("document.querySelector('#docName').textContent === 'статья.docx' && document.querySelectorAll('.doc-page .doc-src').length === 2", timeout=15000)
+    srcs = page.eval_on_selector_all('.doc-page .doc-src', 'es => es.map(e => e.value)')
+    ok(srcs == ['Введение\n\nЭнергия частицы равна ${m}^{2}$.[1]\n\n1. Первый пункт\n\n2. Второй пункт\n\nВеличина | Значение',
+                'Вторая страница статьи.\n\n[1] Сноска из Word.'], 'a DOCX: two pages as in the file, the formula in LaTeX, the list numbers, the table row, the footnote: %s' % srcs)
+    note = page.inner_text('#docNote')
+    ok('текст из DOCX' in page.inner_text('.doc-page .doc-meta') and 'LaTeX' in note and 'Сноски' in note and page.is_hidden('#docReadBtn'),
+       'the pages say «текст из DOCX»; the note tells about formulas and footnotes; nothing to recognize: ' + note)
+    calls.clear()
+    page.locator('.doc-page').nth(0).locator('button', has_text='Перевести').click()
+    ok(wait(lambda: page.inner_text('.doc-page .doc-tgt').startswith('EN[')), 'a DOCX page is translated')
+    tr = [c for c in calls if isinstance(c['messages'][0]['content'], str)]
+    ok(tr and '{F1}' in tr[0]['messages'][0]['content'] and '${m}^{2}$' not in tr[0]['messages'][0]['content'], 'the formula of the DOCX goes to the model as a mark')
+    page.set_input_files('#fileInput', odt)
+    page.wait_for_function("document.querySelector('#docName').textContent === 'заметки.odt' && document.querySelectorAll('.doc-page .doc-src').length === 1", timeout=15000)
+    ok(page.input_value('.doc-page .doc-src') == 'Заметки\n\nАбзац из LibreOffice.' and 'текст из ODT' in page.inner_text('.doc-page .doc-meta'), 'an ODT opens: ' + page.input_value('.doc-page .doc-src'))
+    page.set_input_files('#fileInput', olddoc)
+    page.wait_for_function("document.querySelector('#docNote').textContent.includes('.doc')", timeout=15000)
+    ok('.docx' in page.inner_text('#docNote') and not page.locator('.doc-page').count(), 'the old .doc: what to do with it: ' + page.inner_text('#docNote'))
+    page.set_input_files('#fileInput', txt1251)
+    page.wait_for_function("(() => { const e = document.querySelector('.doc-page .doc-src'); return !!e && e.value.includes('Москва'); })()")
     page.click('#closeDocBtn')
     ok(page.is_hidden('#docView') and page.inner_text('#fileLabel') == 'Документ', 'back to the main window; «Файл» became «Документ»')
     page.click('#fileBtn')
@@ -249,7 +322,8 @@ with sync_playwright() as pw:
       document.body.dispatchEvent(new DragEvent('drop', { dataTransfer: dt, bubbles: true, cancelable: true })); }""")
     page.wait_for_function("document.querySelector('#docName').textContent === 'drop.txt'")
     ok(page.input_value('.doc-page .doc-src') == 'Перетащенный текст.', 'a dropped file opens')
-    ok('.pdf' in page.get_attribute('#fileInput', 'accept') and 'image/*' in page.get_attribute('#fileInput', 'accept'), 'the file picker offers pictures, PDF, text')
+    acc = page.get_attribute('#fileInput', 'accept')
+    ok('.pdf' in acc and 'image/*' in acc and '.docx' in acc and '.odt' in acc, 'the file picker offers pictures, PDF, DOCX, ODT, text')
 
     # ================= the model menu; deleting the picture file
     page.click('#closeDocBtn')

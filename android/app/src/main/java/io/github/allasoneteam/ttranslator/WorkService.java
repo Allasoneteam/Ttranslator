@@ -12,6 +12,7 @@ import android.os.Build;
 import android.os.IBinder;
 import android.os.SystemClock;
 
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -22,8 +23,8 @@ import java.net.HttpURLConnection;
  * The notification while Ttranslator works (1.2, the author's decision of 14.11.2026): a download (a model, a voice) or
  * the engine at work (a translation, a question to the model, the test). As a foreground service it keeps the app
  * running in the background: without it Android (Xiaomi especially) stops a long download or a translation when the
- * user switches to another app. The service watches the launcher (/api/state: download, tts.download, engine_busy)
- * and ends a few seconds after the work is over.
+ * user switches to another app. The service watches the launcher (/api/state: download, tts.download, vision.download
+ * — 1.3, engine_busy) and ends a few seconds after the work is over.
  */
 public class WorkService extends Service {
     static final String CHANNEL = "work";
@@ -87,12 +88,17 @@ public class WorkService extends Service {
                 JSONObject d = s.optJSONObject("download");
                 JSONObject t = s.optJSONObject("tts");
                 JSONObject v = t != null ? t.optJSONObject("download") : null;
+                JSONObject vi = s.optJSONObject("vision");   // 1.3: the picture file of the model (mmproj, ~0.6 GB)
+                JSONObject p = vi != null ? vi.optJSONObject("download") : null;
                 if (d != null && d.optBoolean("active")) {
                     text = Texts.downloading(lang, d.optString("name"));
                     pct = percent(d);
                 } else if (v != null && v.optBoolean("active")) {
                     text = Texts.downloadingVoice(lang, v.optString("name"));
                     pct = percent(v);
+                } else if (p != null && p.optBoolean("active")) {
+                    text = Texts.downloading(lang, visionFile(vi, p.optString("name")));
+                    pct = percent(p);
                 } else if (s.optBoolean("engine_busy")) {
                     text = Texts.working(lang);
                 }
@@ -115,6 +121,16 @@ public class WorkService extends Service {
         running = false;
         stopForeground(STOP_FOREGROUND_REMOVE);
         stopSelf();
+    }
+
+    /** The file name of a picture file by its id (vision.files of /api/state). */
+    private static String visionFile(JSONObject vision, String id) {
+        JSONArray files = vision.optJSONArray("files");
+        for (int i = 0; files != null && i < files.length(); i++) {
+            JSONObject f = files.optJSONObject(i);
+            if (f != null && id.equals(f.optString("id"))) return f.optString("file", id);
+        }
+        return id;
     }
 
     private static int percent(JSONObject d) {

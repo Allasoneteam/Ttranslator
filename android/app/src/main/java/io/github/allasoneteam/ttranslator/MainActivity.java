@@ -412,7 +412,9 @@ public class MainActivity extends Activity {
      * menu, a voice) or the engine (a translation, a question, the test).
      */
     private static boolean startsWork(String p) {
-        return p != null && (p.equals("/api/setup") || p.equals("/api/model") || p.equals("/api/voice") || p.startsWith("/v1/"));
+        // 1.3: /api/vision — the download of the picture file of the model (mmproj) and the engine restart with it
+        return p != null && (p.equals("/api/setup") || p.equals("/api/model") || p.equals("/api/voice") || p.equals("/api/vision")
+            || p.startsWith("/v1/"));
     }
 
     /** Android 13+: may the notification be shown? Asked once, at the first work (without it the work runs all the same). */
