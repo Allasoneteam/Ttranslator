@@ -1401,7 +1401,7 @@ const HELP = {
       '- «Распознать»: модель Gemma 4 читает текст страниц-картинок (сканов, фото). Для этого ей нужен ещё один файл — около 0,6 ГБ на размер модели (E2B или E4B); программа предложит скачать его при первом распознавании (его можно скачать и в меню моделей). Пока читаются картинки, модель занимает в памяти примерно на 0,6 ГБ больше. На компьютере страница распознаётся за одну–три минуты: сначала модель около минуты смотрит на страницу — крутится фиолетовый значок и идёт время, — потом пишет её текст.',
       '- В PDF с текстом (большинство статей и документов) текст страниц берётся как есть, без модели; распознаются только страницы-сканы. PDF открывает библиотека PDF.js прямо в окне, без интернета.',
       '- Документы .docx и .odt: текст по абзацам, таблицы — строка за строкой (ячейки через «|»), списки — с номерами, сноски — в конце текста, формулы — в LaTeX между знаками $ (перевод их не меняет). Страницы — как в файле, если он их помнит. Старый формат .doc не читается — сохраните файл в Word или LibreOffice как .docx.',
-      '- Распознанный текст можно поправить перед переводом. «Перевести» переводит страницы по абзацам на язык результата вверху — со словарём и формулами, как в рабочем окне. Если поправить текст после перевода, перевод помечается устаревшим; «Перевести» обновит его.',
+      '- Распознанный текст можно поправить перед переводом. «Перевести» переводит страницы по абзацам на язык результата вверху — со словарём и формулами, как в рабочем окне. Если поправить текст после перевода, перевод помечается устаревшим; «Перевести» обновит его. Под текстом страницы и под переводом — кнопки 🔊 (прочитать вслух) и «Копировать».',
       '- «Сохранить .txt» сохраняет перевод (с галочкой «с оригиналом» — и текст страниц). Модель может ошибиться при распознавании — сверяйте важное с картинкой (щелчок по ней показывает её крупно).'],
     ['Чтение вслух',
       'Кнопка 🔊 у поля текста, у каждого варианта, у «Своего варианта» и у ответов модели читает текст вслух. Пока текст звучит, кнопка и текст подсвечены зелёным; второе нажатие — пауза (подсветка текста снимается), третье — продолжить. Кнопка ■ рядом, Esc или другая кнопка 🔊 останавливают чтение; правка текста — тоже. Формулы LaTeX не читаются.',
@@ -1463,7 +1463,7 @@ const HELP = {
       '- “Recognize”: Gemma 4 reads the text of picture pages (scans, photos). For this it needs one more file, about 0.6 GB per model size (E2B or E4B); the program offers to download it the first time (it can also be downloaded in the model menu). While it reads pictures, the model takes about 0.6 GB more memory. On a computer a page takes one to three minutes: first the model looks at the page for about a minute (a purple icon spins and the time runs), then it writes out its text.',
       '- In PDFs with text (most papers and documents) the text of the pages is taken as it is, without the model; only scanned pages are recognized. PDFs are opened by the PDF.js library right in the window, without the internet.',
       '- .docx and .odt documents: the text by paragraphs, tables row by row (cells divided by “|”), lists with their numbers, footnotes at the end of the text, formulas in LaTeX between $ signs (the translation does not change them). The pages are those of the file if it remembers them. The old .doc format cannot be read: save the file in Word or LibreOffice as .docx.',
-      '- You can correct the recognized text before translating. “Translate” translates the pages paragraph by paragraph into the result language at the top, with the glossary and formulas as in the main window. If you change the text after translating, the translation is marked out of date; “Translate” updates it.',
+      '- You can correct the recognized text before translating. “Translate” translates the pages paragraph by paragraph into the result language at the top, with the glossary and formulas as in the main window. If you change the text after translating, the translation is marked out of date; “Translate” updates it. Under the text of a page and under its translation there are the 🔊 (read aloud) and “Copy” buttons.',
       '- “Save .txt” saves the translation (with “with the original” checked, also the text of the pages). The model can make recognition mistakes: check important things against the picture (a click on it shows it larger).'],
     ['Reading aloud',
       'The 🔊 button at the text field, at every variant, at “Your version” and at the model’s answers reads the text aloud. While the text is read, the button and the text are highlighted in green; a second click pauses (the text is no longer highlighted), a third continues. The ■ button next to it, Esc or another 🔊 button stops reading, and so does editing the text. LaTeX formulas are not read.',
@@ -1525,7 +1525,7 @@ const HELP = {
       '- „Erkennen“: Gemma 4 liest den Text von Bildseiten (Scans, Fotos). Dafür braucht es eine weitere Datei, etwa 0,6 GB je Modellgröße (E2B oder E4B); das Programm bietet beim ersten Erkennen an, sie herunterzuladen (auch im Modellmenü möglich). Solange es Bilder liest, braucht das Modell etwa 0,6 GB mehr Speicher. Am Computer dauert eine Seite ein bis drei Minuten: Zuerst betrachtet das Modell die Seite etwa eine Minute lang (ein violettes Symbol dreht sich, die Zeit läuft), dann schreibt es ihren Text.',
       '- In PDFs mit Text (die meisten Artikel und Dokumente) wird der Text der Seiten so übernommen, wie er ist, ohne Modell; erkannt werden nur gescannte Seiten. PDFs öffnet die Bibliothek PDF.js direkt im Fenster, ohne Internet.',
       '- Dokumente .docx und .odt: der Text absatzweise, Tabellen Zeile für Zeile (Zellen durch „|“ getrennt), Listen mit ihren Nummern, Fußnoten am Ende des Textes, Formeln als LaTeX zwischen $-Zeichen (die Übersetzung ändert sie nicht). Die Seiten sind die der Datei, wenn sie sie kennt. Das alte Format .doc lässt sich nicht lesen – speichern Sie die Datei in Word oder LibreOffice als .docx.',
-      '- Den erkannten Text können Sie vor der Übersetzung korrigieren. „Übersetzen“ übersetzt die Seiten absatzweise in die Zielsprache oben, mit Glossar und Formeln wie im Hauptfenster. Ändern Sie den Text nach der Übersetzung, wird die Übersetzung als veraltet markiert; „Übersetzen“ erneuert sie.',
+      '- Den erkannten Text können Sie vor der Übersetzung korrigieren. „Übersetzen“ übersetzt die Seiten absatzweise in die Zielsprache oben, mit Glossar und Formeln wie im Hauptfenster. Ändern Sie den Text nach der Übersetzung, wird die Übersetzung als veraltet markiert; „Übersetzen“ erneuert sie. Unter dem Text einer Seite und unter ihrer Übersetzung stehen die Schaltflächen 🔊 (vorlesen) und „Kopieren“.',
       '- „.txt speichern“ speichert die Übersetzung (mit Häkchen „mit Original“ auch den Text der Seiten). Das Modell kann sich beim Erkennen irren – prüfen Sie Wichtiges am Bild (ein Klick darauf zeigt es groß).'],
     ['Vorlesen',
       'Die Schaltfläche 🔊 beim Textfeld, bei jeder Variante, bei „Ihre Fassung“ und bei den Antworten des Modells liest den Text vor. Während der Text vorgelesen wird, sind Schaltfläche und Text grün hervorgehoben; ein zweiter Klick pausiert (der Text ist dann nicht mehr hervorgehoben), ein dritter setzt fort. Die Schaltfläche ■ daneben, Esc oder eine andere Schaltfläche 🔊 beendet das Vorlesen, ebenso das Bearbeiten des Textes. LaTeX-Formeln werden nicht vorgelesen.',
@@ -1587,7 +1587,7 @@ const HELP = {
       '- «Reconocer»: Gemma 4 lee el texto de las páginas de imagen (escaneos, fotos). Para ello necesita un archivo más, de unos 0,6 GB por tamaño de modelo (E2B o E4B); el programa le ofrecerá descargarlo la primera vez (también puede descargarlo en el menú de modelos). Mientras lee imágenes, el modelo ocupa unos 0,6 GB más de memoria. En un ordenador, una página tarda de uno a tres minutos: primero el modelo mira la página durante un minuto aproximadamente (gira un icono violeta y corre el tiempo) y luego escribe su texto.',
       '- En los PDF con texto (la mayoría de artículos y documentos) el texto de las páginas se toma tal cual, sin el modelo; solo se reconocen las páginas escaneadas. Los PDF los abre la biblioteca PDF.js en la propia ventana, sin internet.',
       '- Documentos .docx y .odt: el texto por párrafos, las tablas fila a fila (celdas separadas por «|»), las listas con sus números, las notas al pie al final del texto y las fórmulas en LaTeX entre signos $ (la traducción no las cambia). Las páginas son las del archivo, si las recuerda. El formato antiguo .doc no se puede leer: guarde el archivo en Word o LibreOffice como .docx.',
-      '- Puede corregir el texto reconocido antes de traducirlo. «Traducir» traduce las páginas párrafo a párrafo al idioma de destino de arriba, con el glosario y las fórmulas como en la ventana principal. Si cambia el texto después de traducirlo, la traducción se marca como desactualizada; «Traducir» la actualiza.',
+      '- Puede corregir el texto reconocido antes de traducirlo. «Traducir» traduce las páginas párrafo a párrafo al idioma de destino de arriba, con el glosario y las fórmulas como en la ventana principal. Si cambia el texto después de traducirlo, la traducción se marca como desactualizada; «Traducir» la actualiza. Debajo del texto de cada página y de su traducción están los botones 🔊 (leer en voz alta) y «Copiar».',
       '- «Guardar .txt» guarda la traducción (con la casilla «con el original», también el texto de las páginas). El modelo puede equivocarse al reconocer: compruebe lo importante con la imagen (al pulsarla se ve en grande).'],
     ['Lectura en voz alta',
       'El botón 🔊 junto al campo de texto, a cada variante, a «Su versión» y a las respuestas del modelo lee el texto en voz alta. Mientras suena, el botón y el texto se resaltan en verde; un segundo clic hace una pausa (el texto deja de estar resaltado) y un tercero continúa. El botón ■ de al lado, Esc u otro botón 🔊 detienen la lectura, y también editar el texto. Las fórmulas LaTeX no se leen.',
@@ -1649,7 +1649,7 @@ const HELP = {
       '- “识别”：Gemma 4 读取图片页面（扫描件、照片）上的文字。为此它还需要一个文件，每种模型大小（E2B 或 E4B）约 0.6 GB；首次识别时程序会提示下载（也可在模型菜单中下载）。读取图片时，模型多占用约 0.6 GB 内存。在电脑上每页需要一到三分钟：模型先查看页面约一分钟（紫色图标旋转，并显示用时），然后写出页面文字。',
       '- 对于含文字的 PDF（大多数论文和文档），页面文字直接提取，无需模型；只有扫描页需要识别。PDF 由 PDF.js 库直接在窗口中打开，无需联网。',
       '- .docx 和 .odt 文档：文字按段落提取，表格逐行显示（单元格以“|”分隔），列表保留编号，脚注位于文末，公式以 LaTeX 写在 $ 符号之间（翻译不会改动）。如果文件记录了分页，页面与文件一致。旧的 .doc 格式无法读取：请在 Word 或 LibreOffice 中将文件另存为 .docx。',
-      '- 翻译前可以修改识别出的文字。“翻译”会把页面逐段翻译成上方选择的目标语言，术语表和公式的处理与主窗口相同。翻译后若修改了文字，译文会被标记为过时，再点“翻译”即可更新。',
+      '- 翻译前可以修改识别出的文字。“翻译”会把页面逐段翻译成上方选择的目标语言，术语表和公式的处理与主窗口相同。翻译后若修改了文字，译文会被标记为过时，再点“翻译”即可更新。页面文字和译文下方都有 🔊（朗读）和“复制”按钮。',
       '- “保存 .txt”保存译文（勾选“包含原文”时也保存页面文字）。模型识别可能出错——重要内容请对照图片核对（点击图片可放大查看）。'],
     ['朗读',
       '文本框、每个版本、“您的版本”和模型回答旁的 🔊 按钮可以朗读文本。朗读时按钮和文本以绿色突出显示；再点一次暂停（文本不再突出显示），第三次继续。旁边的 ■ 按钮、Esc 或另一个 🔊 按钮会停止朗读，编辑文本也会停止朗读。LaTeX 公式不会被朗读。',
@@ -2239,6 +2239,8 @@ function renderDir() {
   $('#goLabel').textContent = d.edit ? t('Обработать') : t('Перевести');
   const sp = $('#srcSpeak');
   if (sp.dataset.lang !== d.src) { if (speech && speech.btn === sp) stopSpeech(); sp.dataset.lang = d.src; updateSpeakBtn(sp); }
+  // выбрали язык текста вверху — кнопки 🔊 под текстом страниц документа читают на нём
+  if (DOC && LS.src !== docSpeakSel) { docSpeakSel = LS.src; for (const p of DOC.pages) docSrcSpeakLang(p); }
   if (d.edit !== lastEdit) {
     lastEdit = d.edit;
     $('#chipsLabel').textContent = d.edit ? t('Варианты правки') : t('Стили вариантов');
@@ -2598,9 +2600,12 @@ async function copyText(t) {
   }
 }
 
-async function copyCard(c, btn) {
-  const ok = await copyText(c.text);
-  if (!ok) { toast(t('Не удалось скопировать')); return; }
+async function copyCard(c, btn) { return copyWithCheck(btn, c.text); }
+
+// Копировать и на миг показать ✓ на кнопке (варианты перевода, текст и перевод страницы документа).
+async function copyWithCheck(btn, text) {
+  if (!text) return;
+  if (!(await copyText(text))) { toast(t('Не удалось скопировать')); return; }
   btn.innerHTML = ICON.check; btn.classList.add('on');
   setTimeout(() => { btn.innerHTML = ICON.copy; btn.classList.remove('on'); }, 1400);
 }
@@ -5411,6 +5416,7 @@ let docCtl = null;     // идёт распознавание или перев�
 let pdfjsLib = null;   // PDF.js загружается при первом PDF
 let thumbQueue = Promise.resolve();
 let docObserver = null;
+let docSpeakSel = null; // язык текста, выбранный вверху, на котором последний раз настроены 🔊 под текстом страниц
 
 const docOpen = () => !$('#docView').hidden;
 const docAbort = () => { const e = new Error('aborted'); e.name = 'AbortError'; return e; };
@@ -5734,7 +5740,18 @@ function renderDocPages() {
     src.setAttribute('aria-label', t('Текст страницы {n}', { n: p.n }));
     src.addEventListener('input', () => { p.src = src.value; if (p.from === 'ocr') p.edited = true; fitDocSrc(src); docPageMeta(p); docRefresh(); });
     stopSpeechOnEdit(src);
-    cols.appendChild(src);
+    const left = el('div');
+    left.appendChild(src);
+    // Под текстом страницы — те же кнопки, что под переводом (просьба автора от 22.11.2026): прочитать вслух — на языке
+    // текста, как при переводе (выбранном вверху или определённом по тексту), и копировать.
+    const stools = el('div', 'doc-tools');
+    const ssp = speakButton(docSrcLang(p), (b) => speakToggle(b, src, p.src, docSrcLang(p)));
+    const scp = el('button', 'icon'); scp.type = 'button'; scp.innerHTML = ICON.copy;
+    scp.title = t('Копировать текст'); scp.setAttribute('aria-label', scp.title);
+    scp.onclick = () => copyWithCheck(scp, p.src);
+    stools.appendChild(ssp); stools.appendChild(scp);
+    left.appendChild(stools);
+    cols.appendChild(left);
     const right = el('div');
     const tgt = el('div', 'doc-tgt');
     tgt.dir = 'auto';
@@ -5745,13 +5762,13 @@ function renderDocPages() {
     const sp = speakButton(p.tgtLang, (b) => speakToggle(b, tgt, p.tgt, p.tgtLang));
     const cp = el('button', 'icon'); cp.type = 'button'; cp.innerHTML = ICON.copy;
     cp.title = t('Копировать перевод'); cp.setAttribute('aria-label', cp.title);
-    cp.onclick = () => { if (p.tgt) copyText(p.tgt); };
+    cp.onclick = () => copyWithCheck(cp, p.tgt);
     tools.appendChild(sp); tools.appendChild(cp);
     right.appendChild(tools);
     cols.appendChild(right);
     sec.appendChild(cols);
     box.appendChild(sec);
-    p.ui = { sec, meta, readB, trB, img, src, tgt, sp };
+    p.ui = { sec, meta, readB, trB, img, src, tgt, sp, ssp };
     docPageMeta(p);
     if (p.src) requestAnimationFrame(() => fitDocSrc(src));
     if (DOC.kind === 'pdf' && !p.thumb) { if (docObserver) docObserver.observe(sec); else queueThumb(p); }
@@ -5816,6 +5833,24 @@ function docPageMeta(p) {
   p.ui.readB.textContent = p.src && p.from === 'ocr' ? t('Распознать заново') : t('Распознать');
   p.ui.sp.dataset.lang = p.tgtLang || '';
   updateSpeakBtn(p.ui.sp);
+  docSrcSpeakLang(p);
+}
+
+// Язык текста страницы — как при переводе (resolveDir), но без побочных действий: выбранный вверху или определённый
+// по тексту страницы.
+function docSrcLang(p) {
+  let l = LS.src;
+  if (l === 'auto') l = detectLang(p.src || '') || LS.lastDetected || UI_LANG;
+  return LANGS[l] ? l : LANGS[UI_LANG] ? UI_LANG : 'en';
+}
+// Кнопка 🔊 под текстом страницы следует за языком текста; если он сменился во время чтения — чтение прекращается.
+function docSrcSpeakLang(p) {
+  const b = p.ui && p.ui.ssp;
+  if (!b) return;
+  const l = docSrcLang(p);
+  if (b.dataset.lang === l) return;
+  if (speech && speech.btn === b) stopSpeech();
+  b.dataset.lang = l; updateSpeakBtn(b);
 }
 
 // Страница в работе: рамка, вращающийся значок, что делается и сколько времени прошло (каждую секунду).
@@ -6914,6 +6949,7 @@ const I18N = {
   'В поле': ['To field', 'Ins Feld', 'Al campo', '填入'],
   'Вставить исходный текст в поле перевода; языки — как у этой записи. Перевод сам не запускается': ['Put the source text into the input field, with the languages of this entry. The translation does not start by itself', 'Den Ausgangstext ins Eingabefeld setzen, mit den Sprachen dieses Eintrags. Die Übersetzung startet nicht von selbst', 'Poner el texto original en el campo de entrada, con los idiomas de esta entrada. La traducción no empieza sola', '把原文填入输入框，语言与此条目相同。不会自动开始翻译'],
   'Копировать перевод': ['Copy the translation', 'Übersetzung kopieren', 'Copiar la traducción', '复制译文'],
+  'Копировать текст': ['Copy the text', 'Text kopieren', 'Copiar el texto', '复制原文'],
   // документ: картинки, PDF и текстовые файлы (1.3)
   'PDF защищён паролем': ['the PDF is password-protected', 'das PDF ist passwortgeschützt', 'el PDF está protegido con contraseña', 'PDF 受密码保护'],
   '{m} · картинки и речь': ['{m} · pictures and speech', '{m} · Bilder und Sprache', '{m} · imágenes y voz', '{m} · 图片和语音'],

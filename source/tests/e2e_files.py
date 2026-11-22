@@ -192,6 +192,25 @@ with sync_playwright() as pw:
     meta = page.inner_text('.doc-page .doc-meta')
     ok('распознано за' in meta and 'картинка 9,0 с, текст 21,0 с' in meta and '1 293 знака' in meta.replace('\u00a0', ' '), 'the page meta: ' + meta)
     ok(page.input_value('.doc-page .doc-src').count('\n\n') == 2, 'three paragraphs in the text of the page')
+    # the author's wish of 22.11.2026: under the text of the page too — 🔊 and «Копировать», as under the translation
+    tools = page.locator('.doc-page').nth(0).locator('.doc-tools')
+    scopy = tools.nth(0).locator('button.icon:not(.speak)')
+    ok(tools.count() == 2 and tools.nth(0).locator('button.speak').get_attribute('data-lang') == 'ru' and scopy.get_attribute('title') == 'Копировать текст',
+       'under the text of the page: 🔊 in the language of the text (ru) and «Копировать текст»')
+    page.evaluate("() => { window.__copied = null; navigator.clipboard.writeText = async (x) => { window.__copied = x; }; }")
+    scopy.click()
+    ok(wait(lambda: page.evaluate('() => window.__copied') == page.input_value('.doc-page .doc-src'), 5) and 'on' in (scopy.get_attribute('class') or ''),
+       '«Копировать текст»: the text of the page is copied, ✓ on the button')
+    page.evaluate("() => { window.__spoke = null; window.__speakToggle = speakToggle; window.speakToggle = (b, host, text, lang) => { window.__spoke = { text, lang, host: host.className }; }; }")
+    tools.nth(0).locator('button.speak').click()
+    sp = page.evaluate('() => window.__spoke') or {}
+    page.select_option('#srcSel', 'de')
+    lang_de = tools.nth(0).locator('button.speak').get_attribute('data-lang')
+    page.select_option('#srcSel', 'auto')
+    page.evaluate('() => { window.speakToggle = window.__speakToggle; }')
+    ok(sp.get('lang') == 'ru' and (sp.get('text') or '').startswith('Отсканированная страница') and 'doc-src' in (sp.get('host') or '')
+       and lang_de == 'de' and tools.nth(0).locator('button.speak').get_attribute('data-lang') == 'ru',
+       '🔊 under the text reads the text of the page in its language; it follows the language chosen at the top (%s, de → %s)' % (sp.get('lang'), lang_de))
     page.screenshot(path=os.path.join(shots, '3-recognized.png'))
 
     # ================= translation by parts; an edit makes it out of date; save
@@ -207,6 +226,9 @@ with sync_playwright() as pw:
     ok('{F1}' in tr[-1]['messages'][0]['content'] and '$E = mc^2$' not in tr[-1]['messages'][0]['content'], 'the formula goes to the model as a mark')
     tgt = page.inner_text('.doc-page .doc-tgt')
     ok(tgt.count('EN[') == nchunks and '\n\n' in tgt and 'переведено за' in page.inner_text('.doc-page .doc-meta'), 'the translation: all parts, joined; meta')
+    ok(page.locator('.doc-page').nth(0).locator('.doc-tools').nth(1).locator('button.speak').get_attribute('data-lang') == 'en'
+       and page.locator('.doc-page').nth(0).locator('.doc-tools').nth(0).locator('button.speak').get_attribute('data-lang') == 'ru',
+       '🔊 under the translation — English, under the text — still Russian')
     page.fill('.doc-page .doc-src', page.input_value('.doc-page .doc-src') + ' Ещё.')
     ok('перевод устарел' in page.inner_text('.doc-page .doc-meta'), 'an edit: the translation is out of date')
     page.check('#docWithSrc')
@@ -224,6 +246,7 @@ with sync_playwright() as pw:
     pg = page.locator('.doc-page')
     t1 = pg.nth(0).locator('.doc-src').input_value()
     ok(t1 == 'The first paragraph of the text page continues on this line.\n\nA second paragraph after a gap.', 'page 1: the text of the PDF, two paragraphs: %r' % t1)
+    ok(pg.nth(0).locator('.doc-tools').nth(0).locator('button.speak').get_attribute('data-lang') == 'en', '🔊 under the English text of page 1 — English')
     ok('текст из PDF' in pg.nth(0).locator('.doc-meta').inner_text() and pg.nth(0).locator('button', has_text='Распознать').is_hidden()
        and 'картинка' in pg.nth(1).locator('.doc-meta').inner_text() and pg.nth(1).locator('.doc-src').input_value() == '',
        'page 2: a scan, no text yet')
