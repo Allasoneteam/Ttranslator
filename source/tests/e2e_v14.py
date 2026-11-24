@@ -145,6 +145,9 @@ with sync_playwright() as pw:
     note = page.inner_text('#cleanNote')
     ok(re.search(r'Речь \d+,\d с → текст за \d+,\d с \(звук 4,2 с, текст 1,3 с\)', note) is not None, 'under the field: ' + note)
     ok('rec' not in mb.get_attribute('class'), '🎤 is not red any more')
+    cy, my = page.locator('#counter').bounding_box()['y'], mb.bounding_box()['y']
+    ok(page.evaluate("document.querySelector('#cleanNote').classList.contains('own-line')") and abs(cy - my) < 12,
+       'the long line under the field stands on its own line; the counter stays in the row of 🎤: %.0f / %.0f' % (cy, my))
     page.screenshot(path=os.path.join(shots, '3-translated.png'))
     page.wait_for_selector('#goBtn:not([hidden])', timeout=30000)
 
@@ -244,7 +247,7 @@ with sync_playwright() as pw:
     page.click('#speechTestBtn')   # stop: during English (or between the languages)
     ok(wait(lambda: page.inner_text('#speechTestBtn') == 'Продолжить тест речи', 30), 'stopped — the button continues: ' + page.inner_text('#speechTestBtn'))
     row = page.inner_text('#testSummary table tbody tr >> nth=0')
-    ok(row.startswith('Русский') and '0,0 %' in row, 'the interface language first, no wrong characters: ' + row.replace('\t', ' | '))
+    ok(row.startswith('Русский') and '0,0 %' in row and 'Русский · ' not in row, 'the interface language first, no wrong characters: ' + row.replace('\t', ' | '))
     first = audio_calls()[0]['messages'][0]['content']
     sr, ch, sw, sec = wav_info(first[1]['input_audio']['data'])
     ok('in Russian into Russian text.' in first[0]['text'] and sr == 16000 and 2 < sec < 12, 'a phrase read by the voice: 16 kHz, %.1f s' % sec)

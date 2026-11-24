@@ -182,6 +182,7 @@ body.drag-file::after { content: attr(data-drop); position: fixed; inset: 10px; 
 #micBtn.rec { color: #fff; background: var(--danger); border-color: var(--danger);
   box-shadow: 0 0 0 calc(2px + 7px * var(--lvl, 0)) color-mix(in srgb, var(--danger) 30%, transparent); transition: box-shadow .12s; }
 body.no-tts #micBtn, body.no-tts #speechTestBtn { display: none; }
+#randomBtn.confirm #randomLabel, #lessonBtn.confirm #lessonLabel { display: inline !important; }
 @media (max-width: 760px) {
   .doc-cols, .doc-page.has-img .doc-cols, .doc-page.has-audio .doc-cols { grid-template-columns: 1fr; }
   .doc-img { max-width: 240px; }
@@ -6539,7 +6540,7 @@ let mic = null;   // идёт запись: { ctx, stream, src, node, chunks, n,
 // Подготовка модели для 🎤: ход — в строке под полем текста, вопрос о скачивании — под ней.
 const MIC_VISION_UI = {
   note: (s) => formError(s),
-  status: (s) => setNote(s, false, !!s),
+  status: (s) => setNote(s, true, !!s),
   confirm: (f, sig) => confirmVision(f, sig, $('#srcTools'), true),
   loading: () => t('Загружаю модель вместе с файлом для картинок и речи…'),
   downloading: (p) => t('Скачиваю файл для картинок и речи: {p} %', { p }),
@@ -6571,7 +6572,7 @@ async function micToggle() {
   const m = { ctx, chunks: [], n: 0, rate: ctx.sampleRate, level: 0 };
   mic = m;
   $('#micBtn').classList.add('rec');
-  setNote(t('Включаю микрофон…'));
+  setNote(t('Включаю микрофон…'), true);
   try {
     m.stream = await md.getUserMedia({ audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true, autoGainControl: true } });
   } catch (e) {
@@ -6597,7 +6598,7 @@ async function micToggle() {
   const tick = () => {
     if (mic !== m) return;
     const o = { t: fmtClock(1000 * m.n / m.rate), max: fmtClock(1000 * LISTEN.maxSeconds) };
-    setNote(ANDROID ? t('Запись {t} из {max} — говорите; ещё раз 🎤 — готово', o) : t('Запись {t} из {max} — говорите; ещё раз 🎤 — готово, Esc — отмена', o));
+    setNote(ANDROID ? t('Запись {t} из {max} — говорите; ещё раз 🎤 — готово', o) : t('Запись {t} из {max} — говорите; ещё раз 🎤 — готово, Esc — отмена', o), true);
     $('#micBtn').style.setProperty('--lvl', Math.min(1, m.level * 2.5).toFixed(2));
     m.level *= 0.5;
   };
@@ -6644,7 +6645,7 @@ async function micPrepare() {
   setBusy(true);
   $('#micBtn').disabled = true;
   try {
-    setNote(await ensureVision(abortCtl.signal, MIC_VISION_UI) ? t('Готово: нажмите 🎤 и говорите') : '');
+    setNote(await ensureVision(abortCtl.signal, MIC_VISION_UI) ? t('Готово: нажмите 🎤 и говорите') : '', true);
   } catch (e) {
     setNote('');
     if (e.name !== 'AbortError') { formError(errText(await visionFailed(e))); refreshState(); }
@@ -6669,7 +6670,7 @@ async function micRecognize(raw, rate) {
     if (!(await ensureVision(sig, MIC_VISION_UI))) { setNote(''); return; }
     const t0 = performance.now();
     let phase = t('Модель слушает запись…');
-    const show = () => setNote(phase + ' ' + fmtClock(performance.now() - t0), false, true);
+    const show = () => setNote(phase + ' ' + fmtClock(performance.now() - t0), true, true);
     show();
     clock = setInterval(show, 1000);
     res = await listenRequest(pcm, lang, sig, () => { if (phase !== t('Модель пишет текст…')) { phase = t('Модель пишет текст…'); show(); } });
@@ -6689,7 +6690,7 @@ async function micRecognize(raw, rate) {
   insertAtCursor(field, res.text);
   formError(''); updateCounter(); renderDir();
   const info = listenInfo(res.timings);
-  setNote(t('Речь {a} → текст за {b}', { a: fmtSec(speechMs), b: fmtSec(res.ms) }) + (info ? ' (' + info + ')' : ''));
+  setNote(t('Речь {a} → текст за {b}', { a: fmtSec(speechMs), b: fmtSec(res.ms) }) + (info ? ' (' + info + ')' : ''), true);
   if (field.value.length > MAX_CHARS) { formError(t('Текст длиннее {max} знаков — сократите его или переводите по частям', { max: MAX_CHARS })); return; }
   // правило автора от 24.11.2026: язык текста и язык результата одинаковые — только текст в поле
   if (resolveDir(field.value).edit) { field.focus(); return; }
@@ -6887,7 +6888,7 @@ async function runSpeechTest() {
       const v = voiceFor(lang);
       if (!v) { st.skipped.push(lang); renderSpeechSummary(st); continue; }
       const phrases = LISTEN_TEST[lang] || [];
-      const res = { lang, voice: voiceLabel(v), phrases: [] };
+      const res = { lang, voice: voiceLabel(v).replace(langName(lang) + ' · ', ''), phrases: [] };
       for (let k = 0; k < phrases.length; k++) {
         if (sig.aborted) throw docAbort();
         const done = st.langs.length + st.skipped.length;
@@ -8199,13 +8200,17 @@ function fitSrc() {
   if (h === cur) t.scrollTop = top;
 }
 
-// Строка под полем текста — по возможности в одну строку: если подпись «Файл» («Документ») не помещается (узкое окно,
-// широкий шрифт, длинные подписи на другом языке), кнопка остаётся значком с подсказкой — иначе счётчик знаков уходит
-// на вторую строку и поле текста становится ниже.
+// Строка под полем текста — по возможности в одну строку: если подписи не помещаются (узкое окно, широкий шрифт,
+// длинные подписи на другом языке), кнопки по очереди остаются значками с подсказкой — «Файл» («Документ»), затем
+// (1.4: в строке ещё и 🎤) «Учебный пример» и «Случайно»; иначе счётчик знаков уходит на вторую строку и поле текста
+// становится ниже. Вопрос «Заменить текст?» у «Случайно» и «Учебного примера» виден всегда (стили: .confirm).
 function fitSrcTools() {
-  const lab = $('#fileLabel'), c = $('#counter'), r = $('#randomBtn');
-  lab.hidden = false;
-  if (c.offsetTop > r.offsetTop + r.offsetHeight / 2) lab.hidden = true;
+  const c = $('#counter'), r = $('#randomBtn'), labs = [$('#fileLabel'), $('#lessonLabel'), $('#randomLabel')];
+  for (const l of labs) l.hidden = false;
+  for (const l of labs) {
+    if (c.offsetTop <= r.offsetTop + r.offsetHeight / 2) return;
+    l.hidden = true;
+  }
 }
 
 // Значок вкладки и окна программы — тот же рисунок; в тёмной теме системы — светлее.
