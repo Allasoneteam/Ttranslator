@@ -49,7 +49,7 @@ import (
 
 const (
 	appID      = "tdoc-translator"
-	appVersion = "1.3"
+	appVersion = "1.4"
 
 	// model selected on first start and when the configured one is gone
 	defaultModelID = "g4-e2b"
@@ -1524,6 +1524,22 @@ func jsonError(w http.ResponseWriter, code int, msg string) {
 	writeJSON(w, code, map[string]any{"error": msg})
 }
 
+// reportName: the file name (without extension) of a test report in data/reports. The quick test — quick-test-…,
+// the full test — test-…, the speech test (1.4) — speech-test-<the time of its start>: the page sends the same stamp
+// after each language, so one report grows; a stamp that is not a date and time is replaced by now.
+func reportName(kind, stamp string, now time.Time) string {
+	switch kind {
+	case "quick":
+		return "quick-test-" + now.Format("2006-01-02_15-04-05")
+	case "speech":
+		if _, err := time.Parse("2006-01-02_15-04-05", stamp); err != nil {
+			stamp = now.Format("2006-01-02_15-04-05")
+		}
+		return "speech-test-" + stamp
+	}
+	return "test-" + now.Format("2006-01-02_15-04-05")
+}
+
 // guard rejects requests from other sites (DNS rebinding / cross-site POST).
 func (a *App) guard(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -1713,16 +1729,14 @@ func (a *App) routes() http.Handler {
 		var req struct {
 			Markdown string          `json:"markdown"`
 			JSON     json.RawMessage `json:"json"`
-			Kind     string          `json:"kind"` // "quick": the quick test (1.0), else the full one
+			Kind     string          `json:"kind"`  // "quick": the quick test (1.0), "speech": the speech test (1.4), else the full one
+			Stamp    string          `json:"stamp"` // the speech test: the time of its start — the same report is rewritten after each language
 		}
 		if err := json.NewDecoder(io.LimitReader(r.Body, 8*1024*1024)).Decode(&req); err != nil {
 			jsonError(w, 400, tr("неверный запрос"))
 			return
 		}
-		name := "test-" + time.Now().Format("2006-01-02_15-04-05")
-		if req.Kind == "quick" {
-			name = "quick-" + name
-		}
+		name := reportName(req.Kind, req.Stamp, time.Now())
 		md := filepath.Join(a.reportsDir, name+".md")
 		if err := os.WriteFile(md, []byte(req.Markdown), 0o644); err != nil {
 			jsonError(w, 500, err.Error())

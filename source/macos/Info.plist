@@ -3,7 +3,8 @@
 <!-- Ttranslator.app (macOS, 1.1). source/release-macos.sh puts the version of the launcher (appVersion) for @VERSION@.
      LSUIElement: the launcher (Contents/MacOS/Ttranslator) has no window and no Dock icon; the window program
      (Contents/MacOS/ttranslator-window) makes itself a regular app with the Dock icon and the menu bar.
-     NSAllowsLocalNetworking: the window shows the pages of the launcher at http://127.0.0.1. -->
+     NSAllowsLocalNetworking: the window shows the pages of the launcher at http://127.0.0.1.
+     NSMicrophoneUsageDescription (1.4): dictation — macOS asks once whether Ttranslator may use the microphone. -->
 <plist version="1.0">
 <dict>
 	<key>CFBundleDevelopmentRegion</key>
@@ -48,6 +49,8 @@
 	<true/>
 	<key>NSHumanReadableCopyright</key>
 	<string>Copyright (c) 2026 Allasoneteam and Ttranslator authors. MIT License</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Ttranslator uses the microphone for dictation: your speech is recognized on this Mac by the local model and is not sent anywhere.</string>
 	<key>NSAppTransportSecurity</key>
 	<dict>
 		<key>NSAllowsLocalNetworking</key>

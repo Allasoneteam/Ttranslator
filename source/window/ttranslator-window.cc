@@ -319,6 +319,7 @@ private:
 // IIDs from WebView2.h (MIDL_INTERFACE uuids; MinGW has no __uuidof for them).
 const IID kNewWindowRequestedHandler = {0xd4c185fe, 0xc81c, 0x4989, {0x97, 0xaf, 0x2d, 0x3f, 0xa7, 0xab, 0x56, 0x51}};
 const IID kNavigationStartingHandler = {0x9adbe429, 0xf36d, 0x432b, {0x9d, 0xdc, 0xf8, 0x88, 0x1f, 0xbd, 0x76, 0xe3}};
+const IID kPermissionRequestedHandler = {0x15e1c6a3, 0xc72a, 0x4df3, {0x91, 0xd7, 0xd0, 0x97, 0xfb, 0xec, 0x6b, 0xfd}};
 
 std::string take_uri(LPWSTR uri) {
   std::string u = narrow(uri);
@@ -354,6 +355,18 @@ void guard_navigation() {
       });
   core->add_NavigationStarting(ns, &token);
   ns->Release();
+  // 1.4: the microphone for dictation — allowed for the pages of the launcher (WebView2 would ask every time; Windows
+  // itself still decides: Settings → Privacy → Microphone). Other permissions keep the library's handling.
+  auto *pr = new event_handler<ICoreWebView2PermissionRequestedEventHandler, ICoreWebView2PermissionRequestedEventArgs>(
+      kPermissionRequestedHandler, [](ICoreWebView2PermissionRequestedEventArgs *a) {
+        COREWEBVIEW2_PERMISSION_KIND kind;
+        if (FAILED(a->get_PermissionKind(&kind)) || kind != COREWEBVIEW2_PERMISSION_KIND_MICROPHONE) return;
+        LPWSTR uri = nullptr;
+        a->get_Uri(&uri);
+        if (allowed_inside(take_uri(uri))) a->put_State(COREWEBVIEW2_PERMISSION_STATE_ALLOW);
+      });
+  core->add_PermissionRequested(pr, &token);
+  pr->Release();
   core->Release();
 }
 
@@ -490,9 +503,26 @@ void decide_policy(id, SEL, id, id action, id handler) {
   if (!allow && is_external(u)) open_external(u);
 }
 
+// 1.4: WKUIDelegate (macOS 12+): the microphone for dictation is granted to the pages of the launcher without a second
+// question of WebKit; macOS itself asks once (NSMicrophoneUsageDescription in Info.plist). Camera — no.
+void decide_media(id, SEL, id, id origin, id, NSInteger type, id handler) {
+  std::string host = utf8(msg(origin, "host"));
+  bool ours = (host == "127.0.0.1" || host == "localhost") && type == 1 /* WKMediaCaptureTypeMicrophone */;
+  decide(handler, ours ? 1 /* WKPermissionDecisionGrant */ : 2 /* Deny */);
+}
+
+void allow_microphone(id view) {
+  id ui = msg(view, "UIDelegate");   // the library's delegate (alerts, file dialogs): one more method for it
+  if (!ui) return;
+  class_addMethod(object_getClass(ui), sel_registerName("webView:requestMediaCapturePermissionForOrigin:initiatedByFrame:type:decisionHandler:"),
+                  reinterpret_cast<IMP>(decide_media), "v@:@@@q@?");
+  msg<void>(view, "setUIDelegate:", ui);   // set again: WebKit reads which methods the delegate has when it is set
+}
+
 void guard_navigation() {
   id view = static_cast<id>(webview_get_native_handle(g_wv, WEBVIEW_NATIVE_HANDLE_KIND_UI_WIDGET));
   if (!view) return;
+  allow_microphone(view);
   Class c = objc_allocateClassPair(reinterpret_cast<Class>(cls("NSObject")), "TtwNavigationDelegate", 0);
   if (!c) return;
   class_addProtocol(c, objc_getProtocol("WKNavigationDelegate"));
@@ -659,10 +689,26 @@ gboolean on_decide_policy(WebKitWebView *, WebKitPolicyDecision *d, WebKitPolicy
   return TRUE;
 }
 
+// 1.4: the microphone for dictation. WebKitGTK has getUserMedia off by default (enable-media-stream) and denies a
+// permission request nobody answers: the sound of the microphone is allowed, the camera is not.
+gboolean on_permission_request(WebKitWebView *, WebKitPermissionRequest *r, gpointer) {
+  if (!WEBKIT_IS_USER_MEDIA_PERMISSION_REQUEST(r)) return FALSE;
+  auto *m = WEBKIT_USER_MEDIA_PERMISSION_REQUEST(r);
+  if (webkit_user_media_permission_is_for_audio_device(m) && !webkit_user_media_permission_is_for_video_device(m)) {
+    webkit_permission_request_allow(r);
+  } else {
+    webkit_permission_request_deny(r);
+  }
+  return TRUE;
+}
+
 // Links that want a new window and navigation to other sites go to the default browser.
 void guard_navigation() {
   auto *view = static_cast<GtkWidget *>(webview_get_native_handle(g_wv, WEBVIEW_NATIVE_HANDLE_KIND_UI_WIDGET));
-  if (view) g_signal_connect(view, "decide-policy", G_CALLBACK(on_decide_policy), nullptr);
+  if (!view) return;
+  g_signal_connect(view, "decide-policy", G_CALLBACK(on_decide_policy), nullptr);
+  webkit_settings_set_enable_media_stream(webkit_web_view_get_settings(WEBKIT_WEB_VIEW(view)), TRUE);
+  g_signal_connect(view, "permission-request", G_CALLBACK(on_permission_request), nullptr);
 }
 
 void set_icon(const std::string &icon) {

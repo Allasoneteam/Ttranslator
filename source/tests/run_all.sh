@@ -305,6 +305,14 @@ make_ready 18792
 run "e2e 1.3: documents — pictures, PDF (text and scans), text files; the picture file of the model; translation by paragraphs" \
   python3 "$T/e2e_files.py" "$W" http://127.0.0.1:18792/ "$W/r19"
 
+# 1.4 (path A: the model listens itself, with the file for pictures and speech): dictation (🎤 with Chromium's fake
+# microphone), speech recordings (parts cut in the pauses, recognized and translated), the speech test (Supertonic and
+# sherpa-onnx from the mirror read the phrases); canned replies of the model
+XENV="TDOC_TEST_VISION=$W/vision13.json TDOC_TTS_URL=http://127.0.0.1:$MIRROR/$TTS TDOC_TEST_VOICES=$W/voices13.json" start_launcher "$W/r20" 18793
+make_ready 18793
+run "e2e 1.4: dictation (🎤), speech recordings, the speech test" \
+  python3 "$T/e2e_v14.py" "$W" http://127.0.0.1:18793/ "$W/r20"
+
 # v0.9.1–0.9.3: the app window (ttranslator-window, source/window): the Windows program builds and needs only system
 # DLLs; the Linux program on WebKitGTK under a virtual screen (with openbox, if there is one: the maximized start) —
 # the launcher with it, then its functions for the page

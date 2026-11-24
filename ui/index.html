@@ -174,8 +174,16 @@ body.doc-open .left { display: none; }
 .doc-zoom button { position: absolute; top: 12px; right: 12px; background: var(--panel); }
 body.drag-file::after { content: attr(data-drop); position: fixed; inset: 10px; z-index: 70; pointer-events: none; display: flex; align-items: center;
   justify-content: center; border: 3px dashed var(--accent); border-radius: 14px; background: rgba(24,95,165,.08); color: var(--accent-text); font-size: 1.3rem; }
+/* Запись речи (1.4): у каждой части — ▶ с её временем вместо картинки. */
+.doc-page.has-audio .doc-cols { grid-template-columns: minmax(96px, 130px) 1fr 1fr; }
+.doc-audio button { white-space: nowrap; display: inline-flex; align-items: center; gap: 4px; font-variant-numeric: tabular-nums; }
+.doc-audio button.on { color: var(--accent-text); border-color: var(--accent); }
+/* Диктовка (1.4): 🎤 у поля текста; во время записи — красная, кольцо вокруг — громкость звука. */
+#micBtn.rec { color: #fff; background: var(--danger); border-color: var(--danger);
+  box-shadow: 0 0 0 calc(2px + 7px * var(--lvl, 0)) color-mix(in srgb, var(--danger) 30%, transparent); transition: box-shadow .12s; }
+body.no-tts #micBtn, body.no-tts #speechTestBtn { display: none; }
 @media (max-width: 760px) {
-  .doc-cols, .doc-page.has-img .doc-cols { grid-template-columns: 1fr; }
+  .doc-cols, .doc-page.has-img .doc-cols, .doc-page.has-audio .doc-cols { grid-template-columns: 1fr; }
   .doc-img { max-width: 240px; }
 }
 .label { font-size: .8571rem; color: var(--muted); margin-bottom: -6px; }
@@ -506,7 +514,7 @@ details.licenses pre { max-height: 60vh; overflow: auto; white-space: pre-wrap; 
     <div>
       <textarea id="src" dir="auto" placeholder="Введите или вставьте текст (до 1000 знаков)" aria-label="Исходный текст"></textarea>
       <div id="langHint" class="hint lang-hint" hidden><span class="txt"></span><button type="button"></button></div>
-      <div class="row small src-tools"><button id="randomBtn" class="ghost needs-model" type="button" title="Попросить модель придумать случайную пословицу, поговорку или устойчивое выражение на языке текста"><span id="randomIcon"></span><span id="randomLabel">Случайно</span></button><button id="lessonBtn" class="ghost needs-model" type="button" title="Попросить модель придумать короткий учебный пример на языке текста: правило, упражнение, «найдите ошибку» или два слова, которые легко перепутать. Маленькие модели иногда ошибаются в правилах — проверяйте."><span id="lessonIcon"></span><span id="lessonLabel">Учебный пример</span></button><button id="lessonMore" class="ghost" type="button" title="Учебный пример: уровень, тема и упражнение в «Спросить модель» (вы отвечаете — модель проверяет)" aria-label="Учебный пример: уровень, тема и упражнение в «Спросить модель» (вы отвечаете — модель проверяет)"></button><button id="fileBtn" class="ghost" type="button" title="Открыть файл: картинку (скан, фото страницы, снимок экрана), PDF, документ (.docx, .odt) или текст (.txt, .tex) — перевод встанет рядом с оригиналом. Файл можно и перетащить в окно, а картинку — вставить (Ctrl+V)"><span id="fileIcon"></span><span id="fileLabel">Файл</span></button><input id="fileInput" type="file" accept="image/*,.pdf,application/pdf,.docx,.odt,.doc,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.oasis.opendocument.text,application/msword,.txt,.tex,.md,text/plain" hidden><span id="cleanNote" class="muted"></span><span class="spacer"></span><button id="srcSpeak" class="icon speak" type="button" title="Прочитать вслух" aria-label="Прочитать вслух"></button><span id="counter" class="muted">0 из 1000</span></div>
+      <div id="srcTools" class="row small src-tools"><button id="randomBtn" class="ghost needs-model" type="button" title="Попросить модель придумать случайную пословицу, поговорку или устойчивое выражение на языке текста"><span id="randomIcon"></span><span id="randomLabel">Случайно</span></button><button id="lessonBtn" class="ghost needs-model" type="button" title="Попросить модель придумать короткий учебный пример на языке текста: правило, упражнение, «найдите ошибку» или два слова, которые легко перепутать. Маленькие модели иногда ошибаются в правилах — проверяйте."><span id="lessonIcon"></span><span id="lessonLabel">Учебный пример</span></button><button id="lessonMore" class="ghost" type="button" title="Учебный пример: уровень, тема и упражнение в «Спросить модель» (вы отвечаете — модель проверяет)" aria-label="Учебный пример: уровень, тема и упражнение в «Спросить модель» (вы отвечаете — модель проверяет)"></button><button id="fileBtn" class="ghost" type="button" title="Открыть файл: картинку (скан, фото страницы, снимок экрана), PDF, документ (.docx, .odt), текст (.txt, .tex) или запись речи (MP3, WAV, M4A, OGG) — перевод встанет рядом с оригиналом. Файл можно и перетащить в окно, а картинку — вставить (Ctrl+V)"><span id="fileIcon"></span><span id="fileLabel">Файл</span></button><input id="fileInput" type="file" accept="image/*,.pdf,application/pdf,.docx,.odt,.doc,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.oasis.opendocument.text,application/msword,.txt,.tex,.md,text/plain,audio/*,video/*,.wav,.mp3,.m4a,.aac,.ogg,.oga,.opus,.flac,.weba,.webm,.mp4,.m4v,.mov" hidden><span id="cleanNote" class="muted"></span><span class="spacer"></span><button id="micBtn" class="icon mic needs-model" type="button" title="Диктовка: нажмите и говорите (до 30 секунд), нажмите ещё раз — текст появится в поле" aria-label="Диктовка"></button><button id="srcSpeak" class="icon speak" type="button" title="Прочитать вслух" aria-label="Прочитать вслух"></button><span id="counter" class="muted">0 из 1000</span></div>
     </div>
     <div class="label" id="chipsLabel">Стили вариантов</div>
     <div id="chips" class="chips"></div>
@@ -704,6 +712,7 @@ details.licenses pre { max-height: 60vh; overflow: auto; white-space: pre-wrap; 
         <span class="spacer"></span>
         <button id="quickTestBtn" class="primary needs-model">Быстрый тест</button>
         <button id="runTestBtn" class="needs-model">Подробный тест</button>
+        <button id="speechTestBtn" class="needs-model">Тест речи</button>
         <button id="closeTestBtn">Назад</button>
       </div>
       <div id="testIntro" class="note test-intro" style="margin:-6px 0 10px"></div>
@@ -787,7 +796,7 @@ const UI_LANG = UI_LANGS[document.documentElement.lang] ? document.documentEleme
 const LOCALE = LOCALES[UI_LANG];
 // Кавычки языка интерфейса (для названий в тексте)
 const QUOTES = { ru: ['«', '»'], en: ['“', '”'], de: ['„', '“'], es: ['«', '»'], zh: ['“', '”'] }[UI_LANG];
-const APP_VERSION = '1.3';   // версия интерфейса — та же, что appVersion в source/launcher/main.go
+const APP_VERSION = '1.4';   // версия интерфейса — та же, что appVersion в source/launcher/main.go
 
 const I18N_COL = { en: 0, de: 1, es: 2, zh: 3 };   // столбец перевода в I18N
 
@@ -882,6 +891,90 @@ const DOCS = {
   ocrPrompt: 'Transcribe all the text in this picture exactly as written, in its original language. Do not translate, correct, summarize or describe it. Keep the reading order (columns one after another). Join the lines of one paragraph into one line and join words hyphenated at line ends. Separate paragraphs, headings and list items with a blank line. Write mathematical formulas in LaTeX between $ signs ($$ for displayed formulas). If there is no text, answer with nothing.',
   ocrMaxTokens: 2600,     // текст одной страницы (вместе с картинкой — меньше 4096 токенов памяти модели)
   ocrSampling: { temperature: 0, top_p: 1, top_k: 1, repeat_penalty: 1.05 },   // без случайности
+};
+// Речь (1.4, решение автора от 24.11.2026 — сначала путь А): речь слушает сама Gemma 4 (E2B или E4B) с тем же файлом
+// mmproj, что и для картинок. Диктовка (🎤 у поля текста), аудиофайлы (кнопка «Файл») и «Тест речи» (кнопка «Тест»).
+const LISTEN = {
+  maxSeconds: 30,         // одна запись 🎤 и один кусок аудиофайла — не длиннее: больше модель за раз не слушает
+  rate: 16000,            // звук для модели: 16 кГц, моно (25 токенов на секунду речи)
+  minSeconds: 0.4,        // короче (после обрезки тишины) — «ничего не записано»
+  trimLevel: 0.08,        // тишина в начале и в конце записи (тише этой доли самого громкого места) отрезается
+  pieceMin: 18,           // аудиофайл режется на куски: место разреза — самая тихая точка между 18 и 30 секундами
+  maxFileBytes: 60 << 20, // аудиофайл — не больше (голосовые сообщения, записи разговоров и лекций до получаса)
+  maxFileSeconds: 1800,   // открываются первые 30 минут записи
+  maxTokens: 400,         // текст 30 секунд речи
+  sampling: { temperature: 0, top_p: 1, top_k: 1, repeat_penalty: 1.0 },   // без случайности и без штрафа за повторы
+  // Запрос — по образцу Google для Gemma 4 («Audio understanding»): язык речи выбран — по нему, «Авто» — на языке речи.
+  prompt: (lang, into) => (lang ? `Transcribe the following speech segment in ${lang} into ${into || lang} text.`
+    : 'Transcribe the following speech segment in its original language.')
+    + '\n\nFollow these specific instructions for formatting the answer:\n* Only output the transcription, with no newlines.'
+    + '\n* When transcribing numbers, write the digits, i.e. write 1.7 and not one point seven, and write 3 instead of three.',
+  fileExt: /\.(wav|mp3|m4a|aac|ogg|oga|opus|flac|weba|webm|mp4|m4v|mov|3gp|amr)$/,
+};
+// «Тест речи» (1.4): эти фразы читают наши голоса (Supertonic 3; китайский — Chaowen, латынь — Paola), модель их
+// распознаёт — доля неверных знаков и время. По четыре фразы на язык, одни и те же по смыслу, без чисел (числа голоса
+// читают не везде верно — тест проверял бы голос, а не распознавание).
+const LISTEN_TEST = {
+  ru: ['Сегодня хорошая погода, поэтому после обеда мы пойдём гулять в парк.',
+    'Пожалуйста, пришлите мне отчёт до пятницы: я хочу прочитать его перед совещанием.',
+    'Моя бабушка живёт в маленькой деревне у реки и выращивает яблоки в своём саду.',
+    'Короткий лазерный импульс ускоряет электроны до очень высоких энергий на крошечном расстоянии.'],
+  en: ['The weather is nice today, so after lunch we are going for a walk in the park.',
+    'Please send me the report by Friday; I would like to read it before the meeting.',
+    'My grandmother lives in a small village by the river and grows apples in her garden.',
+    'A short laser pulse accelerates electrons to very high energies over a tiny distance.'],
+  de: ['Heute ist das Wetter schön, deshalb gehen wir nach dem Mittagessen im Park spazieren.',
+    'Bitte schicken Sie mir den Bericht bis Freitag; ich möchte ihn vor der Besprechung lesen.',
+    'Meine Großmutter wohnt in einem kleinen Dorf am Fluss und baut in ihrem Garten Äpfel an.',
+    'Ein kurzer Laserpuls beschleunigt Elektronen auf einer winzigen Strecke auf sehr hohe Energien.'],
+  fr: ['Il fait beau aujourd’hui, alors après le déjeuner nous allons nous promener dans le parc.',
+    'Envoyez-moi le rapport avant vendredi, s’il vous plaît ; je voudrais le lire avant la réunion.',
+    'Ma grand-mère habite dans un petit village au bord de la rivière et cultive des pommes dans son jardin.',
+    'Une courte impulsion laser accélère les électrons jusqu’à de très hautes énergies sur une distance minuscule.'],
+  es: ['Hoy hace buen tiempo, así que después de comer vamos a pasear por el parque.',
+    'Por favor, envíeme el informe antes del viernes; me gustaría leerlo antes de la reunión.',
+    'Mi abuela vive en un pueblo pequeño junto al río y cultiva manzanas en su huerto.',
+    'Un pulso láser corto acelera los electrones hasta energías muy altas en una distancia diminuta.'],
+  el: ['Σήμερα ο καιρός είναι ωραίος, γι’ αυτό μετά το μεσημεριανό θα πάμε βόλτα στο πάρκο.',
+    'Παρακαλώ στείλτε μου την αναφορά μέχρι την Παρασκευή· θέλω να τη διαβάσω πριν από τη συνάντηση.',
+    'Η γιαγιά μου μένει σε ένα μικρό χωριό δίπλα στο ποτάμι και καλλιεργεί μήλα στον κήπο της.',
+    'Ένας σύντομος παλμός λέιζερ επιταχύνει τα ηλεκτρόνια σε πολύ υψηλές ενέργειες σε μια μικροσκοπική απόσταση.'],
+  zh: ['今天天气很好，所以午饭后我们要去公园散步。',
+    '请在星期五之前把报告发给我，我想在开会之前读一读。',
+    '我的奶奶住在河边的一个小村子里，在自己的园子里种苹果。',
+    '短激光脉冲能在极短的距离内把电子加速到非常高的能量。'],
+  la: ['Hodie caelum serenum est, itaque post prandium in horto publico ambulabimus.',
+    'Quaeso, mitte mihi relationem ante diem Veneris; eam ante conventum legere volo.',
+    'Avia mea in parvo vico prope flumen habitat et in horto suo poma colit.',
+    'Brevis impulsus luminis electrones ad maximas energias brevissimo spatio accelerat.'],
+  sv: ['Det är fint väder i dag, så efter lunchen ska vi ta en promenad i parken.',
+    'Skicka gärna rapporten till mig före fredag; jag vill läsa den före mötet.',
+    'Min mormor bor i en liten by vid floden och odlar äpplen i sin trädgård.',
+    'En kort laserpuls accelererar elektroner till mycket höga energier på en ytterst kort sträcka.'],
+  it: ['Oggi fa bel tempo, quindi dopo pranzo andiamo a fare una passeggiata nel parco.',
+    'Per favore, mi mandi il rapporto entro venerdì; vorrei leggerlo prima della riunione.',
+    'Mia nonna vive in un piccolo paese vicino al fiume e coltiva mele nel suo giardino.',
+    'Un breve impulso laser accelera gli elettroni fino a energie molto elevate su una distanza minuscola.'],
+  pt: ['Hoje o tempo está bom, então depois do almoço vamos passear no parque.',
+    'Por favor, me envie o relatório até sexta-feira; eu gostaria de lê-lo antes da reunião.',
+    'Minha avó mora em um pequeno vilarejo perto do rio e cultiva maçãs no quintal.',
+    'Um pulso curto de laser acelera os elétrons até energias muito altas em uma distância minúscula.'],
+  ar: ['الطقس جميل اليوم، لذلك سنتمشى في الحديقة بعد الغداء.',
+    'من فضلك أرسل لي التقرير قبل يوم الجمعة، فأنا أريد أن أقرأه قبل الاجتماع.',
+    'تعيش جدتي في قرية صغيرة بجانب النهر وتزرع التفاح في حديقتها.',
+    'نبضة ليزر قصيرة تسرع الإلكترونات إلى طاقات عالية جدا عبر مسافة صغيرة جدا.'],
+  ja: ['今日は天気がいいので、昼ご飯のあとで公園を散歩します。',
+    '金曜日までに報告書を送ってください。会議の前に読みたいです。',
+    '祖母は川のそばの小さな村に住んでいて、庭でりんごを育てています。',
+    '短いレーザーパルスは、ごく短い距離で電子を非常に高いエネルギーまで加速します。'],
+  ko: ['오늘은 날씨가 좋아서 점심을 먹고 공원에 산책하러 갈 거예요.',
+    '금요일까지 보고서를 보내 주세요. 회의 전에 읽고 싶어요.',
+    '우리 할머니는 강가의 작은 마을에 사시고 정원에서 사과를 키우세요.',
+    '짧은 레이저 펄스는 아주 짧은 거리에서 전자를 매우 높은 에너지까지 가속합니다.'],
+  hi: ['आज मौसम अच्छा है, इसलिए दोपहर के खाने के बाद हम पार्क में टहलने जाएँगे।',
+    'कृपया शुक्रवार तक मुझे रिपोर्ट भेज दीजिए, मैं इसे बैठक से पहले पढ़ना चाहता हूँ।',
+    'मेरी दादी नदी के पास एक छोटे से गाँव में रहती हैं और अपने बगीचे में सेब उगाती हैं।',
+    'एक छोटी लेज़र पल्स बहुत कम दूरी में इलेक्ट्रॉनों को बहुत ऊँची ऊर्जा तक त्वरित करती है।'],
 };
 
 // Что показывать, когда нужна модель, а она выгружена или не запущена. По решению автора — всегда по-английски.
@@ -1338,36 +1431,31 @@ const ABOUT = {
 
 // «Что нового» в окне приветствия — главное в этой версии, на пяти языках.
 const WHATS_NEW = {
-  version: '1.3',
+  version: '1.4',
   ru: [
-    'Документы: кнопка «Файл» открывает картинку (скан, фото страницы, снимок экрана), PDF, документ Word или LibreOffice (.docx, .odt) или текстовый файл. У каждой страницы — её текст и перевод рядом; «Сохранить .txt» сохраняет перевод (по желанию — вместе с оригиналом).',
-    'Сканы и фото читает сама модель Gemma 4: ей нужен ещё один файл, около 0,6 ГБ, — программа предложит его скачать. PDF с текстом открываются сразу, без модели; формулы из документов сохраняются в LaTeX и не переводятся.',
-    'Новые языки перевода: японский, корейский и хинди — теперь их 15. Голос Supertonic 3 — один файл (около 130 МБ) на 13 языков, все, кроме китайского и латыни, десять голосов на выбор; голоса китайского и латыни в меню — сразу под ним.',
-    'Пока модель работает (распознаёт страницу, придумывает или проверяет учебный пример), крутится фиолетовый значок, а у страницы идёт время.',
+    'Диктовка: 🎤 у поля текста — нажмите и говорите (до 30 секунд), нажмите ещё раз, и текст появится в поле. Если язык текста и язык перевода разные, перевод начинается сразу; если одинаковые, текст просто встаёт в поле. Речь слушает сама модель Gemma 4 — с тем же файлом, что и для картинок.',
+    'Записи речи: кнопка «Файл» открывает и запись (MP3, WAV, M4A, OGG — например, голосовое сообщение). Она делится по паузам на части до 30 секунд, каждая распознаётся и переводится; ▶ у части — послушать её.',
+    '«Тест речи» в окне «Тест»: наши голоса читают фразы на всех языках, модель их распознаёт — видно, насколько точно и быстро она слушает на вашем компьютере или телефоне.',
   ],
   en: [
-    'Documents: the “File” button opens a picture (a scan, a photo of a page, a screenshot), a PDF, a Word or LibreOffice document (.docx, .odt) or a text file. Each page shows its text and the translation side by side; “Save .txt” saves the translation (with the original, if you wish).',
-    'Scans and photos are read by the Gemma 4 model itself: it needs one more file, about 0.6 GB, and the program offers to download it. PDFs with text open at once, without the model; formulas of documents are kept in LaTeX and are not translated.',
-    'New translation languages: Japanese, Korean and Hindi — 15 in all. The Supertonic 3 voice: one file (about 130 MB) for 13 languages, all but Chinese and Latin, with ten voices to choose from; the Chinese and Latin voices come right under it in the menu.',
-    'While the model works (recognizes a page, thinks up or checks a lesson), a purple icon spins, and a page shows the time it has taken so far.',
+    'Dictation: 🎤 next to the text field — click and speak (up to 30 seconds), click again, and the text appears in the field. If the language of the text and the language of the translation differ, the translation starts at once; if they are the same, the text just goes into the field. The Gemma 4 model itself listens to the speech, with the same file as for pictures.',
+    'Speech recordings: the “File” button also opens a recording (MP3, WAV, M4A, OGG — a voice message, for example). It is divided at the pauses into parts of up to 30 seconds, each part is recognized and translated; ▶ next to a part plays it.',
+    'The “Speech test” in the “Test” window: our voices read phrases in all the languages and the model recognizes them — you see how accurately and how fast it listens on your computer or phone.',
   ],
   de: [
-    'Dokumente: Die Schaltfläche „Datei“ öffnet ein Bild (Scan, Foto einer Seite, Bildschirmfoto), ein PDF, ein Word- oder LibreOffice-Dokument (.docx, .odt) oder eine Textdatei. Zu jeder Seite stehen Text und Übersetzung nebeneinander; „.txt speichern“ speichert die Übersetzung (auf Wunsch mit dem Original).',
-    'Scans und Fotos liest das Modell Gemma 4 selbst: Es braucht dafür eine weitere Datei von etwa 0,6 GB, die das Programm zum Herunterladen anbietet. PDFs mit Text öffnen sich sofort, ohne Modell; Formeln aus Dokumenten bleiben als LaTeX erhalten und werden nicht übersetzt.',
-    'Neue Übersetzungssprachen: Japanisch, Koreanisch und Hindi – jetzt 15. Die Stimme Supertonic 3: eine Datei (etwa 130 MB) für 13 Sprachen, alle außer Chinesisch und Latein, mit zehn Stimmen zur Wahl; die Stimmen für Chinesisch und Latein stehen im Menü direkt darunter.',
-    'Solange das Modell arbeitet (eine Seite erkennt, ein Lernbeispiel ausdenkt oder prüft), dreht sich ein violettes Symbol, und bei einer Seite läuft die Zeit.',
+    'Diktieren: 🎤 neben dem Textfeld – klicken und sprechen (bis zu 30 Sekunden), noch einmal klicken, und der Text erscheint im Feld. Sind die Sprache des Textes und die der Übersetzung verschieden, beginnt die Übersetzung sofort; sind sie gleich, kommt der Text nur ins Feld. Die Sprache hört das Modell Gemma 4 selbst – mit derselben Datei wie für Bilder.',
+    'Sprachaufnahmen: Die Schaltfläche „Datei“ öffnet auch eine Aufnahme (MP3, WAV, M4A, OGG – zum Beispiel eine Sprachnachricht). Sie wird an den Pausen in Teile von bis zu 30 Sekunden geteilt, jeder Teil wird erkannt und übersetzt; ▶ neben einem Teil spielt ihn ab.',
+    'Der „Sprachtest“ im Fenster „Test“: Unsere Stimmen lesen Sätze in allen Sprachen vor, das Modell erkennt sie – so sehen Sie, wie genau und wie schnell es auf Ihrem Computer oder Telefon zuhört.',
   ],
   es: [
-    'Documentos: el botón «Archivo» abre una imagen (escaneo, foto de una página, captura de pantalla), un PDF, un documento de Word o LibreOffice (.docx, .odt) o un archivo de texto. Cada página muestra su texto y la traducción, uno junto a otro; «Guardar .txt» guarda la traducción (junto con el original, si lo desea).',
-    'Los escaneos y las fotos los lee el propio modelo Gemma 4: necesita un archivo más, de unos 0,6 GB, y el programa le ofrecerá descargarlo. Los PDF con texto se abren al instante, sin el modelo; las fórmulas de los documentos se conservan en LaTeX y no se traducen.',
-    'Nuevos idiomas de traducción: japonés, coreano e hindi; ahora son 15. La voz Supertonic 3: un solo archivo (unos 130 MB) para 13 idiomas, todos menos el chino y el latín, con diez voces a elegir; las voces del chino y del latín aparecen justo debajo en el menú.',
-    'Mientras el modelo trabaja (reconoce una página, inventa o revisa un ejemplo didáctico), gira un icono violeta y la página muestra el tiempo transcurrido.',
+    'Dictado: 🎤 junto al campo de texto: pulse y hable (hasta 30 segundos), pulse otra vez y el texto aparecerá en el campo. Si el idioma del texto y el de la traducción son distintos, la traducción empieza enseguida; si son el mismo, el texto solo se coloca en el campo. La voz la escucha el propio modelo Gemma 4, con el mismo archivo que para las imágenes.',
+    'Grabaciones de voz: el botón «Archivo» abre también una grabación (MP3, WAV, M4A, OGG; por ejemplo, un mensaje de voz). Se divide en las pausas en partes de hasta 30 segundos, y cada parte se reconoce y se traduce; ▶ junto a una parte la reproduce.',
+    'La «Prueba de voz» en la ventana «Prueba»: nuestras voces leen frases en todos los idiomas y el modelo las reconoce; así se ve con qué precisión y rapidez escucha en su ordenador o teléfono.',
   ],
   zh: [
-    '文档：“文件”按钮可打开图片（扫描件、页面照片、屏幕截图）、PDF、Word 或 LibreOffice 文档（.docx、.odt）或文本文件。每一页的文字和译文并排显示；“保存 .txt”保存译文（如需要，可连同原文一起保存）。',
-    '扫描件和照片由 Gemma 4 模型本身读取：为此还需要一个约 0.6 GB 的文件，程序会提示下载。含文字的 PDF 无需模型即可直接打开；文档中的公式以 LaTeX 保留，不会被翻译。',
-    '新增翻译语言：日语、韩语和印地语——现共 15 种。Supertonic 3 语音：一个文件（约 130 MB）支持 13 种语言，即除中文和拉丁语外的全部语言，并有十种声音可选；菜单中中文和拉丁语的语音紧随其后。',
-    '模型工作时（识别页面、构思或检查教学示例），会有紫色图标旋转，页面上还会显示已用时间。',
+    '听写：文本框旁边的 🎤——点击后说话（最长 30 秒），再点一次，文字就会出现在文本框中。如果文本语言和译文语言不同，会立即开始翻译；如果相同，文字只放进文本框。语音由 Gemma 4 模型本身聆听，使用与图片相同的文件。',
+    '语音录音：“文件”按钮也可以打开录音（MP3、WAV、M4A、OGG，例如语音消息）。录音按停顿分成最长 30 秒的片段，每段都会识别并翻译；片段旁的 ▶ 可以播放。',
+    '“测试”窗口中的“语音测试”：我们的语音用所有语言朗读句子，由模型识别——可以看到它在您的电脑或手机上听得有多准、多快。',
   ],
 };
 
@@ -1403,6 +1491,14 @@ const HELP = {
       '- Документы .docx и .odt: текст по абзацам, таблицы — строка за строкой (ячейки через «|»), списки — с номерами, сноски — в конце текста, формулы — в LaTeX между знаками $ (перевод их не меняет). Страницы — как в файле, если он их помнит. Старый формат .doc не читается — сохраните файл в Word или LibreOffice как .docx.',
       '- Распознанный текст можно поправить перед переводом. «Перевести» переводит страницы по абзацам на язык результата вверху — со словарём и формулами, как в рабочем окне. Если поправить текст после перевода, перевод помечается устаревшим; «Перевести» обновит его. Под текстом страницы и под переводом — кнопки 🔊 (прочитать вслух) и «Копировать».',
       '- «Сохранить .txt» сохраняет перевод (с галочкой «с оригиналом» — и текст страниц). Модель может ошибиться при распознавании — сверяйте важное с картинкой (щелчок по ней показывает её крупно).'],
+    ['Диктовка и записи речи',
+      '🎤 у поля текста — диктовка: нажмите и говорите (до 30 секунд), нажмите ещё раз — текст появится в поле, на месте курсора (если текст в поле уже переведён — вместо него). Esc — отменить запись.',
+      '- Если язык текста и язык перевода разные, перевод начинается сразу; если одинаковые — текст просто встаёт в поле, а что делать дальше, решаете Вы.',
+      '- Язык речи — тот, что выбран слева; при «Авто» модель пишет на языке речи.',
+      '- Речь слушает сама модель Gemma 4 (E2B или E4B) — с тем же файлом, что и для картинок (около 0,6 ГБ; программа предложит скачать его при первом 🎤). Под полем видно, сколько длилась речь и сколько модель её слушала.',
+      '- Микрофон нужно разрешить: в Windows — «Параметры → Конфиденциальность и защита → Микрофон» (и для классических приложений); macOS и Android спросят сами.',
+      '- Записи речи (MP3, WAV, M4A, OGG — например, голосовое сообщение) открывает кнопка «Файл»: запись делится по паузам на части до 30 секунд, каждая распознаётся и переводится; ▶ у части — послушать её.',
+    ],
     ['Чтение вслух',
       'Кнопка 🔊 у поля текста, у каждого варианта, у «Своего варианта» и у ответов модели читает текст вслух. Пока текст звучит, кнопка и текст подсвечены зелёным; второе нажатие — пауза (подсветка текста снимается), третье — продолжить. Кнопка ■ рядом, Esc или другая кнопка 🔊 останавливают чтение; правка текста — тоже. Формулы LaTeX не читаются.',
       '- Голоса скачиваются в меню моделей (кнопка с названием модели вверху), по голосу на язык. Вместе с первым голосом один раз скачивается программа озвучки sherpa-onnx. Голос не занимает память постоянно: он запускается на секунду-две для каждой фразы.',
@@ -1416,6 +1512,7 @@ const HELP = {
       'На экране первого запуска можно нажать «Пропустить»: окно откроется без модели (вверху — «Выбрать модель»), а модель Вы выберете и скачаете в этом списке.'],
     ['Тест',
       'Кнопка «Тест» открывает два теста; отчёт со временем и оценкой каждого сохраняется в папку data\\reports — так удобно сравнивать модели.',
+      '- «Тест речи» (1.4): наши голоса читают по четыре фразы на каждом языке, модель их распознаёт — доля неверных знаков и время. Первым — язык интерфейса, потом английский; остановить можно в любой момент, следующее нажатие продолжит. Отчёт — speech-test-….md.',
       '- «Быстрый тест» — две латинские крылатые фразы (Audentes fortuna iuvat; Cogito, ergo sum): с латыни на язык интерфейса и обратно, в нейтральном стиле — четыре перевода, около минуты. Образцы переводов встроены в программу.',
       '- «Подробный тест» переводит пары фраз из файла ui\\tests.txt в обе стороны в двух стилях и исправляет каждую фразу на своём языке. Пара — две строки на двух языках: «EN: …» и «RU: …» (или LA, DE, FR, ES, EL, ZH, SV, IT, PT, AR); в наборе — две пары английский ↔ русский и четыре латинских крылатых выражения. Свои пары можно дописать в этот файл.',
       '- В окне теста у каждого задания видны исходный текст, перевод модели и Ваш вариант (из файла) или образец перевода.'],
@@ -1465,6 +1562,14 @@ const HELP = {
       '- .docx and .odt documents: the text by paragraphs, tables row by row (cells divided by “|”), lists with their numbers, footnotes at the end of the text, formulas in LaTeX between $ signs (the translation does not change them). The pages are those of the file if it remembers them. The old .doc format cannot be read: save the file in Word or LibreOffice as .docx.',
       '- You can correct the recognized text before translating. “Translate” translates the pages paragraph by paragraph into the result language at the top, with the glossary and formulas as in the main window. If you change the text after translating, the translation is marked out of date; “Translate” updates it. Under the text of a page and under its translation there are the 🔊 (read aloud) and “Copy” buttons.',
       '- “Save .txt” saves the translation (with “with the original” checked, also the text of the pages). The model can make recognition mistakes: check important things against the picture (a click on it shows it larger).'],
+    ['Dictation and speech recordings',
+      '🎤 next to the text field — dictation: click and speak (up to 30 seconds), click again — the text appears in the field at the cursor (if the text in the field has already been translated, it replaces it). Esc cancels the recording.',
+      '- If the language of the text and the language of the translation differ, the translation starts at once; if they are the same, the text just goes into the field and you decide what to do next.',
+      '- The language of the speech is the one chosen on the left; with “Auto” the model writes in the language it hears.',
+      '- The Gemma 4 model itself (E2B or E4B) listens to the speech, with the same file as for pictures (about 0.6 GB; the program offers to download it at the first 🎤). Under the field you see how long the speech was and how long the model listened.',
+      '- Allow the microphone: in Windows — Settings → Privacy & security → Microphone (also for desktop apps); macOS and Android ask by themselves.',
+      '- Speech recordings (MP3, WAV, M4A, OGG — a voice message, for example) are opened with the “File” button: a recording is divided at the pauses into parts of up to 30 seconds, each is recognized and translated; ▶ next to a part plays it.',
+    ],
     ['Reading aloud',
       'The 🔊 button at the text field, at every variant, at “Your version” and at the model’s answers reads the text aloud. While the text is read, the button and the text are highlighted in green; a second click pauses (the text is no longer highlighted), a third continues. The ■ button next to it, Esc or another 🔊 button stops reading, and so does editing the text. LaTeX formulas are not read.',
       '- Voices are downloaded in the model menu (the button with the model name at the top), one voice per language. With the first voice, the speech program sherpa-onnx is downloaded once. A voice does not stay in memory: it starts for a second or two for every phrase.',
@@ -1478,6 +1583,7 @@ const HELP = {
       'On the first-start screen you can press “Skip”: the window opens without a model (“Choose a model” at the top), and you choose and download a model in this list.'],
     ['Test',
       'The “Test” button opens two tests; a report with the timings and scores of each is saved to data\\reports — handy for comparing models.',
+      '- “Speech test” (1.4): our voices read four phrases in each language and the model recognizes them — the share of wrong characters and the time. The interface language first, then English; you can stop at any moment, the next click continues. The report is speech-test-….md.',
       '- “Quick test”: two Latin sayings (Audentes fortuna iuvat; Cogito, ergo sum), from Latin into the interface language and back, in the neutral style — four translations, about a minute. The reference translations are built into the program.',
       '- “Full test” translates the phrase pairs from ui\\tests.txt both ways in two styles and corrects each phrase in its own language. A pair is two lines in two languages: “EN: …” and “RU: …” (or LA, DE, FR, ES, EL, ZH, SV, IT, PT, AR); the set has two English ↔ Russian pairs and four Latin sayings. You can add your own pairs to this file.',
       '- In the test window each task shows the source text, the model translation and your version (from the file) or the reference translation.'],
@@ -1527,6 +1633,14 @@ const HELP = {
       '- Dokumente .docx und .odt: der Text absatzweise, Tabellen Zeile für Zeile (Zellen durch „|“ getrennt), Listen mit ihren Nummern, Fußnoten am Ende des Textes, Formeln als LaTeX zwischen $-Zeichen (die Übersetzung ändert sie nicht). Die Seiten sind die der Datei, wenn sie sie kennt. Das alte Format .doc lässt sich nicht lesen – speichern Sie die Datei in Word oder LibreOffice als .docx.',
       '- Den erkannten Text können Sie vor der Übersetzung korrigieren. „Übersetzen“ übersetzt die Seiten absatzweise in die Zielsprache oben, mit Glossar und Formeln wie im Hauptfenster. Ändern Sie den Text nach der Übersetzung, wird die Übersetzung als veraltet markiert; „Übersetzen“ erneuert sie. Unter dem Text einer Seite und unter ihrer Übersetzung stehen die Schaltflächen 🔊 (vorlesen) und „Kopieren“.',
       '- „.txt speichern“ speichert die Übersetzung (mit Häkchen „mit Original“ auch den Text der Seiten). Das Modell kann sich beim Erkennen irren – prüfen Sie Wichtiges am Bild (ein Klick darauf zeigt es groß).'],
+    ['Diktieren und Sprachaufnahmen',
+      '🎤 neben dem Textfeld – Diktieren: klicken und sprechen (bis zu 30 Sekunden), noch einmal klicken – der Text erscheint im Feld an der Cursorstelle (wurde der Text im Feld schon übersetzt, ersetzt er ihn). Esc bricht die Aufnahme ab.',
+      '- Sind die Sprache des Textes und die der Übersetzung verschieden, beginnt die Übersetzung sofort; sind sie gleich, kommt der Text nur ins Feld, und Sie entscheiden, was weiter geschieht.',
+      '- Die Sprache der Rede ist die links gewählte; bei „Auto“ schreibt das Modell in der Sprache, die es hört.',
+      '- Die Sprache hört das Modell Gemma 4 selbst (E2B oder E4B) – mit derselben Datei wie für Bilder (etwa 0,6 GB; das Programm bietet sie beim ersten 🎤 zum Herunterladen an). Unter dem Feld steht, wie lange die Rede dauerte und wie lange das Modell zugehört hat.',
+      '- Das Mikrofon muss erlaubt sein: in Windows – Einstellungen → Datenschutz und Sicherheit → Mikrofon (auch für Desktop-Apps); macOS und Android fragen selbst.',
+      '- Sprachaufnahmen (MP3, WAV, M4A, OGG – zum Beispiel eine Sprachnachricht) öffnet die Schaltfläche „Datei“: Die Aufnahme wird an den Pausen in Teile von bis zu 30 Sekunden geteilt, jeder wird erkannt und übersetzt; ▶ neben einem Teil spielt ihn ab.',
+    ],
     ['Vorlesen',
       'Die Schaltfläche 🔊 beim Textfeld, bei jeder Variante, bei „Ihre Fassung“ und bei den Antworten des Modells liest den Text vor. Während der Text vorgelesen wird, sind Schaltfläche und Text grün hervorgehoben; ein zweiter Klick pausiert (der Text ist dann nicht mehr hervorgehoben), ein dritter setzt fort. Die Schaltfläche ■ daneben, Esc oder eine andere Schaltfläche 🔊 beendet das Vorlesen, ebenso das Bearbeiten des Textes. LaTeX-Formeln werden nicht vorgelesen.',
       '- Stimmen werden im Modellmenü heruntergeladen (die Schaltfläche mit dem Modellnamen oben), eine Stimme pro Sprache. Mit der ersten Stimme wird einmalig das Sprachausgabe-Programm sherpa-onnx heruntergeladen. Eine Stimme belegt keinen Arbeitsspeicher auf Dauer: Sie startet für jede Phrase für ein bis zwei Sekunden.',
@@ -1540,6 +1654,7 @@ const HELP = {
       'Auf dem Bildschirm des ersten Starts können Sie „Überspringen“ wählen: Das Fenster öffnet sich ohne Modell (oben „Modell wählen“), und Sie wählen und laden ein Modell in dieser Liste herunter.'],
     ['Test',
       'Die Schaltfläche „Test“ öffnet zwei Tests; zu jedem wird ein Bericht mit Zeiten und Bewertungen in data\\reports gespeichert – praktisch, um Modelle zu vergleichen.',
+      '- „Sprachtest“ (1.4): Unsere Stimmen lesen in jeder Sprache vier Sätze vor, das Modell erkennt sie – Anteil falscher Zeichen und Zeit. Zuerst die Sprache der Oberfläche, dann Englisch; Sie können jederzeit anhalten, der nächste Klick macht weiter. Der Bericht heißt speech-test-….md.',
       '- „Schnelltest“: zwei lateinische Redewendungen (Audentes fortuna iuvat; Cogito, ergo sum), aus dem Lateinischen in die Sprache der Oberfläche und zurück, im neutralen Stil – vier Übersetzungen, etwa eine Minute. Die Referenzübersetzungen sind im Programm enthalten.',
       '- „Ausführlicher Test“ übersetzt die Satzpaare aus ui\\tests.txt in beide Richtungen in zwei Stilen und korrigiert jeden Satz in seiner Sprache. Ein Paar sind zwei Zeilen in zwei Sprachen: „EN: …“ und „RU: …“ (oder LA, DE, FR, ES, EL, ZH, SV, IT, PT, AR); enthalten sind zwei Paare Englisch ↔ Russisch und vier lateinische Redewendungen. Eigene Paare können Sie in diese Datei schreiben.',
       '- Im Testfenster zeigt jede Aufgabe den Ausgangstext, die Übersetzung des Modells und Ihre Fassung (aus der Datei) oder die Referenzübersetzung.'],
@@ -1589,6 +1704,14 @@ const HELP = {
       '- Documentos .docx y .odt: el texto por párrafos, las tablas fila a fila (celdas separadas por «|»), las listas con sus números, las notas al pie al final del texto y las fórmulas en LaTeX entre signos $ (la traducción no las cambia). Las páginas son las del archivo, si las recuerda. El formato antiguo .doc no se puede leer: guarde el archivo en Word o LibreOffice como .docx.',
       '- Puede corregir el texto reconocido antes de traducirlo. «Traducir» traduce las páginas párrafo a párrafo al idioma de destino de arriba, con el glosario y las fórmulas como en la ventana principal. Si cambia el texto después de traducirlo, la traducción se marca como desactualizada; «Traducir» la actualiza. Debajo del texto de cada página y de su traducción están los botones 🔊 (leer en voz alta) y «Copiar».',
       '- «Guardar .txt» guarda la traducción (con la casilla «con el original», también el texto de las páginas). El modelo puede equivocarse al reconocer: compruebe lo importante con la imagen (al pulsarla se ve en grande).'],
+    ['Dictado y grabaciones de voz',
+      '🎤 junto al campo de texto: dictado. Pulse y hable (hasta 30 segundos), pulse otra vez y el texto aparecerá en el campo, en la posición del cursor (si el texto del campo ya está traducido, lo sustituye). Esc cancela la grabación.',
+      '- Si el idioma del texto y el de la traducción son distintos, la traducción empieza enseguida; si son el mismo, el texto solo se coloca en el campo y usted decide qué hacer después.',
+      '- El idioma del habla es el elegido a la izquierda; con «Auto» el modelo escribe en el idioma que oye.',
+      '- La voz la escucha el propio modelo Gemma 4 (E2B o E4B), con el mismo archivo que para las imágenes (unos 0,6 GB; el programa ofrece descargarlo con el primer 🎤). Debajo del campo se ve cuánto duró el habla y cuánto tardó el modelo en escucharla.',
+      '- Hay que permitir el micrófono: en Windows, Configuración → Privacidad y seguridad → Micrófono (también para las aplicaciones de escritorio); macOS y Android lo preguntan solos.',
+      '- Las grabaciones de voz (MP3, WAV, M4A, OGG; por ejemplo, un mensaje de voz) se abren con el botón «Archivo»: la grabación se divide en las pausas en partes de hasta 30 segundos, y cada una se reconoce y se traduce; ▶ junto a una parte la reproduce.',
+    ],
     ['Lectura en voz alta',
       'El botón 🔊 junto al campo de texto, a cada variante, a «Su versión» y a las respuestas del modelo lee el texto en voz alta. Mientras suena, el botón y el texto se resaltan en verde; un segundo clic hace una pausa (el texto deja de estar resaltado) y un tercero continúa. El botón ■ de al lado, Esc u otro botón 🔊 detienen la lectura, y también editar el texto. Las fórmulas LaTeX no se leen.',
       '- Las voces se descargan en el menú de modelos (el botón con el nombre del modelo, arriba), una voz por idioma. Con la primera voz se descarga una sola vez el programa de voz sherpa-onnx. Una voz no ocupa la memoria de forma permanente: se inicia uno o dos segundos para cada frase.',
@@ -1602,6 +1725,7 @@ const HELP = {
       'En la pantalla del primer inicio puede pulsar «Omitir»: la ventana se abre sin modelo (arriba, «Elegir un modelo») y usted elige y descarga un modelo en esta lista.'],
     ['Prueba',
       'El botón «Prueba» abre dos pruebas; de cada una se guarda un informe con tiempos y puntuaciones en la carpeta data\\reports: así es fácil comparar modelos.',
+      '- «Prueba de voz» (1.4): nuestras voces leen cuatro frases en cada idioma y el modelo las reconoce: proporción de caracteres incorrectos y tiempo. Primero el idioma de la interfaz, luego el inglés; puede detenerla en cualquier momento y la siguiente pulsación continúa. El informe es speech-test-….md.',
       '- «Prueba rápida»: dos locuciones latinas (Audentes fortuna iuvat; Cogito, ergo sum), del latín al idioma de la interfaz y de vuelta, en estilo neutro: cuatro traducciones, alrededor de un minuto. Las traducciones de referencia vienen incluidas en el programa.',
       '- «Prueba completa» traduce en ambos sentidos y en dos estilos los pares de frases del archivo ui\\tests.txt y corrige cada frase en su propio idioma. Un par son dos líneas en dos idiomas: «EN: …» y «RU: …» (o LA, DE, FR, ES, EL, ZH, SV, IT, PT, AR); el conjunto tiene dos pares inglés ↔ ruso y cuatro locuciones latinas. Puede añadir sus propios pares a este archivo.',
       '- En la ventana de la prueba, cada tarea muestra el texto original, la traducción del modelo y su versión (del archivo) o la traducción de referencia.'],
@@ -1651,6 +1775,14 @@ const HELP = {
       '- .docx 和 .odt 文档：文字按段落提取，表格逐行显示（单元格以“|”分隔），列表保留编号，脚注位于文末，公式以 LaTeX 写在 $ 符号之间（翻译不会改动）。如果文件记录了分页，页面与文件一致。旧的 .doc 格式无法读取：请在 Word 或 LibreOffice 中将文件另存为 .docx。',
       '- 翻译前可以修改识别出的文字。“翻译”会把页面逐段翻译成上方选择的目标语言，术语表和公式的处理与主窗口相同。翻译后若修改了文字，译文会被标记为过时，再点“翻译”即可更新。页面文字和译文下方都有 🔊（朗读）和“复制”按钮。',
       '- “保存 .txt”保存译文（勾选“包含原文”时也保存页面文字）。模型识别可能出错——重要内容请对照图片核对（点击图片可放大查看）。'],
+    ['听写与语音录音',
+      '文本框旁边的 🎤 用于听写：点击后说话（最长 30 秒），再点一次，文字就会出现在文本框中光标所在的位置（如果框中的文字已经翻译过，则替换它）。Esc 取消录音。',
+      '- 如果文本语言和译文语言不同，会立即开始翻译；如果相同，文字只放进文本框，接下来做什么由您决定。',
+      '- 语音的语言是左侧所选的语言；选择“自动”时，模型按听到的语言书写。',
+      '- 语音由 Gemma 4 模型本身（E2B 或 E4B）聆听，使用与图片相同的文件（约 0.6 GB；第一次点击 🎤 时程序会提示下载）。文本框下方显示语音时长和模型聆听用时。',
+      '- 需要允许使用麦克风：Windows 中在“设置 → 隐私和安全性 → 麦克风”（包括桌面应用）；macOS 和 Android 会自动询问。',
+      '- 语音录音（MP3、WAV、M4A、OGG，例如语音消息）用“文件”按钮打开：录音按停顿分成最长 30 秒的片段，每段都会识别并翻译；片段旁的 ▶ 可以播放。',
+    ],
     ['朗读',
       '文本框、每个版本、“您的版本”和模型回答旁的 🔊 按钮可以朗读文本。朗读时按钮和文本以绿色突出显示；再点一次暂停（文本不再突出显示），第三次继续。旁边的 ■ 按钮、Esc 或另一个 🔊 按钮会停止朗读，编辑文本也会停止朗读。LaTeX 公式不会被朗读。',
       '- 语音在模型菜单（顶部显示模型名称的按钮）中下载，每种语言一个语音。下载第一个语音时，会一次性下载语音合成程序 sherpa-onnx。语音不会长期占用内存：每句话只运行一两秒。',
@@ -1664,6 +1796,7 @@ const HELP = {
       '在首次启动界面可以点击“跳过”：窗口会在没有模型的情况下打开（顶部显示“选择模型”），您可以在此列表中选择并下载模型。'],
     ['测试',
       '“测试”按钮提供两种测试；每次测试都会把带用时和评分的报告保存到 data\\reports 文件夹——便于比较模型。',
+      '- “语音测试”（1.4）：我们的语音用每种语言朗读四句话，由模型识别——错误字符比例和用时。先测界面语言，然后是英语；随时可以停止，再次点击会继续。报告为 speech-test-….md。',
       '- “快速测试”：两句拉丁语名言（Audentes fortuna iuvat；Cogito, ergo sum），从拉丁语译成界面语言再译回，中性风格——共四次翻译，约一分钟。参考译文内置于程序中。',
       '- “详细测试”以两种风格双向翻译 ui\\tests.txt 文件中的句子对，并用每个句子本身的语言校改它。一对句子是两种语言的两行：“EN: …”和“RU: …”（或 LA、DE、FR、ES、EL、ZH、SV、IT、PT、AR）；默认包含两对英语 ↔ 俄语句子和四句拉丁语名言。您可以在此文件中添加自己的句子对。',
       '- 在测试窗口中，每项任务都会显示原文、模型译文，以及您的译文（来自文件）或参考译文。'],
@@ -1752,6 +1885,8 @@ const ICON = {
   swap: svg('<path d="M4 12h16"/><path d="M8 8l-4 4 4 4"/><path d="M16 8l4 4-4 4"/>'),
   dice: svg('<rect x="4" y="4" width="16" height="16" rx="3"/><path d="M8.5 8.5h.01M15.5 8.5h.01M12 12h.01M8.5 15.5h.01M15.5 15.5h.01"/>', 16),
   file: svg('<path d="M7 3h7l5 5v12a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z"/><path d="M14 3v5h5"/><path d="M9 13h6M9 17h4"/>', 16),
+  mic: svg('<rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0"/><path d="M12 17.5V21"/>', 16),
+  play: svg('<path d="M8 5.5v13l10.5-6.5z"/>', 16),
   speaker: svg('<path d="M4 9.5v5h3.5L12 18V6L7.5 9.5z"/><path d="M15.5 9a4.2 4.2 0 0 1 0 6"/><path d="M18.2 6.5a8 8 0 0 1 0 11"/>', 16),
   pause: svg('<path d="M9 6.5v11M15 6.5v11" stroke-width="3"/>', 16),
   caret: svg('<path d="M7 10l5 5 5-5"/>', 14),
@@ -4706,6 +4841,8 @@ async function renderTestIntro() {
   if (pairs.length && nM) full += ' ' + t('Ещё {n} {w} фраз с формулами LaTeX — проверяется, что формулы остаются на месте.', { n: nM, w: plural(nM, 'перевод', 'перевода', 'переводов') });
   if (pairs.length && GL.on && GL.loaded) full += ' ' + t('Словарь терминов включён ({f}): найденные в фразах термины учитываются; выключить можно во вкладке «Словарь».', { f: GL.file || t('в браузере') });
   para(t('Подробный тест'), full);
+  // 1.4: «Тест речи» — только с программой запуска (голоса и модель, которая слушает речь)
+  if (MODE === 'launcher') para(t('Тест речи'), t('Наши голоса читают по четыре фразы на каждом языке, модель Gemma 4 их распознаёт: доля неверных знаков и время. Первым — язык интерфейса, потом английский, дальше — остальные. Остановить можно в любой момент; следующее нажатие продолжит со следующего языка. Нужны файл модели для картинок и речи и голоса (Supertonic 3 — один файл для 13 языков).'));
 }
 
 // Строка задания в окне теста: «Исходный текст: …», затем результат модели с подписью, у перевода — «Ваш вариант: …»
@@ -4743,7 +4880,7 @@ async function runTest(kind) {
   const btn = $(kind === 'quick' ? '#quickTestBtn' : '#runTestBtn'), other = $(kind === 'quick' ? '#runTestBtn' : '#quickTestBtn');
   testRunning = kind; setBusy(true);
   abortCtl = new AbortController();
-  btn.textContent = t('Остановить'); other.disabled = true;
+  btn.textContent = t('Остановить'); other.disabled = true; $('#speechTestBtn').disabled = true;
   $('#testProgress').hidden = false;
   $('#testSummary').innerHTML = ''; const rowsBox = $('#testRows'); rowsBox.innerHTML = '';
   const started = new Date();
@@ -4797,7 +4934,7 @@ async function runTest(kind) {
     else { $('#testProgressText').textContent = t('Ошибка: {e}', { e: e.message }); refreshState(); }
   } finally {
     testRunning = false; setBusy(false);
-    btn.textContent = kind === 'quick' ? t('Быстрый тест') : t('Подробный тест'); other.disabled = false;
+    btn.textContent = kind === 'quick' ? t('Быстрый тест') : t('Подробный тест'); other.disabled = false; $('#speechTestBtn').disabled = false;
   }
 }
 
@@ -4984,6 +5121,7 @@ window.ttwSetText = function (text) {
 // Кнопка «Назад» телефона (Android): закрыть открытое — окно приветствия, меню, панель; false — закрывать нечего
 // (тогда приложение уходит в фон, модель остаётся в памяти).
 window.ttwBack = function () {
+  if (mic) { micStop(false); return true; }
   if (!$('#welcomeView').hidden) { closeWelcome(); return true; }
   if (!$('#popMenu').hidden) { closePop(); return true; }
   if (!$('#modelMenu').hidden) { $('#modelMenu').hidden = true; return true; }
@@ -5440,7 +5578,7 @@ function initDocs() {
   document.addEventListener('dragenter', (e) => {
     if (!hasFiles(e) || !docAllowed()) return;
     depth++;
-    document.body.dataset.drop = t('Отпустите файл: картинку, PDF или текст');
+    document.body.dataset.drop = t('Отпустите файл: картинку, PDF, текст или запись речи');
     document.body.classList.add('drag-file');
   });
   document.addEventListener('dragleave', (e) => { if (hasFiles(e) && --depth <= 0) { depth = 0; document.body.classList.remove('drag-file'); } });
@@ -5475,7 +5613,7 @@ function pickDocFile() {
 function renderDocButton() {
   const back = DOC && !docOpen();
   $('#fileLabel').textContent = back ? t('Документ') : t('Файл');
-  $('#fileBtn').title = back ? t('Вернуться к документу «{n}»', { n: DOC.name }) : t('Открыть файл: картинку (скан, фото страницы, снимок экрана), PDF, документ (.docx, .odt) или текст (.txt, .tex) — перевод встанет рядом с оригиналом. Файл можно и перетащить в окно, а картинку — вставить (Ctrl+V)');
+  $('#fileBtn').title = back ? t('Вернуться к документу «{n}»', { n: DOC.name }) : t('Открыть файл: картинку (скан, фото страницы, снимок экрана), PDF, документ (.docx, .odt), текст (.txt, .tex) или запись речи (MP3, WAV, M4A, OGG) — перевод встанет рядом с оригиналом. Файл можно и перетащить в окно, а картинку — вставить (Ctrl+V)');
 }
 
 function docKind(file) {
@@ -5484,6 +5622,7 @@ function docKind(file) {
   if (type === 'application/pdf' || name.endsWith('.pdf')) return 'pdf';
   if (/\.(docx|odt|doc)$/.test(name) || /officedocument\.wordprocessingml|opendocument\.text|msword/.test(type)) return 'office';
   if (type.startsWith('text/') || /\.(txt|tex|md)$/.test(name)) return 'text';
+  if (type.startsWith('audio/') || type.startsWith('video/') || LISTEN.fileExt.test(name)) return 'audio';   // 1.4: запись речи
   return '';
 }
 
@@ -5491,7 +5630,7 @@ async function openDocFile(file) {
   if (!file) return;
   if (docCtl) { toast(t('Дождитесь окончания или нажмите «Стоп»')); return; }
   const kind = docKind(file);
-  if (!kind) { toast(t('Этот файл не открыть: нужна картинка (PNG, JPEG, WebP), PDF, документ (.docx, .odt) или текст (.txt, .tex)')); return; }
+  if (!kind) { toast(t('Этот файл не открыть: нужна картинка (PNG, JPEG, WebP), PDF, документ (.docx, .odt), текст (.txt, .tex) или запись речи (MP3, WAV, M4A, OGG)')); return; }
   stopSpeech();
   closeDocZoom();
   docRelease();
@@ -5508,6 +5647,7 @@ async function openDocFile(file) {
     if (kind === 'image') await docOpenImage(doc);
     else if (kind === 'pdf') await docOpenPdf(doc);
     else if (kind === 'office') await docOpenOffice(doc);
+    else if (kind === 'audio') await docOpenAudio(doc);
     else await docOpenText(doc);
   } catch (e) {
     if (DOC === doc) { docStatus(''); docNote(t('Не удалось открыть файл: {e}', { e: errText(e) })); }
@@ -5519,10 +5659,12 @@ async function openDocFile(file) {
   const scans = doc.pages.filter(p => p.kind === 'scan').length;
   if (scans && !docVisionReady()) docNote(docVisionHint());
   docRefresh();
+  if (kind === 'audio') docListenAll();   // запись распознаётся сразу (1.4)
 }
 
 // Освободить прежний документ: PDF.js держит файл и картинки страниц.
 function docRelease() {
+  docPlayStop();
   if (docObserver) { docObserver.disconnect(); docObserver = null; }
   if (DOC && DOC.pdf) { try { DOC.pdf.destroy(); } catch (e) { /* уже закрыт */ } }
   if (DOC) for (const p of DOC.pages) if (p.bitmap && p.bitmap.close) p.bitmap.close();
@@ -5706,10 +5848,11 @@ function renderDocPages() {
   }, { rootMargin: '400px' }) : null;
   const many = DOC.pages.length > 1;
   for (const p of DOC.pages) {
-    const sec = el('section', 'doc-page' + (DOC.kind !== 'text' ? ' has-img' : ''));
+    const sec = el('section', 'doc-page' + (DOC.kind === 'audio' ? ' has-audio' : DOC.kind !== 'text' ? ' has-img' : ''));
     sec._page = p;
     const head = el('div', 'doc-page-head');
-    head.appendChild(el('b', '', many ? t('Страница {n}', { n: p.n }) : (DOC.kind === 'text' ? t('Текст') : t('Страница'))));
+    head.appendChild(el('b', '', DOC.kind === 'audio' ? (many ? t('Часть {n}', { n: p.n }) : t('Запись'))
+      : many ? t('Страница {n}', { n: p.n }) : (DOC.kind === 'text' ? t('Текст') : t('Страница'))));
     const meta = el('span', 'doc-meta');
     head.appendChild(meta);
     head.appendChild(el('span', 'spacer'));
@@ -5723,7 +5866,17 @@ function renderDocPages() {
     sec.appendChild(head);
     const cols = el('div', 'doc-cols');
     let img = null;
-    if (DOC.kind !== 'text') {
+    if (DOC.kind === 'audio') {
+      const box = el('div', 'doc-audio');
+      const play = el('button', 'ghost small-btn');
+      play.type = 'button';
+      play.appendChild(el('span', 'ic')).innerHTML = ICON.play;
+      play.appendChild(el('span', '', fmtClock(p.t0 * 1000) + '–' + fmtClock(p.t1 * 1000)));
+      play.title = t('Послушать эту часть записи');
+      play.onclick = () => docPlay(p, play);
+      box.appendChild(play);
+      cols.appendChild(box);
+    } else if (DOC.kind !== 'text') {
       const fig = el('figure', 'doc-img');
       img = el('img');
       img.alt = t('Страница {n}', { n: p.n });
@@ -5736,9 +5889,10 @@ function renderDocPages() {
     const src = el('textarea', 'doc-src');
     src.dir = 'auto';
     src.value = p.src;
-    src.placeholder = p.kind === 'scan' ? t('Здесь появится текст страницы — нажмите «Распознать». Его можно поправить перед переводом.') : '';
+    src.placeholder = p.kind === 'scan' ? t('Здесь появится текст страницы — нажмите «Распознать». Его можно поправить перед переводом.')
+      : p.kind === 'audio' ? (p.silent ? t('В этой части записи тишина.') : t('Здесь появится текст этой части записи. Его можно поправить перед переводом.')) : '';
     src.setAttribute('aria-label', t('Текст страницы {n}', { n: p.n }));
-    src.addEventListener('input', () => { p.src = src.value; if (p.from === 'ocr') p.edited = true; fitDocSrc(src); docPageMeta(p); docRefresh(); });
+    src.addEventListener('input', () => { p.src = src.value; if (p.from === 'ocr' || p.from === 'asr') p.edited = true; fitDocSrc(src); docPageMeta(p); docRefresh(); });
     stopSpeechOnEdit(src);
     const left = el('div');
     left.appendChild(src);
@@ -5819,9 +5973,9 @@ function closeDocZoom() { const z = $('#docZoom'); if (z) { z.hidden = true; z.q
 function docPageMeta(p) {
   if (!p.ui) return;
   const parts = [];
-  parts.push(p.kind === 'scan' ? t('картинка') : p.from === 'pdf' ? t('текст из PDF')
+  parts.push(p.kind === 'scan' ? t('картинка') : p.kind === 'audio' ? (p.silent ? t('тишина') : t('часть записи')) : p.from === 'pdf' ? t('текст из PDF')
     : p.from === 'docx' || p.from === 'odt' ? t('текст из {f}', { f: p.from.toUpperCase() }) : t('текст'));
-  if (p.from === 'ocr' && p.ocrMs) parts.push(t('распознано за {t}', { t: fmtDur(p.ocrMs) }) + (p.ocrInfo ? ' (' + p.ocrInfo + ')' : ''));
+  if ((p.from === 'ocr' || p.from === 'asr') && p.ocrMs) parts.push(t('распознано за {t}', { t: fmtDur(p.ocrMs) }) + (p.ocrInfo ? ' (' + p.ocrInfo + ')' : ''));
   if (p.src) parts.push(p.src.length.toLocaleString(LOCALE) + ' ' + plural(p.src.length, 'знак', 'знака', 'знаков'));
   const stale = p.tgt && p.tgtFor !== p.src;
   if (p.tgt && !stale && p.trMs) parts.push(t('переведено за {t}', { t: fmtDur(p.trMs) }));
@@ -5829,8 +5983,8 @@ function docPageMeta(p) {
   if (p.err) parts.push(p.err);
   p.ui.meta.textContent = parts.join(' · ');
   p.ui.meta.className = 'doc-meta' + (p.err ? ' err' : stale ? ' stale' : '');
-  p.ui.readB.hidden = p.kind !== 'scan';
-  p.ui.readB.textContent = p.src && p.from === 'ocr' ? t('Распознать заново') : t('Распознать');
+  p.ui.readB.hidden = !docReadable(p);
+  p.ui.readB.textContent = p.src && (p.from === 'ocr' || p.from === 'asr') ? t('Распознать заново') : t('Распознать');
   p.ui.sp.dataset.lang = p.tgtLang || '';
   updateSpeakBtn(p.ui.sp);
   docSrcSpeakLang(p);
@@ -5875,7 +6029,7 @@ function docWorkPhase(p, what) { if (p.ui && p.ui.work && p.ui.work.isConnected)
 
 function docRefresh() {
   const has = !!DOC, run = !!docCtl;
-  const unread = has ? DOC.pages.filter(p => p.kind === 'scan' && !p.src.trim()) : [];
+  const unread = has ? DOC.pages.filter(p => docReadable(p) && !p.src.trim()) : [];
   $('#docReadBtn').hidden = run || !unread.length;
   $('#docTransBtn').hidden = run;
   $('#docStopBtn').hidden = !run;
@@ -5886,16 +6040,17 @@ function docRefresh() {
 
 /* --- распознавание и перевод --- */
 
-// Модель готова читать картинки: файл для картинок есть (иначе — спросить и скачать), модель загружена вместе с ним
-// (иначе — загрузить заново). Ждёт, пока всё готово; false — пользователь отказался или модель не та.
-async function ensureVision(sig) {
+// Модель готова читать картинки (и слушать речь, 1.4): файл mmproj есть (иначе — спросить и скачать), модель загружена
+// вместе с ним (иначе — загрузить заново). Ждёт, пока всё готово; false — пользователь отказался или модель не та.
+// ui — где это видно: окно документа (по умолчанию), строка под полем текста (🎤) или окно теста («Тест речи»).
+async function ensureVision(sig, ui = DOC_VISION_UI) {
   await refreshState();
   let v = STATE && STATE.vision;
-  if (!v || !v.current) { docNote(t('Страницы-картинки читает модель Gemma 4 из каталога (E2B или E4B). Выберите её в меню моделей.')); return false; }
+  if (!v || !v.current) { ui.note(ui.noModel()); return false; }
   if (v.loaded && STATE.phase === 'ready') return true;
   const f = (v.files || []).find(x => x.id === v.current);
   if (!f.present) {
-    if (!(await docConfirmVision(f, sig))) return false;
+    if (!(await ui.confirm(f, sig))) return false;
     await post('/api/vision', { action: 'download' });
   } else {
     await post('/api/vision', { action: 'on' });
@@ -5907,7 +6062,7 @@ async function ensureVision(sig) {
     v = STATE.vision;
     const dl = v.download || {};
     if (dl.active) {
-      docStatus(t('Скачиваю файл для картинок: {p} %', { p: dl.total ? Math.floor(100 * dl.done / dl.total) : 0 }));
+      ui.status(ui.downloading(dl.total ? Math.floor(100 * dl.done / dl.total) : 0));
       continue;
     }
     const ff = (v.files || []).find(x => x.id === v.current);
@@ -5915,19 +6070,35 @@ async function ensureVision(sig) {
     if (!v.on && v.error) throw new Error(visionFailText(v.error));
     if (STATE.phase === 'error') throw new Error(STATE.error || t('Движок не запустился.'));
     if (STATE.phase === 'unloaded') throw new Error(t('Модель выгружена из памяти.'));
-    if (v.loaded && STATE.phase === 'ready') { docStatus(''); docNote(''); return true; }
-    docStatus(t('Загружаю модель вместе с файлом для картинок…'));
+    if (v.loaded && STATE.phase === 'ready') { ui.status(''); ui.note(''); return true; }
+    ui.status(ui.loading());
   }
 }
 
-// Спросить, скачать ли файл для картинок: откуда, куда, какой файл (как у моделей).
-function docConfirmVision(f, sig) {
+// Подготовка модели в окне документа: подсказка и ход — над страницами, вопрос о скачивании — под подсказкой. У
+// аудиофайла (1.4) — те же слова, что у 🎤: файл нужен, чтобы слушать речь.
+const docSpeech = () => !!DOC && DOC.kind === 'audio';
+const DOC_VISION_UI = {
+  note: (s) => docNote(s),
+  status: (s) => docStatus(s),
+  confirm: (f, sig) => confirmVision(f, sig, $('#docNote'), docSpeech()),
+  loading: () => docSpeech() ? t('Загружаю модель вместе с файлом для картинок и речи…') : t('Загружаю модель вместе с файлом для картинок…'),
+  downloading: (p) => docSpeech() ? t('Скачиваю файл для картинок и речи: {p} %', { p }) : t('Скачиваю файл для картинок: {p} %', { p }),
+  noModel: () => docSpeech() ? t('Речь слушает модель Gemma 4 из каталога (E2B или E4B). Выберите её в меню моделей.')
+    : t('Страницы-картинки читает модель Gemma 4 из каталога (E2B или E4B). Выберите её в меню моделей.'),
+};
+
+// Спросить, скачать ли файл для картинок и речи: откуда, куда, какой файл (как у моделей). Вопрос встаёт под anchor;
+// speech — файл нужен для речи (🎤, аудиофайл, «Тест речи»).
+function confirmVision(f, sig, anchor, speech) {
   return new Promise((resolve) => {
     const box = el('div', 'dl-confirm');
-    box.appendChild(el('div', 'q', t('Чтобы читать картинки, модели нужен ещё один файл — «{n}» ({s}). Он пригодится и для распознавания речи. Скачать?',
-      { n: t('{m} · картинки и речь', { m: f.name }), s: fmtBytes(f.size - (f.partial || 0)) })));
+    const n = { n: t('{m} · картинки и речь', { m: f.name }), s: fmtBytes(f.size - (f.partial || 0)) };
+    box.appendChild(el('div', 'q', speech ? t('Чтобы слушать речь, модели нужен ещё один файл — «{n}» ({s}). Он же нужен для картинок. Скачать?', n)
+      : t('Чтобы читать картинки, модели нужен ещё один файл — «{n}» ({s}). Он пригодится и для распознавания речи. Скачать?', n)));
     box.appendChild(kvList([[t('Откуда:'), f.url], [t('Куда:'), (STATE && STATE.models_dir) || ''], [t('Файл:'), f.file]]));
-    box.appendChild(el('div', 'note', t('Пока читаются картинки, модель занимает в памяти примерно на 0,6 ГБ больше.')));
+    box.appendChild(el('div', 'note', speech ? t('Пока модель слушает речь или читает картинки, она занимает в памяти примерно на 0,6 ГБ больше.')
+      : t('Пока читаются картинки, модель занимает в памяти примерно на 0,6 ГБ больше.')));
     const btns = el('div', 'row');
     const done = (ok) => { box.remove(); sig.removeEventListener('abort', onAbort); resolve(ok); };
     const onAbort = () => done(false);
@@ -5935,8 +6106,8 @@ function docConfirmVision(f, sig) {
     const yes = el('button', 'primary', t('Скачать')); yes.type = 'button'; yes.onclick = () => done(true);
     const no = el('button', '', t('Отмена')); no.type = 'button'; no.onclick = () => done(false);
     btns.appendChild(yes); btns.appendChild(no); box.appendChild(btns);
-    $('#docNote').hidden = true;
-    $('#docNote').after(box);
+    if (anchor.id === 'docNote') anchor.hidden = true;
+    anchor.after(box);
     yes.focus();
   });
 }
@@ -5962,19 +6133,27 @@ async function docRun(work) {
   }
 }
 
-// «Распознать»: страницы-картинки без текста (или выбранная — заново), по очереди.
+// Страницу читает модель: картинка (скан) или часть записи речи (1.4; часть, где тишина, — нет).
+const docReadable = (p) => p.kind === 'scan' || (p.kind === 'audio' && !p.silent);
+
+// «Распознать»: страницы-картинки и части записи без текста (или выбранная — заново), по очереди.
 function docRecognize(list) {
   return docRun(async (sig) => {
-    const pages = list || DOC.pages.filter(p => p.kind === 'scan' && !p.src.trim());
-    if (!pages.length) { toast(t('Все страницы-картинки уже распознаны')); return; }
+    const pages = list || DOC.pages.filter(p => docReadable(p) && !p.src.trim());
+    if (!pages.length) { toast(docSpeech() ? t('Вся запись уже распознана') : t('Все страницы-картинки уже распознаны')); return; }
     if (!(await ensureVision(sig))) return;
-    let i = 0;
-    for (const p of pages) {
-      if (sig.aborted) throw docAbort();
-      docStatus(pages.length > 1 ? t('Распознаю: страница {i} из {n}', { i: ++i, n: pages.length }) : '');
-      try { await docOcrPage(p, sig); } catch (e) { throw await visionFailed(e); }
-    }
+    await docReadPages(pages, sig);
   });
+}
+
+async function docReadPages(pages, sig) {
+  let i = 0;
+  for (const p of pages) {
+    if (sig.aborted) throw docAbort();
+    i++;
+    docStatus(pages.length < 2 ? '' : p.kind === 'audio' ? t('Распознаю: часть {i} из {n}', { i, n: pages.length }) : t('Распознаю: страница {i} из {n}', { i, n: pages.length }));
+    try { await (p.kind === 'audio' ? docAsrPage(p, sig) : docOcrPage(p, sig)); } catch (e) { throw await visionFailed(e); }
+  }
 }
 
 // Движок не справился с файлом для картинок (мало памяти, файл повреждён): программа запустила его снова без
@@ -6039,14 +6218,19 @@ function docTranslate(list) {
       toast(DOC.pages.some(p => p.src.trim()) ? t('Все страницы уже переведены') : t('Сначала нажмите «Распознать»: у страниц ещё нет текста'));
       return;
     }
-    let i = 0;
-    for (const p of pages) {
-      if (sig.aborted) throw docAbort();
-      docStatus(pages.length > 1 ? t('Перевожу: страница {i} из {n}', { i: ++i, n: pages.length }) : '');
-      if (!p.src.trim()) { p.err = t('нет текста — сначала «Распознать»'); docPageMeta(p); continue; }
-      await docTranslatePage(p, sig);
-    }
+    await docTranslatePages(pages, sig);
   });
+}
+
+async function docTranslatePages(pages, sig) {
+  let i = 0;
+  for (const p of pages) {
+    if (sig.aborted) throw docAbort();
+    i++;
+    docStatus(pages.length < 2 ? '' : docSpeech() ? t('Перевожу: часть {i} из {n}', { i, n: pages.length }) : t('Перевожу: страница {i} из {n}', { i, n: pages.length }));
+    if (!p.src.trim()) { p.err = t('нет текста — сначала «Распознать»'); docPageMeta(p); continue; }
+    await docTranslatePage(p, sig);
+  }
 }
 
 async function docTranslatePage(p, sig) {
@@ -6105,7 +6289,7 @@ async function docSave() {
   for (const p of DOC.pages) {
     if (!p.tgt && !(withSrc && p.src.trim())) continue;
     const b = [];
-    if (many) b.push(t('— Страница {n} —', { n: p.n }));
+    if (many) b.push(docSpeech() ? t('— Часть {n} ({a}–{b}) —', { n: p.n, a: fmtClock(p.t0 * 1000), b: fmtClock(p.t1 * 1000) }) : t('— Страница {n} —', { n: p.n }));
     if (withSrc && p.src.trim()) b.push(p.src.trim());
     if (p.tgt) b.push(p.tgt);
     parts.push(b.join('\n\n'));
@@ -6130,14 +6314,14 @@ function renderVisionMenu(menu) {
     const pick = el('button', 'pick');
     pick.appendChild(el('span', 'title', (loaded ? '✓ ' : '') + t('{m} · картинки и речь', { m: f.name })));
     const status = busyThis ? t('скачивается: {p} %', { p: dl.total ? Math.floor(100 * dl.done / dl.total) : 0 })
-      : loaded ? t('работает: модель читает картинки')
-      : f.present ? t('скачан; включится, когда вы откроете картинку или PDF')
+      : loaded ? t('работает: модель читает картинки и слушает речь')
+      : f.present ? t('скачан; включится, когда вы откроете картинку, PDF или запись речи или нажмёте 🎤')
       : f.partial ? t('скачано {p} %', { p: Math.round(100 * f.partial / f.size) }) : t('нужно скачать');
     const sub = el('span', 'sub', `${fmtBytes(f.size)} · ${status}`);
     pick.appendChild(sub);
     pick.onclick = () => {
       if (busyThis) return;
-      if (f.present) { toast(t('Файл скачан. Картинки и PDF открывает кнопка «Файл» под полем текста.')); return; }
+      if (f.present) { toast(t('Файл скачан. Картинки, PDF и записи речи открывает кнопка «Файл» под полем текста, диктовка — 🎤 рядом с ней.')); return; }
       if (dl.active) { toast(t('Идёт скачивание, дождитесь окончания')); return; }
       showVisionDlConfirm(row, f);
     };
@@ -6186,6 +6370,634 @@ function renderVisionState() {
   if ((dl.active || visionDlWas) && !menu.hidden && !menu.querySelector('.dl-confirm')) renderModelMenu();
   if (visionDlWas && !dl.active) toast(dl.error ? t('Файл для картинок не скачан: {e}', { e: dl.error }) : t('Файл для картинок скачан.'));
   visionDlWas = !!dl.active;
+}
+
+/* ===================== Речь: диктовка, аудиофайлы, «Тест речи» (1.4) ===================== */
+// Решение автора от 24.11.2026: сначала путь А — речь слушает сама модель Gemma 4 (E2B или E4B) с тем же файлом mmproj,
+// что и для картинок: новых программ и моделей нет. Звук записывается в странице (getUserMedia) или читается из файла,
+// переводится в WAV 16 кГц моно и уходит модели вместе с запросом «перепиши речь» (input_audio; LISTEN в «Настройках»);
+// за раз — до 30 секунд.
+//   - 🎤 у поля текста: нажать — говорить — нажать ещё раз (Esc — отмена). Текст встаёт в поле на место курсора (если
+//     текст в поле уже переведён — заменяет его). Дальше — правило автора: язык текста и язык результата разные — сразу
+//     перевод, одинаковые — только текст в поле, что делать дальше, решает пользователь.
+//   - Аудиофайл (кнопка «Файл», перетаскивание): куски до 30 с, разрез — в паузе; каждый кусок — страница окна
+//     документа (послушать, текст, перевод). Распознаётся сразу при открытии, перевод — по тому же правилу.
+//   - «Тест речи» (кнопка «Тест»): наши голоса читают фразы LISTEN_TEST, модель их распознаёт.
+// После каждой записи видно время: сколько длилась речь и сколько модель её слушала (для замеров автора).
+
+// Пересчёт частоты звука: sinc с окном Ханна (при уменьшении частоты — и фильтр против наложения); без AudioContext —
+// одинаково во всех окнах.
+function resampleTo(x, from, to) {
+  if (!x.length || from === to) return x;
+  const ratio = from / to, n = Math.floor(x.length / ratio);
+  const out = new Float32Array(n);
+  const fc = Math.min(1, to / from) * 0.92;   // срез — чуть ниже половины новой частоты
+  const half = Math.ceil(12 / fc);            // половина ширины фильтра, в отсчётах исходного звука
+  for (let i = 0; i < n; i++) {
+    const c = i * ratio, k0 = Math.max(0, Math.floor(c) - half + 1), k1 = Math.min(x.length - 1, Math.floor(c) + half);
+    let s = 0, ws = 0;
+    for (let k = k0; k <= k1; k++) {
+      const d = k - c, a = Math.PI * d * fc;
+      const w = (a === 0 ? 1 : Math.sin(a) / a) * (0.5 + 0.5 * Math.cos(Math.PI * d / (half + 1)));
+      s += x[k] * w; ws += w;
+    }
+    out[i] = ws ? s / ws : 0;
+  }
+  return out;
+}
+
+// Мощность звука по кадрам 20 мс.
+function frameEnergy(x, rate) {
+  const fr = Math.max(1, Math.round(rate / 50)), n = Math.floor(x.length / fr), e = new Float32Array(n);
+  for (let i = 0; i < n; i++) {
+    let s = 0;
+    for (let k = i * fr, end = k + fr; k < end; k++) s += x[k] * x[k];
+    e[i] = s / fr;
+  }
+  return { e, fr };
+}
+// Тишина: громче −50 дБ нет ни одного кадра (микрофон выключен, пустой кусок записи).
+function isSilent(x, rate) {
+  const { e } = frameEnergy(x, rate);
+  for (const v of e) if (v > 1e-5) return false;
+  return true;
+}
+// Тишина в начале и в конце записи — прочь (запас 0,3 с): модели меньше работы.
+function trimSilence(x, rate) {
+  const { e, fr } = frameEnergy(x, rate);
+  let mx = 0;
+  for (const v of e) if (v > mx) mx = v;
+  if (!e.length || mx < 1e-6) return new Float32Array(0);
+  const thr = mx * LISTEN.trimLevel * LISTEN.trimLevel;   // trimLevel — доля громкости, мощность — её квадрат
+  let a = 0, b = e.length - 1;
+  while (a < e.length && e[a] < thr) a++;
+  while (b > a && e[b] < thr) b--;
+  const pad = 15;   // кадров по 20 мс
+  return x.subarray(Math.max(0, (a - pad) * fr), Math.min(x.length, (b + 1 + pad) * fr));
+}
+// Аудиофайл → куски не длиннее LISTEN.maxSeconds; разрез — в самом тихом месте (среднее за 0,3 с) между pieceMin и
+// maxSeconds от начала куска. Возвращает пары [начало, конец) в отсчётах.
+function audioPieces(x, rate) {
+  const { e, fr } = frameEnergy(x, rate);
+  const w = 15, sm = new Float32Array(e.length);
+  let acc = 0;
+  for (let i = 0; i < e.length; i++) { acc += e[i]; if (i >= w) acc -= e[i - w]; sm[i] = acc / Math.min(i + 1, w); }
+  const maxF = Math.floor(LISTEN.maxSeconds * 50) - 2, minF = Math.floor(LISTEN.pieceMin * 50);
+  const out = [];
+  let a = 0;
+  while (a < e.length) {
+    if (e.length - a <= maxF) { out.push([a * fr, x.length]); break; }
+    let best = a + maxF, bv = Infinity;
+    for (let i = a + minF + w; i <= a + maxF; i++) if (sm[i] < bv) { bv = sm[i]; best = i; }
+    const cut = best - (w >> 1);   // середина тихого места
+    out.push([a * fr, cut * fr]);
+    a = cut;
+  }
+  return out;
+}
+
+// WAV: 16 бит, моно.
+function wavBytes(x, rate) {
+  const n = x.length, buf = new ArrayBuffer(44 + 2 * n), v = new DataView(buf);
+  const str = (o, s) => { for (let i = 0; i < s.length; i++) v.setUint8(o + i, s.charCodeAt(i)); };
+  str(0, 'RIFF'); v.setUint32(4, 36 + 2 * n, true); str(8, 'WAVE'); str(12, 'fmt ');
+  v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true); v.setUint32(24, rate, true);
+  v.setUint32(28, 2 * rate, true); v.setUint16(32, 2, true); v.setUint16(34, 16, true); str(36, 'data'); v.setUint32(40, 2 * n, true);
+  for (let i = 0; i < n; i++) { const s = Math.max(-1, Math.min(1, x[i])); v.setInt16(44 + 2 * i, s < 0 ? s * 0x8000 : s * 0x7FFF, true); }
+  return new Uint8Array(buf);
+}
+function bytesToBase64(u8) {
+  let s = '';
+  for (let i = 0; i < u8.length; i += 0x8000) s += String.fromCharCode.apply(null, u8.subarray(i, i + 0x8000));
+  return btoa(s);
+}
+// WAV (ответ программы озвучки) → звук одним каналом: PCM 8, 16 и 32 бита или 32 бита с плавающей точкой.
+function parseWav(buf) {
+  const v = new DataView(buf);
+  const tag = (o) => String.fromCharCode(v.getUint8(o), v.getUint8(o + 1), v.getUint8(o + 2), v.getUint8(o + 3));
+  if (buf.byteLength < 12 || tag(0) !== 'RIFF' || tag(8) !== 'WAVE') throw new Error('not a WAV file');
+  let o = 12, fmt = null;
+  while (o + 8 <= buf.byteLength) {
+    const id = tag(o), size = v.getUint32(o + 4, true), body = o + 8;
+    if (id === 'fmt ') {
+      fmt = { format: v.getUint16(body, true), ch: v.getUint16(body + 2, true) || 1, rate: v.getUint32(body + 4, true), bits: v.getUint16(body + 14, true) };
+      if (fmt.format === 0xFFFE && fmt.bits === 32) fmt.format = 3;   // «расширенный» WAV из 32-битных чисел — обычно float
+    } else if (id === 'data' && fmt) {
+      const len = size && size !== 0xFFFFFFFF ? Math.min(size, buf.byteLength - body) : buf.byteLength - body;
+      const bps = fmt.bits / 8, n = Math.floor(len / (bps * fmt.ch)), out = new Float32Array(n);
+      for (let i = 0; i < n; i++) {
+        let s = 0;
+        for (let c = 0; c < fmt.ch; c++) {
+          const p = body + (i * fmt.ch + c) * bps;
+          s += fmt.format === 3 ? v.getFloat32(p, true) : fmt.bits === 16 ? v.getInt16(p, true) / 32768
+            : fmt.bits === 32 ? v.getInt32(p, true) / 2147483648 : (v.getUint8(p) - 128) / 128;
+        }
+        out[i] = s / fmt.ch;
+      }
+      return { pcm: out, rate: fmt.rate };
+    }
+    o = body + size + (size & 1);
+  }
+  throw new Error('no sound in the WAV file');
+}
+
+// Ответ модели — текст речи: без рассуждений, рамок, подписей и кавычек вокруг, одной строкой.
+function cleanSpeech(x) {
+  let s = String(x || '').replace(/<think>[\s\S]*?<\/think>/g, '').trim();
+  s = s.replace(/^```[\w-]*\n?/, '').replace(/\n?```\s*$/, '');
+  s = s.replace(/^(?:transcription|transcript)\s*[:：]\s*/i, '');
+  s = s.replace(/\s*\n+\s*/g, ' ').trim();
+  for (const [a, b] of [['"', '"'], ['«', '»'], ['“', '”'], ['„', '“']]) {
+    if (s.length > 2 && s.startsWith(a) && s.endsWith(b) && s.indexOf(b, 1) === s.length - 1) { s = s.slice(1, -1).trim(); break; }
+  }
+  return s;
+}
+
+// Запрос к модели: запись (до 30 с, 16 кГц) → её текст. lang — язык речи (код из LANGS) или '' («Авто»).
+async function listenRequest(pcm, lang, sig, onText) {
+  const L = LANGS[lang];
+  const t0 = performance.now();
+  const r = await chat(null, {
+    messages: [{ role: 'user', content: [
+      { type: 'text', text: LISTEN.prompt(L ? L.prompt : '', lang === 'zh' ? L.target : '') },
+      { type: 'input_audio', input_audio: { data: bytesToBase64(wavBytes(pcm, LISTEN.rate)), format: 'wav' } },
+    ] }],
+    maxTokens: LISTEN.maxTokens, seed: BASE_SEED, signal: sig, sampling: LISTEN.sampling,
+    onText: onText ? (x) => onText(cleanSpeech(x)) : undefined,
+  });
+  return { text: cleanSpeech(r.text), ms: performance.now() - t0, timings: r.timings || {}, finish: r.finish };
+}
+// Время модели по её ответу: звук вместе с запросом и текст ответа.
+function listenInfo(tm) {
+  return tm && tm.prompt_ms ? t('звук {a}, текст {b}', { a: fmtSec(tm.prompt_ms), b: fmtSec(tm.predicted_ms || 0) }) : '';
+}
+
+/* --- 🎤 у поля текста --- */
+
+let mic = null;   // идёт запись: { ctx, stream, src, node, chunks, n, rate, level, timer }
+
+// Подготовка модели для 🎤: ход — в строке под полем текста, вопрос о скачивании — под ней.
+const MIC_VISION_UI = {
+  note: (s) => formError(s),
+  status: (s) => setNote(s, false, !!s),
+  confirm: (f, sig) => confirmVision(f, sig, $('#srcTools'), true),
+  loading: () => t('Загружаю модель вместе с файлом для картинок и речи…'),
+  downloading: (p) => t('Скачиваю файл для картинок и речи: {p} %', { p }),
+  noModel: () => t('Речь слушает модель Gemma 4 из каталога (E2B или E4B). Выберите её в меню моделей.'),
+};
+
+function initListen() {
+  $('#micBtn').innerHTML = ICON.mic;
+  $('#micBtn').onclick = micToggle;
+}
+
+async function micToggle() {
+  if (mic) { micStop(true); return; }
+  if (busy || docCtl || askCtl) { toast(t('Дождитесь окончания или нажмите «Стоп»')); return; }
+  if (!isReady()) { needModel(); return; }
+  const v = STATE && STATE.vision;
+  if (!(v && v.current)) { formError(MIC_VISION_UI.noModel()); return; }
+  const md = navigator.mediaDevices;
+  if (!md || !md.getUserMedia) { formError(t('В этом окне нет доступа к микрофону.')); return; }
+  stopSpeech(); formError(''); disarmRandom(); disarmLesson();
+  // файла для речи ещё нет — сначала вопрос и скачивание, потом запись (чтобы не говорить впустую)
+  const f = (v.files || []).find(x => x.id === v.current);
+  if (!f || !f.present) { await micPrepare(); return; }
+  // файл есть, но модель загружена без него — она загружается заново, пока человек говорит
+  if (!v.loaded) post('/api/vision', { action: 'on' }).catch(() => { /* ensureVision после записи скажет, что не так */ });
+  const AC = window.AudioContext || window.webkitAudioContext;
+  let ctx;
+  try { ctx = new AC(); } catch (e) { formError(t('Не удалось включить микрофон: {e}', { e: errText(e) })); return; }
+  const m = { ctx, chunks: [], n: 0, rate: ctx.sampleRate, level: 0 };
+  mic = m;
+  $('#micBtn').classList.add('rec');
+  setNote(t('Включаю микрофон…'));
+  try {
+    m.stream = await md.getUserMedia({ audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true, autoGainControl: true } });
+  } catch (e) {
+    try { ctx.close(); } catch (er) { /* уже закрыт */ }
+    if (mic === m) { mic = null; micLook(); setNote(''); formError(micErrorText(e)); }
+    return;
+  }
+  if (mic !== m) { m.stream.getTracks().forEach(x => x.stop()); return; }   // отменили, пока система спрашивала разрешение
+  try { if (ctx.state === 'suspended') await ctx.resume(); } catch (e) { /* запись пойдёт и так */ }
+  m.src = ctx.createMediaStreamSource(m.stream);
+  m.node = ctx.createScriptProcessor(4096, 1, 1);
+  m.node.onaudioprocess = (e) => {
+    if (mic !== m) return;
+    const x = e.inputBuffer.getChannelData(0);
+    m.chunks.push(new Float32Array(x)); m.n += x.length;
+    let pk = 0;
+    for (let i = 0; i < x.length; i += 4) { const a = Math.abs(x[i]); if (a > pk) pk = a; }
+    m.level = Math.max(pk, m.level);
+    if (m.n >= m.rate * LISTEN.maxSeconds) micStop(true);
+  };
+  m.src.connect(m.node);
+  m.node.connect(ctx.destination);   // ScriptProcessor работает, только когда подключён к выходу; его выход — тишина
+  const tick = () => {
+    if (mic !== m) return;
+    const o = { t: fmtClock(1000 * m.n / m.rate), max: fmtClock(1000 * LISTEN.maxSeconds) };
+    setNote(ANDROID ? t('Запись {t} из {max} — говорите; ещё раз 🎤 — готово', o) : t('Запись {t} из {max} — говорите; ещё раз 🎤 — готово, Esc — отмена', o));
+    $('#micBtn').style.setProperty('--lvl', Math.min(1, m.level * 2.5).toFixed(2));
+    m.level *= 0.5;
+  };
+  tick();
+  m.timer = setInterval(tick, 150);
+}
+
+// Почему микрофон не включился — с подсказкой, где его разрешить.
+function micErrorText(e) {
+  const n = (e && e.name) || '';
+  if (/NotAllowed|Security|PermissionDenied/.test(n)) {
+    if (ANDROID) return t('Нет разрешения на микрофон. Разрешите его Ttranslator в настройках Android: Приложения → Ttranslator → Разрешения.');
+    const ua = navigator.userAgent || '';
+    if (/Windows/.test(ua)) return t('Нет доступа к микрофону. Разрешите его в Windows: Параметры → Конфиденциальность и защита → Микрофон (и для классических приложений).');
+    if (/Mac OS X|Macintosh/.test(ua)) return t('Нет доступа к микрофону. Разрешите его Ttranslator в macOS: Системные настройки → Конфиденциальность и безопасность → Микрофон.');
+    return t('Нет доступа к микрофону: его не разрешила система или браузер.');
+  }
+  if (/NotFound|DevicesNotFound|Overconstrained/.test(n)) return t('Микрофон не найден.');
+  if (/NotReadable|TrackStart/.test(n)) return t('Микрофон занят другой программой или недоступен.');
+  return t('Не удалось включить микрофон: {e}', { e: errText(e) });
+}
+
+// Закончить запись: recognize — распознать (второе нажатие 🎤, 30 секунд), иначе отмена (Esc, «Назад»).
+function micStop(recognize) {
+  const m = mic;
+  if (!m) return;
+  mic = null;
+  clearInterval(m.timer);
+  try { if (m.node) { m.node.onaudioprocess = null; m.node.disconnect(); } if (m.src) m.src.disconnect(); } catch (e) { /* уже отключено */ }
+  if (m.stream) m.stream.getTracks().forEach(x => x.stop());
+  try { m.ctx.close(); } catch (e) { /* уже закрыт */ }
+  micLook();
+  if (!recognize) { setNote(''); return; }
+  const raw = new Float32Array(m.n);
+  let o = 0;
+  for (const c of m.chunks) { raw.set(c, o); o += c.length; }
+  micRecognize(raw, m.rate);
+}
+function micLook() { const b = $('#micBtn'); b.classList.remove('rec'); b.style.removeProperty('--lvl'); }
+
+// Первая 🎤 без файла для речи: спросить, скачать, загрузить модель с ним — и предложить говорить.
+async function micPrepare() {
+  abortCtl = new AbortController();
+  setBusy(true);
+  $('#micBtn').disabled = true;
+  try {
+    setNote(await ensureVision(abortCtl.signal, MIC_VISION_UI) ? t('Готово: нажмите 🎤 и говорите') : '');
+  } catch (e) {
+    setNote('');
+    if (e.name !== 'AbortError') { formError(errText(await visionFailed(e))); refreshState(); }
+  } finally {
+    setBusy(false);
+    $('#micBtn').disabled = false;
+  }
+}
+
+async function micRecognize(raw, rate) {
+  const pcm = trimSilence(resampleTo(raw, rate, LISTEN.rate), LISTEN.rate);
+  const speechMs = 1000 * pcm.length / LISTEN.rate;
+  if (speechMs < 1000 * LISTEN.minSeconds) { setNote(''); toast(t('Ничего не записано — проверьте микрофон')); return; }
+  abortCtl = new AbortController();
+  const sig = abortCtl.signal;
+  setBusy(true);
+  const lock = (on) => { for (const id of ['#micBtn', '#randomBtn', '#lessonBtn']) $(id).disabled = on; };
+  lock(true);
+  const lang = LS.src === 'auto' ? '' : LS.src;
+  let res = null, clock = null;
+  try {
+    if (!(await ensureVision(sig, MIC_VISION_UI))) { setNote(''); return; }
+    const t0 = performance.now();
+    let phase = t('Модель слушает запись…');
+    const show = () => setNote(phase + ' ' + fmtClock(performance.now() - t0), false, true);
+    show();
+    clock = setInterval(show, 1000);
+    res = await listenRequest(pcm, lang, sig, () => { if (phase !== t('Модель пишет текст…')) { phase = t('Модель пишет текст…'); show(); } });
+  } catch (e) {
+    setNote('');
+    if (e.name !== 'AbortError') { formError(errText(await visionFailed(e))); refreshState(); }
+    return;
+  } finally {
+    clearInterval(clock);
+    setBusy(false);
+    lock(false);
+  }
+  if (!res.text) { setNote(''); toast(t('Модель не разобрала речь — попробуйте ещё раз, ближе к микрофону')); return; }
+  const field = $('#src');
+  // текст в поле уже переведён — новая диктовка начинает новый текст; иначе — дописывается на место курсора
+  if (lastRun && field.value.trim() && field.value.trim() === String(lastRun.text || '').trim()) field.select();
+  insertAtCursor(field, res.text);
+  formError(''); updateCounter(); renderDir();
+  const info = listenInfo(res.timings);
+  setNote(t('Речь {a} → текст за {b}', { a: fmtSec(speechMs), b: fmtSec(res.ms) }) + (info ? ' (' + info + ')' : ''));
+  if (field.value.length > MAX_CHARS) { formError(t('Текст длиннее {max} знаков — сократите его или переводите по частям', { max: MAX_CHARS })); return; }
+  // правило автора от 24.11.2026: язык текста и язык результата одинаковые — только текст в поле
+  if (resolveDir(field.value).edit) { field.focus(); return; }
+  translate();
+}
+
+// Вставить текст на место курсора (выделенное заменяется), с пробелами вокруг, где они нужны (у китайского и японского
+// между иероглифами пробел не ставится).
+function insertAtCursor(field, text) {
+  const v = field.value;
+  let a = field.selectionStart, b = field.selectionEnd;
+  if (a == null || b == null) a = b = v.length;
+  const before = v.slice(0, a), after = v.slice(b);
+  const cjk = /[　-ヿ㐀-鿿＀-￯]/;
+  const lead = before && !/\s$/.test(before) && !(cjk.test(before.slice(-1)) && cjk.test(text[0] || '')) ? ' ' : '';
+  const trail = after && !/^\s/.test(after) && !(cjk.test(after[0]) && cjk.test(text.slice(-1))) ? ' ' : '';
+  field.value = before + lead + text + trail + after;
+  const pos = (before + lead + text).length;
+  try { field.setSelectionRange(pos, pos); } catch (e) { /* поле не видно */ }
+}
+
+/* --- аудиофайл в окне документа --- */
+
+// Звук файла → один канал 16 кГц. OfflineAudioContext на 16 кГц сам переводит частоту при чтении (меньше памяти);
+// если окно так не умеет — обычный AudioContext и свой пересчёт частоты.
+async function decodeAudioFile(buf) {
+  const decode = async (ctx) => {
+    try {
+      return await new Promise((res, rej) => { const p = ctx.decodeAudioData(buf.slice(0), res, rej); if (p && p.then) p.then(res, rej); });
+    } finally { if (ctx.close) try { await ctx.close(); } catch (e) { /* уже закрыт */ } }
+  };
+  let ab = null;
+  const OAC = window.OfflineAudioContext || window.webkitOfflineAudioContext;
+  if (OAC) { try { ab = await decode(new OAC(1, 1, LISTEN.rate)); } catch (e) { ab = null; } }
+  if (!ab) { const AC = window.AudioContext || window.webkitAudioContext; ab = await decode(new AC()); }
+  const n = ab.length, ch = ab.numberOfChannels, mono = new Float32Array(n);
+  for (let c = 0; c < ch; c++) { const d = ab.getChannelData(c); for (let i = 0; i < n; i++) mono[i] += d[i] / ch; }
+  return resampleTo(mono, ab.sampleRate, LISTEN.rate);
+}
+
+async function docOpenAudio(doc) {
+  if (doc.file.size > LISTEN.maxFileBytes) throw new Error(t('файл больше {n} МБ', { n: LISTEN.maxFileBytes >> 20 }));
+  let pcm;
+  try { pcm = await decodeAudioFile(await doc.file.arrayBuffer()); } catch (e) {
+    throw new Error(t('звук этого файла не прочитать: нужен MP3, WAV, M4A, OGG или другой формат, который понимает окно программы'));
+  }
+  if (pcm.length > LISTEN.maxFileSeconds * LISTEN.rate) {
+    pcm = pcm.subarray(0, LISTEN.maxFileSeconds * LISTEN.rate);
+    docNote(t('Запись длинная: открыты первые {n} минут.', { n: Math.round(LISTEN.maxFileSeconds / 60) }));
+  }
+  if (pcm.length < LISTEN.minSeconds * LISTEN.rate || isSilent(pcm, LISTEN.rate)) throw new Error(t('в файле нет звука'));
+  for (const [a, b] of audioPieces(pcm, LISTEN.rate)) {
+    const p = docPage(doc.pages.length + 1, 'audio');
+    p.pcm = pcm.subarray(a, b); p.t0 = a / LISTEN.rate; p.t1 = b / LISTEN.rate;
+    p.silent = isSilent(p.pcm, LISTEN.rate);
+    doc.pages.push(p);
+  }
+}
+
+// Часть записи → текст (как docOcrPage у картинки).
+async function docAsrPage(p, sig) {
+  docWorking(p, t('Модель слушает запись…'));
+  p.ui.sec.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  p.err = '';
+  let writing = false;
+  const r = await listenRequest(trimSilence(p.pcm, LISTEN.rate), LS.src === 'auto' ? '' : LS.src, sig, (x) => {
+    if (!writing) { writing = true; docWorkPhase(p, t('Модель пишет текст…')); }
+    p.ui.src.value = x; fitDocSrc(p.ui.src);
+  });
+  p.src = r.text; p.from = 'asr'; p.edited = false;
+  p.ocrMs = r.ms; p.ocrInfo = listenInfo(r.timings);
+  if (r.finish === 'length') p.err = t('текст не поместился в ответ модели — конец может быть обрезан');
+  if (!p.src) p.err = t('модель не разобрала речь');
+  p.ui.src.value = p.src;
+  fitDocSrc(p.ui.src);
+  docPageMeta(p);
+}
+
+// Аудиофайл распознаётся сразу, часть за частью; затем правило автора от 24.11.2026: язык текста и язык результата
+// разные — сразу перевод, одинаковые — только текст (что делать дальше, решает пользователь).
+function docListenAll() {
+  return docRun(async (sig) => {
+    const pages = DOC.pages.filter(p => docReadable(p) && !p.src.trim());
+    if (!pages.length) return;
+    if (!(await ensureVision(sig))) return;
+    await docReadPages(pages, sig);
+    const text = DOC.pages.map(p => p.src.trim()).filter(Boolean).join('\n\n');
+    if (!text || resolveDir(text).edit) return;
+    await docTranslatePages(DOC.pages.filter(p => p.src.trim()), sig);
+  });
+}
+
+// ▶ у части записи: послушать её (ещё раз — остановить).
+let docAudio = null;   // { p, audio, url, btn }
+function docPlay(p, btn) {
+  const same = docAudio && docAudio.p === p;
+  docPlayStop();
+  if (same) return;
+  stopSpeech();
+  const url = URL.createObjectURL(new Blob([wavBytes(p.pcm, LISTEN.rate)], { type: 'audio/wav' }));
+  const audio = new Audio(url);
+  docAudio = { p, audio, url, btn };
+  btn.classList.add('on'); btn.querySelector('.ic').innerHTML = ICON.stop;
+  audio.onended = () => { if (docAudio && docAudio.audio === audio) docPlayStop(); };
+  audio.play().catch(() => { if (docAudio && docAudio.audio === audio) docPlayStop(); });
+}
+function docPlayStop() {
+  const a = docAudio;
+  if (!a) return;
+  docAudio = null;
+  try { a.audio.pause(); } catch (e) { /* уже остановлен */ }
+  URL.revokeObjectURL(a.url);
+  a.btn.classList.remove('on'); a.btn.querySelector('.ic').innerHTML = ICON.play;
+}
+
+/* --- «Тест речи» --- */
+// Предложение Claude, решение автора от 24.11.2026: по частям — язык за языком; остановить можно в любой момент; первым —
+// язык интерфейса, потом английский, дальше — остальные. Следующее нажатие продолжает со следующего языка (результаты
+// прежних остаются; язык, на котором остановили, проверяется заново); отчёт speech-test-… обновляется после каждого языка.
+
+let speechTest = null;   // { started, stamp, model, langs: [{ lang, voice, phrases, cer, speech_ms, ms }], skipped, done }
+
+function speechTestOrder() { return [...new Set([UI_LANG, 'en'].filter(l => LANGS[l]).concat(Object.keys(LANGS)))]; }
+
+// Текст для сравнения: без регистра, знаков препинания и (китайский, японский) пробелов; русский — «е» вместо «ё»,
+// арабский — без огласовок и с одной формой алифа, хинди — без нукты, греческий — без ударений.
+function speechNorm(s, lang) {
+  let x = String(s || '').normalize('NFKC').toLowerCase();
+  if (lang === 'ru') x = x.replace(/ё/g, 'е');
+  if (lang === 'ar') x = x.replace(/[ً-ْٰـ]/g, '').replace(/[أإآ]/g, 'ا').replace(/ى/g, 'ي').replace(/ة/g, 'ه');
+  if (lang === 'hi') x = x.replace(/़/g, '').replace(/ँ/g, 'ं');
+  if (lang === 'el') x = x.normalize('NFD').replace(/[̀-ͯ]/g, '').normalize('NFC');
+  x = x.replace(/[\p{P}\p{S}]/gu, ' ');
+  return lang === 'zh' || lang === 'ja' ? x.replace(/\s+/g, '') : x.replace(/\s+/g, ' ').trim();
+}
+// Доля неверных знаков (CER): расстояние Левенштейна между образцом и ответом модели, делённое на длину образца.
+function charErrors(ref, hyp, lang) {
+  const a = Array.from(speechNorm(ref, lang)), b = Array.from(speechNorm(hyp, lang));
+  if (!a.length) return b.length ? 1 : 0;
+  let prev = Array.from({ length: b.length + 1 }, (_, j) => j);
+  for (let i = 1; i <= a.length; i++) {
+    const cur = [i];
+    for (let j = 1; j <= b.length; j++) cur[j] = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+    prev = cur;
+  }
+  return prev[b.length] / a.length;
+}
+
+// Фразу читает голос, выбранный для языка (скорость — 100 %), → звук 16 кГц.
+async function ttsAudio(lang, text, sig) {
+  const r = await fetch('/api/tts', { method: 'POST', headers: { 'Content-Type': 'application/json' }, signal: sig,
+    body: JSON.stringify({ lang, text, speed: SPEAK.speed }) });
+  if (!r.ok) { let j = {}; try { j = await r.json(); } catch (e) { /* пусто */ } throw new Error(j.error || 'HTTP ' + r.status); }
+  const w = parseWav(await r.arrayBuffer());
+  return resampleTo(w.pcm, w.rate, LISTEN.rate);
+}
+
+const reportStamp = (d) => { const p = (n) => String(n).padStart(2, '0'); return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}_${p(d.getHours())}-${p(d.getMinutes())}-${p(d.getSeconds())}`; };
+const pct = (x) => isFinite(x) ? fmtNum(100 * x, 1) + ' %' : '—';
+
+// Подготовка модели для «Теста речи»: ход — в строке над результатами, вопрос о скачивании — под ней.
+const TEST_VISION_UI = {
+  note: (s) => { if (s) $('#testProgressText').textContent = s; },
+  status: (s) => { if (s) $('#testProgressText').textContent = s; },
+  confirm: (f, sig) => confirmVision(f, sig, $('#testProgress'), true),
+  loading: () => t('Загружаю модель вместе с файлом для картинок и речи…'),
+  downloading: (p) => t('Скачиваю файл для картинок и речи: {p} %', { p }),
+  noModel: () => t('Речь слушает модель Gemma 4 из каталога (E2B или E4B). Выберите её в меню моделей.'),
+};
+
+async function runSpeechTest() {
+  if (testRunning) { stop(); return; }
+  if (busy) { toast(t('Дождитесь окончания перевода')); return; }
+  if (!isReady()) { needModel(); return; }
+  if (!(STATE && STATE.vision && STATE.vision.current)) { toast(TEST_VISION_UI.noModel()); return; }
+  if (!speechTestOrder().some(l => voiceFor(l))) { toast(t('Для «Теста речи» нужны голоса: скачайте Supertonic 3 в меню моделей (один файл для 13 языков).')); return; }
+  const model = (activeModel() || {}).id || '';
+  if (!speechTest || speechTest.done || speechTest.model !== model) {
+    speechTest = { started: new Date(), stamp: reportStamp(new Date()), model, langs: [], skipped: [], done: false };
+    $('#testSummary').innerHTML = ''; $('#testRows').innerHTML = '';
+  }
+  const st = speechTest, order = speechTestOrder();
+  const todo = order.filter(l => !st.langs.some(x => x.lang === l) && !st.skipped.includes(l));
+  const btn = $('#speechTestBtn'), others = [$('#quickTestBtn'), $('#runTestBtn')];
+  testRunning = 'speech'; setBusy(true);
+  abortCtl = new AbortController();
+  const sig = abortCtl.signal;
+  btn.textContent = t('Остановить'); others.forEach(b => { b.disabled = true; });
+  $('#testProgress').hidden = false;
+  renderSpeechSummary(st);
+  try {
+    if (!(await ensureVision(sig, TEST_VISION_UI))) { $('#testProgressText').textContent = ''; return; }
+    for (const lang of todo) {
+      if (sig.aborted) throw docAbort();
+      const v = voiceFor(lang);
+      if (!v) { st.skipped.push(lang); renderSpeechSummary(st); continue; }
+      const phrases = LISTEN_TEST[lang] || [];
+      const res = { lang, voice: voiceLabel(v), phrases: [] };
+      for (let k = 0; k < phrases.length; k++) {
+        if (sig.aborted) throw docAbort();
+        const done = st.langs.length + st.skipped.length;
+        $('#testProgressText').textContent = t('{l}: фраза {k} из {n} · язык {i} из {m}', { l: langName(lang), k: k + 1, n: phrases.length, i: done + 1, m: order.length });
+        $('#testBar').style.width = (100 * (done + k / phrases.length) / order.length) + '%';
+        const row = speechTestRow(lang, k, phrases[k]);
+        const pcm = await ttsAudio(lang, phrases[k], sig);
+        const r = await listenRequest(pcm, lang, sig, (x) => { row.body.textContent = x; });
+        const one = { ref: phrases[k], out: r.text, cer: charErrors(phrases[k], r.text, lang), speech_ms: Math.round(1000 * pcm.length / LISTEN.rate),
+          ms: Math.round(r.ms), timings: r.timings, finish: r.finish };
+        res.phrases.push(one);
+        row.body.textContent = r.text || '—';
+        row.head.textContent += ' · ' + t('неверных знаков: {p}', { p: pct(one.cer) }) + ' · ' + t('речь {a} → {b}', { a: fmtSec(one.speech_ms), b: fmtSec(one.ms) });
+      }
+      res.cer = avg(res.phrases.map(x => x.cer));
+      res.speech_ms = res.phrases.reduce((a, x) => a + x.speech_ms, 0);
+      res.ms = res.phrases.reduce((a, x) => a + x.ms, 0);
+      st.langs.push(res);
+      renderSpeechSummary(st);
+      await saveSpeechReport(st);
+    }
+    st.done = true;
+    $('#testBar').style.width = '100%';
+    $('#testProgressText').textContent = t('Тест речи закончен: языков {n}.', { n: st.langs.length });
+  } catch (e) {
+    if (e.name === 'AbortError') $('#testProgressText').textContent = t('Тест речи остановлен. Нажмите «Продолжить тест речи», чтобы проверить следующие языки.');
+    else { $('#testProgressText').textContent = t('Ошибка: {e}', { e: errText(await visionFailed(e)) }); refreshState(); }
+  } finally {
+    testRunning = false; setBusy(false);
+    btn.textContent = st.done || !(st.langs.length + st.skipped.length) ? t('Тест речи') : t('Продолжить тест речи');
+    others.forEach(b => { b.disabled = false; });
+  }
+}
+
+// Строка фразы в окне теста: язык и номер, образец, ответ модели.
+function speechTestRow(lang, k, ref) {
+  const row = el('div', 'item test-out');
+  const head = el('div', 'meta', t('{l} · фраза {k}', { l: langName(lang), k: k + 1 }));
+  const src = el('div', 'src-line');
+  src.appendChild(el('span', 'lbl', t('Читал голос:'))); src.appendChild(document.createTextNode(' ' + ref));
+  const out = el('div', 'tr');
+  out.appendChild(el('span', 'lbl', t('Распознала модель:'))); out.appendChild(document.createTextNode(' '));
+  const body = el('span', 'txt', '…'); out.appendChild(body);
+  row.appendChild(head); row.appendChild(src); row.appendChild(out);
+  $('#testRows').appendChild(row);
+  row.scrollIntoView({ block: 'nearest' });
+  return { row, head, body };
+}
+
+// Итог по языкам — над строками фраз.
+function renderSpeechSummary(st) {
+  const sum = $('#testSummary');
+  sum.innerHTML = '';
+  if (!st.langs.length && !st.skipped.length) return;
+  const tbl = el('table', 'res');
+  const hr = el('tr');
+  for (const [h, right] of [[t('Язык'), 0], [t('Голос'), 0], [t('Неверных знаков'), 1], [t('Длительность речи'), 1], [t('Время распознавания'), 1], [t('Дольше речи, раз'), 1]]) {
+    const th = el('th', '', h); if (right) th.style.textAlign = 'right'; hr.appendChild(th);
+  }
+  const thead = el('thead'); thead.appendChild(hr); tbl.appendChild(thead);
+  const tb = el('tbody');
+  for (const r of st.langs) {
+    const tr = el('tr');
+    for (const [v, num] of [[langName(r.lang), 0], [r.voice, 0], [pct(r.cer), 1], [fmtSec(r.speech_ms), 1], [fmtSec(r.ms), 1], [fmtNum(r.ms / Math.max(1, r.speech_ms), 1), 1]]) {
+      tr.appendChild(el('td', num ? 'num' : '', v));
+    }
+    tb.appendChild(tr);
+  }
+  tbl.appendChild(tb);
+  sum.appendChild(tbl);
+  if (st.skipped.length) sum.appendChild(el('div', 'note', t('Нет голоса — пропущены: {l}. Голоса — в меню моделей.', { l: st.skipped.map(langLower).join(', ') })));
+  sum.appendChild(el('div', 'note', t('Неверных знаков — доля знаков, которые модель написала не так, как в тексте, прочитанном голосом (без учёта регистра и знаков препинания). У китайского и японского доля бывает завышена: одно слово можно записать разными знаками. «Дольше речи, раз» — во сколько раз распознавание длилось дольше самой речи.')));
+}
+
+async function saveSpeechReport(st) {
+  const s = STATE || {}, mi = s.machine || {}, ei = s.engine_info || {}, am = activeModel() || {};
+  const report = {
+    app_version: s.version || '', kind: 'speech', started: st.started.toISOString(),
+    machine: { cpu: mi.cpu || '', threads: mi.threads || navigator.hardwareConcurrency || null, ram_gb: mi.ram_gb || null, os: mi.os || navigator.platform },
+    engine: { build: ei.build || '', n_ctx: ei.n_ctx || null, threads: ei.threads || null },
+    model: { id: am.id || '', name: am.name || '', file: am.file || '' },
+    vision: ((s.vision || {}).files || []).find(f => f.id === (s.vision || {}).current) || null,
+    prompt: LISTEN.prompt('{LANGUAGE}'), sampling: LISTEN.sampling, rate: LISTEN.rate,
+    langs: st.langs, skipped: st.skipped,
+  };
+  const L = [];
+  L.push(`# ${t('Тест речи')} — ${st.started.toLocaleString(LOCALE)}`, '');
+  L.push(`- ${t('Модель:')} ${report.model.name || '—'} (${report.model.file || ''})`);
+  L.push(`- ${t('Компьютер: {cpu}; потоков: {th}; ОЗУ: {ram}', { cpu: report.machine.cpu || '—', th: report.machine.threads || '—', ram: report.machine.ram_gb ? t('{n} ГБ', { n: report.machine.ram_gb }) : '—' })}; ${report.machine.os || ''}`);
+  L.push(`- ${t('Движок: llama.cpp {b}; контекст {c}; потоков {th}', { b: report.engine.build || '—', c: report.engine.n_ctx || '—', th: report.engine.threads || '—' })}`);
+  L.push(`- ${t('Запрос к модели:')} ${LISTEN.prompt('{LANGUAGE}').replace(/\n+/g, ' ')} (temperature 0)`, '');
+  L.push(`| ${t('Язык')} | ${t('Голос')} | ${t('Неверных знаков')} | ${t('Длительность речи')} | ${t('Время распознавания')} | ${t('Дольше речи, раз')} |`, '|---|---|---:|---:|---:|---:|');
+  for (const r of st.langs) L.push(`| ${langName(r.lang)} | ${r.voice} | ${pct(r.cer)} | ${fmtSec(r.speech_ms)} | ${fmtSec(r.ms)} | ${fmtNum(r.ms / Math.max(1, r.speech_ms), 1)} |`);
+  if (st.skipped.length) L.push('', t('Нет голоса — пропущены: {l}. Голоса — в меню моделей.', { l: st.skipped.map(langLower).join(', ') }));
+  for (const r of st.langs) {
+    L.push('', `## ${langName(r.lang)} (${r.voice})`, '');
+    r.phrases.forEach((x, i) => {
+      L.push(`${i + 1}. ${t('Читал голос:')} ${x.ref}`);
+      L.push(`   ${t('Распознала модель:')} ${x.out || '—'}`);
+      const info = listenInfo(x.timings);
+      L.push(`   ${t('неверных знаков: {p}', { p: pct(x.cer) })}; ${t('речь {a} → {b}', { a: fmtSec(x.speech_ms), b: fmtSec(x.ms) })}${info ? ' (' + info + ')' : ''}`);
+    });
+  }
+  const md = L.join('\n');
+  try {
+    const r = await fetch('/api/report', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ markdown: md, json: report, kind: 'speech', stamp: st.stamp }) });
+    const j = await r.json();
+    if (!r.ok) throw new Error(j.error || 'HTTP ' + r.status);
+    $('#testSummary').appendChild(el('div', 'note', t('Отчёт сохранён: {p}', { p: j.path || '' })));
+  } catch (e) { $('#testSummary').appendChild(el('div', 'error', t('Не удалось сохранить отчёт: {e}', { e: errText(e) }))); }
 }
 
 /* ===================== Настройки, справка, «О программе» ===================== */
@@ -6594,6 +7406,70 @@ function ownFromVariant(btn) {
 // числа (plural): ключ — русская форма для 1, значение — [[единственное, множественное], [Einzahl, Mehrzahl]].
 // Полноту переводов проверяет автотест source/tests/i18n_check.py.
 const I18N = {
+  // 1.4: речь — диктовка (🎤 у поля текста), записи речи в окне документа, «Тест речи»
+  'Диктовка': ['Dictation', 'Diktieren', 'Dictado', '听写'],
+  'Диктовка: нажмите и говорите (до 30 секунд), нажмите ещё раз — текст появится в поле': ['Dictation: click and speak (up to 30 seconds), click again — the text appears in the field', 'Diktieren: klicken und sprechen (bis zu 30 Sekunden), noch einmal klicken – der Text erscheint im Feld', 'Dictado: pulse y hable (hasta 30 segundos), pulse otra vez y el texto aparecerá en el campo', '听写：点击后说话（最长 30 秒），再点一次，文字就会出现在文本框中'],
+  'В этом окне нет доступа к микрофону.': ['This window has no access to the microphone.', 'Dieses Fenster hat keinen Zugriff auf das Mikrofon.', 'Esta ventana no tiene acceso al micrófono.', '此窗口无法使用麦克风。'],
+  'Включаю микрофон…': ['Turning on the microphone…', 'Schalte das Mikrofon ein …', 'Activando el micrófono…', '正在打开麦克风…'],
+  'Готово: нажмите 🎤 и говорите': ['Ready: click 🎤 and speak', 'Fertig: Klicken Sie auf 🎤 und sprechen Sie', 'Listo: pulse 🎤 y hable', '准备就绪：点击 🎤 开始说话'],
+  'Запись {t} из {max} — говорите; ещё раз 🎤 — готово': ['Recording {t} of {max} — speak; 🎤 again — done', 'Aufnahme {t} von {max} – sprechen Sie; noch einmal 🎤 – fertig', 'Grabando {t} de {max}: hable; 🎤 otra vez para terminar', '录音 {t}／{max}——请说话；再点 🎤 结束'],
+  'Запись {t} из {max} — говорите; ещё раз 🎤 — готово, Esc — отмена': ['Recording {t} of {max} — speak; 🎤 again — done, Esc — cancel', 'Aufnahme {t} von {max} – sprechen Sie; noch einmal 🎤 – fertig, Esc – abbrechen', 'Grabando {t} de {max}: hable; 🎤 otra vez para terminar, Esc para cancelar', '录音 {t}／{max}——请说话；再点 🎤 结束，Esc 取消'],
+  'Нет разрешения на микрофон. Разрешите его Ttranslator в настройках Android: Приложения → Ttranslator → Разрешения.': ['No permission for the microphone. Allow it for Ttranslator in the Android settings: Apps → Ttranslator → Permissions.', 'Keine Berechtigung für das Mikrofon. Erlauben Sie es Ttranslator in den Android-Einstellungen: Apps → Ttranslator → Berechtigungen.', 'No hay permiso para el micrófono. Permítalo para Ttranslator en los ajustes de Android: Aplicaciones → Ttranslator → Permisos.', '没有麦克风权限。请在 Android 设置中允许 Ttranslator：应用 → Ttranslator → 权限。'],
+  'Нет доступа к микрофону. Разрешите его в Windows: Параметры → Конфиденциальность и защита → Микрофон (и для классических приложений).': ['No access to the microphone. Allow it in Windows: Settings → Privacy & security → Microphone (also for desktop apps).', 'Kein Zugriff auf das Mikrofon. Erlauben Sie es in Windows: Einstellungen → Datenschutz und Sicherheit → Mikrofon (auch für Desktop-Apps).', 'No hay acceso al micrófono. Permítalo en Windows: Configuración → Privacidad y seguridad → Micrófono (también para las aplicaciones de escritorio).', '无法使用麦克风。请在 Windows 中允许：设置 → 隐私和安全性 → 麦克风（包括桌面应用）。'],
+  'Нет доступа к микрофону. Разрешите его Ttranslator в macOS: Системные настройки → Конфиденциальность и безопасность → Микрофон.': ['No access to the microphone. Allow it for Ttranslator in macOS: System Settings → Privacy & Security → Microphone.', 'Kein Zugriff auf das Mikrofon. Erlauben Sie es Ttranslator in macOS: Systemeinstellungen → Datenschutz & Sicherheit → Mikrofon.', 'No hay acceso al micrófono. Permítalo para Ttranslator en macOS: Ajustes del Sistema → Privacidad y seguridad → Micrófono.', '无法使用麦克风。请在 macOS 中允许 Ttranslator 使用：系统设置 → 隐私与安全性 → 麦克风。'],
+  'Нет доступа к микрофону: его не разрешила система или браузер.': ['No access to the microphone: the system or the browser did not allow it.', 'Kein Zugriff auf das Mikrofon: Das System oder der Browser hat es nicht erlaubt.', 'No hay acceso al micrófono: no lo ha permitido el sistema o el navegador.', '无法使用麦克风：系统或浏览器未允许。'],
+  'Микрофон не найден.': ['No microphone found.', 'Kein Mikrofon gefunden.', 'No se ha encontrado ningún micrófono.', '未找到麦克风。'],
+  'Микрофон занят другой программой или недоступен.': ['The microphone is used by another program or is unavailable.', 'Das Mikrofon wird von einem anderen Programm benutzt oder ist nicht verfügbar.', 'El micrófono lo está usando otro programa o no está disponible.', '麦克风正被其他程序占用或不可用。'],
+  'Не удалось включить микрофон: {e}': ['Could not turn on the microphone: {e}', 'Das Mikrofon ließ sich nicht einschalten: {e}', 'No se pudo activar el micrófono: {e}', '无法打开麦克风：{e}'],
+  'Ничего не записано — проверьте микрофон': ['Nothing was recorded — check the microphone', 'Nichts aufgenommen – prüfen Sie das Mikrofon', 'No se ha grabado nada: compruebe el micrófono', '没有录到声音——请检查麦克风'],
+  'Модель слушает запись…': ['The model is listening to the recording…', 'Das Modell hört die Aufnahme …', 'El modelo está escuchando la grabación…', '模型正在聆听录音…'],
+  'Модель пишет текст…': ['The model is writing out the text…', 'Das Modell schreibt den Text …', 'El modelo está escribiendo el texto…', '模型正在写出文字…'],
+  'Модель не разобрала речь — попробуйте ещё раз, ближе к микрофону': ['The model could not make out the speech — try again, closer to the microphone', 'Das Modell hat die Sprache nicht verstanden – versuchen Sie es noch einmal, näher am Mikrofon', 'El modelo no ha entendido el habla: inténtelo de nuevo, más cerca del micrófono', '模型没能听清语音——请靠近麦克风再试一次'],
+  'Речь {a} → текст за {b}': ['Speech {a} → text in {b}', 'Sprache {a} → Text in {b}', 'Habla de {a} → texto en {b}', '语音 {a} → 文字用时 {b}'],
+  'звук {a}, текст {b}': ['sound {a}, text {b}', 'Ton {a}, Text {b}', 'sonido {a}, texto {b}', '声音 {a}，文字 {b}'],
+  'Речь слушает модель Gemma 4 из каталога (E2B или E4B). Выберите её в меню моделей.': ['Speech is listened to by a Gemma 4 model of the catalogue (E2B or E4B). Choose it in the model menu.', 'Sprache hört ein Gemma-4-Modell aus dem Katalog (E2B oder E4B). Wählen Sie es im Modellmenü.', 'La voz la escucha un modelo Gemma 4 del catálogo (E2B o E4B). Elíjalo en el menú de modelos.', '语音由目录中的 Gemma 4 模型（E2B 或 E4B）聆听。请在模型菜单中选择它。'],
+  'Чтобы слушать речь, модели нужен ещё один файл — «{n}» ({s}). Он же нужен для картинок. Скачать?': ['To listen to speech, the model needs one more file — “{n}” ({s}). The same file is used for pictures. Download it?', 'Um Sprache zu hören, braucht das Modell noch eine Datei – „{n}“ ({s}). Dieselbe Datei dient auch für Bilder. Herunterladen?', 'Para escuchar la voz, el modelo necesita un archivo más: «{n}» ({s}). El mismo archivo sirve para las imágenes. ¿Descargarlo?', '要聆听语音，模型还需要一个文件——“{n}”（{s}）。图片也使用同一个文件。要下载吗？'],
+  'Пока модель слушает речь или читает картинки, она занимает в памяти примерно на 0,6 ГБ больше.': ['While it listens to speech or reads pictures, the model takes about 0.6 GB more memory.', 'Solange das Modell Sprache hört oder Bilder liest, braucht es etwa 0,6 GB mehr Speicher.', 'Mientras escucha la voz o lee imágenes, el modelo ocupa unos 0,6 GB más de memoria.', '聆听语音或读取图片时，模型多占用约 0.6 GB 内存。'],
+  'Загружаю модель вместе с файлом для картинок и речи…': ['Loading the model together with the picture and speech file…', 'Lade das Modell zusammen mit der Datei für Bilder und Sprache …', 'Cargando el modelo junto con el archivo de imágenes y voz…', '正在加载模型及图片和语音文件…'],
+  'Скачиваю файл для картинок и речи: {p} %': ['Downloading the picture and speech file: {p} %', 'Lade die Datei für Bilder und Sprache herunter: {p} %', 'Descargando el archivo de imágenes y voz: {p} %', '正在下载图片和语音文件：{p} %'],
+  'Запись': ['Recording', 'Aufnahme', 'Grabación', '录音'],
+  'часть записи': ['part of the recording', 'Teil der Aufnahme', 'parte de la grabación', '录音片段'],
+  'тишина': ['silence', 'Stille', 'silencio', '静音'],
+  'Часть {n}': ['Part {n}', 'Teil {n}', 'Parte {n}', '第 {n} 部分'],
+  '— Часть {n} ({a}–{b}) —': ['— Part {n} ({a}–{b}) —', '— Teil {n} ({a}–{b}) —', '— Parte {n} ({a}–{b}) —', '— 第 {n} 部分（{a}–{b}）—'],
+  'Послушать эту часть записи': ['Listen to this part of the recording', 'Diesen Teil der Aufnahme anhören', 'Escuchar esta parte de la grabación', '收听这一部分录音'],
+  'Здесь появится текст этой части записи. Его можно поправить перед переводом.': ['The text of this part of the recording will appear here. You can correct it before translating.', 'Hier erscheint der Text dieses Teils der Aufnahme. Sie können ihn vor dem Übersetzen korrigieren.', 'Aquí aparecerá el texto de esta parte de la grabación. Puede corregirlo antes de traducir.', '这里将显示这一部分录音的文字。翻译前可以修改。'],
+  'В этой части записи тишина.': ['This part of the recording is silent.', 'In diesem Teil der Aufnahme ist Stille.', 'En esta parte de la grabación hay silencio.', '这一部分录音是静音。'],
+  'Вся запись уже распознана': ['The whole recording is already recognized', 'Die ganze Aufnahme ist bereits erkannt', 'Toda la grabación ya está reconocida', '整段录音已识别'],
+  'Распознаю: часть {i} из {n}': ['Recognizing: part {i} of {n}', 'Erkenne: Teil {i} von {n}', 'Reconociendo: parte {i} de {n}', '正在识别：第 {i} 部分，共 {n} 部分'],
+  'Запись длинная: открыты первые {n} минут.': ['The recording is long: the first {n} minutes are opened.', 'Die Aufnahme ist lang: Die ersten {n} Minuten sind geöffnet.', 'La grabación es larga: se han abierto los primeros {n} minutos.', '录音较长：已打开前 {n} 分钟。'],
+  'в файле нет звука': ['the file has no sound', 'die Datei enthält keinen Ton', 'el archivo no tiene sonido', '文件中没有声音'],
+  'файл больше {n} МБ': ['the file is larger than {n} MB', 'die Datei ist größer als {n} MB', 'el archivo ocupa más de {n} MB', '文件超过 {n} MB'],
+  'звук этого файла не прочитать: нужен MP3, WAV, M4A, OGG или другой формат, который понимает окно программы': ['the sound of this file cannot be read: MP3, WAV, M4A, OGG or another format that the program window understands is needed', 'der Ton dieser Datei lässt sich nicht lesen: nötig ist MP3, WAV, M4A, OGG oder ein anderes Format, das das Programmfenster versteht', 'no se puede leer el sonido de este archivo: se necesita MP3, WAV, M4A, OGG u otro formato que entienda la ventana del programa', '无法读取此文件的声音：需要 MP3、WAV、M4A、OGG 或程序窗口支持的其他格式'],
+  'модель не разобрала речь': ['the model could not make out the speech', 'das Modell hat die Sprache nicht verstanden', 'el modelo no ha entendido el habla', '模型没能听清语音'],
+  'текст не поместился в ответ модели — конец может быть обрезан': ['the text did not fit into the answer of the model — its end may be cut off', 'der Text passte nicht in die Antwort des Modells – das Ende kann abgeschnitten sein', 'el texto no cupo en la respuesta del modelo: el final puede estar cortado', '文字超出了模型回答的长度——结尾可能被截断'],
+  'Тест речи': ['Speech test', 'Sprachtest', 'Prueba de voz', '语音测试'],
+  'Продолжить тест речи': ['Continue the speech test', 'Sprachtest fortsetzen', 'Continuar la prueba de voz', '继续语音测试'],
+  'Наши голоса читают по четыре фразы на каждом языке, модель Gemma 4 их распознаёт: доля неверных знаков и время. Первым — язык интерфейса, потом английский, дальше — остальные. Остановить можно в любой момент; следующее нажатие продолжит со следующего языка. Нужны файл модели для картинок и речи и голоса (Supertonic 3 — один файл для 13 языков).': ['Our voices read four phrases in each language and the Gemma 4 model recognizes them: the share of wrong characters and the time. The interface language comes first, then English, then the others. You can stop at any moment; the next click continues with the next language. It needs the model file for pictures and speech and the voices (Supertonic 3 — one file for 13 languages).', 'Unsere Stimmen lesen in jeder Sprache vier Sätze vor, das Modell Gemma 4 erkennt sie: Anteil falscher Zeichen und Zeit. Zuerst die Sprache der Oberfläche, dann Englisch, dann die übrigen. Sie können jederzeit anhalten; der nächste Klick macht mit der nächsten Sprache weiter. Nötig sind die Modelldatei für Bilder und Sprache und die Stimmen (Supertonic 3 – eine Datei für 13 Sprachen).', 'Nuestras voces leen cuatro frases en cada idioma y el modelo Gemma 4 las reconoce: proporción de caracteres incorrectos y tiempo. Primero el idioma de la interfaz, luego el inglés y después los demás. Puede detenerla en cualquier momento; la siguiente pulsación continúa con el siguiente idioma. Se necesitan el archivo del modelo para imágenes y voz y las voces (Supertonic 3: un archivo para 13 idiomas).', '我们的语音用每种语言朗读四句话，由 Gemma 4 模型识别：错误字符比例和用时。先测界面语言，然后是英语，再是其他语言。随时可以停止；再次点击会从下一种语言继续。需要用于图片和语音的模型文件以及语音（Supertonic 3——一个文件涵盖 13 种语言）。'],
+  'Для «Теста речи» нужны голоса: скачайте Supertonic 3 в меню моделей (один файл для 13 языков).': ['The “Speech test” needs voices: download Supertonic 3 in the model menu (one file for 13 languages).', 'Der „Sprachtest“ braucht Stimmen: Laden Sie Supertonic 3 im Modellmenü herunter (eine Datei für 13 Sprachen).', 'La «Prueba de voz» necesita voces: descargue Supertonic 3 en el menú de modelos (un archivo para 13 idiomas).', '“语音测试”需要语音：请在模型菜单中下载 Supertonic 3（一个文件涵盖 13 种语言）。'],
+  '{l}: фраза {k} из {n} · язык {i} из {m}': ['{l}: phrase {k} of {n} · language {i} of {m}', '{l}: Satz {k} von {n} · Sprache {i} von {m}', '{l}: frase {k} de {n} · idioma {i} de {m}', '{l}：第 {k} 句，共 {n} 句 · 第 {i} 种语言，共 {m} 种'],
+  '{l} · фраза {k}': ['{l} · phrase {k}', '{l} · Satz {k}', '{l} · frase {k}', '{l} · 第 {k} 句'],
+  'Читал голос:': ['Read by the voice:', 'Von der Stimme gelesen:', 'Leído por la voz:', '语音朗读：'],
+  'Распознала модель:': ['Recognized by the model:', 'Vom Modell erkannt:', 'Reconocido por el modelo:', '模型识别：'],
+  'неверных знаков: {p}': ['wrong characters: {p}', 'falsche Zeichen: {p}', 'caracteres incorrectos: {p}', '错误字符：{p}'],
+  'речь {a} → {b}': ['speech {a} → {b}', 'Sprache {a} → {b}', 'habla {a} → {b}', '语音 {a} → {b}'],
+  'Тест речи закончен: языков {n}.': ['The speech test is finished; languages: {n}.', 'Der Sprachtest ist fertig; Sprachen: {n}.', 'La prueba de voz ha terminado; idiomas: {n}.', '语音测试完成：{n} 种语言。'],
+  'Тест речи остановлен. Нажмите «Продолжить тест речи», чтобы проверить следующие языки.': ['The speech test is stopped. Click “Continue the speech test” to check the next languages.', 'Der Sprachtest ist angehalten. Klicken Sie auf „Sprachtest fortsetzen“, um die nächsten Sprachen zu prüfen.', 'La prueba de voz se ha detenido. Pulse «Continuar la prueba de voz» para comprobar los siguientes idiomas.', '语音测试已停止。点击“继续语音测试”检查后面的语言。'],
+  'Язык': ['Language', 'Sprache', 'Idioma', '语言'],
+  'Голос': ['Voice', 'Stimme', 'Voz', '语音'],
+  'Неверных знаков': ['Wrong characters', 'Falsche Zeichen', 'Caracteres incorrectos', '错误字符'],
+  'Длительность речи': ['Speech length', 'Sprechdauer', 'Duración del habla', '语音时长'],
+  'Время распознавания': ['Recognition time', 'Erkennungszeit', 'Tiempo de reconocimiento', '识别用时'],
+  'Дольше речи, раз': ['Times longer than speech', 'Mal länger als die Sprache', 'Veces más que el habla', '为语音时长的倍数'],
+  'Нет голоса — пропущены: {l}. Голоса — в меню моделей.': ['No voice — skipped: {l}. Voices are in the model menu.', 'Keine Stimme – übersprungen: {l}. Stimmen gibt es im Modellmenü.', 'Sin voz, omitidos: {l}. Las voces están en el menú de modelos.', '没有语音——已跳过：{l}。语音在模型菜单中。'],
+  'Неверных знаков — доля знаков, которые модель написала не так, как в тексте, прочитанном голосом (без учёта регистра и знаков препинания). У китайского и японского доля бывает завышена: одно слово можно записать разными знаками. «Дольше речи, раз» — во сколько раз распознавание длилось дольше самой речи.': ['Wrong characters — the share of characters the model wrote differently from the text the voice read (ignoring case and punctuation). For Chinese and Japanese it can be too high: one word can be written with different characters. “Times longer than speech” — how many times longer the recognition took than the speech itself.', 'Falsche Zeichen – der Anteil der Zeichen, die das Modell anders geschrieben hat als im Text, den die Stimme gelesen hat (ohne Groß- und Kleinschreibung und Satzzeichen). Bei Chinesisch und Japanisch kann er zu hoch sein: Ein Wort lässt sich mit verschiedenen Zeichen schreiben. „Mal länger als die Sprache“ – wie viel Mal länger die Erkennung gedauert hat als die Sprache selbst.', 'Caracteres incorrectos: proporción de caracteres que el modelo escribió de forma distinta al texto que leyó la voz (sin contar mayúsculas ni signos de puntuación). En chino y japonés puede salir demasiado alta: una palabra se puede escribir con caracteres distintos. «Veces más que el habla»: cuántas veces más duró el reconocimiento que el habla misma.', '错误字符——模型写出的文字与语音朗读的文本不一致的字符比例（不计大小写和标点）。中文和日语的比例可能偏高：同一个词可以用不同的字来写。“为语音时长的倍数”——识别用时是语音本身时长的几倍。'],
+  'Движок: llama.cpp {b}; контекст {c}; потоков {th}': ['Engine: llama.cpp {b}; context {c}; threads {th}', 'Engine: llama.cpp {b}; Kontext {c}; Threads {th}', 'Motor: llama.cpp {b}; contexto {c}; hilos {th}', '引擎：llama.cpp {b}；上下文 {c}；线程 {th}'],
+  'Запрос к модели:': ['Request to the model:', 'Anfrage an das Modell:', 'Solicitud al modelo:', '对模型的请求：'],
   // 1.2: новые языки перевода
   'Итальянский': ['Italian', 'Italienisch', 'Italiano', '意大利语'],
   'итальянский': ['Italian', 'Italienisch', 'italiano', '意大利语'],
@@ -6971,8 +7847,8 @@ const I18N = {
   'Открываю файл…': ['Opening the file…', 'Öffne die Datei …', 'Abriendo el archivo…', '正在打开文件…'],
   'Открыты первые {n} страниц из {m}.': ['The first {n} of {m} pages are open.', 'Die ersten {n} von {m} Seiten sind geöffnet.', 'Se han abierto las primeras {n} de {m} páginas.', '已打开 {m} 页中的前 {n} 页。'],
   'Открыть другой файл': ['Open another file', 'Andere Datei öffnen', 'Abrir otro archivo', '打开其他文件'],
-  'Открыть файл: картинку (скан, фото страницы, снимок экрана), PDF, документ (.docx, .odt) или текст (.txt, .tex) — перевод встанет рядом с оригиналом. Файл можно и перетащить в окно, а картинку — вставить (Ctrl+V)': ['Open a file: a picture (a scan, a photo of a page, a screenshot), a PDF, a document (.docx, .odt) or a text (.txt, .tex). The translation stands next to the original. A file can also be dragged into the window, and a picture pasted (Ctrl+V)', 'Eine Datei öffnen: ein Bild (Scan, Foto einer Seite, Bildschirmfoto), ein PDF, ein Dokument (.docx, .odt) oder einen Text (.txt, .tex). Die Übersetzung steht neben dem Original. Eine Datei kann man auch ins Fenster ziehen und ein Bild einfügen (Strg+V)', 'Abrir un archivo: una imagen (escaneo, foto de una página, captura de pantalla), un PDF, un documento (.docx, .odt) o un texto (.txt, .tex). La traducción aparece junto al original. También puede arrastrar un archivo a la ventana o pegar una imagen (Ctrl+V)', '打开文件：图片（扫描件、页面照片、屏幕截图）、PDF、文档（.docx、.odt）或文本（.txt、.tex）。译文显示在原文旁边。文件也可以拖进窗口，图片也可以粘贴（Ctrl+V）'],
-  'Отпустите файл: картинку, PDF или текст': ['Drop the file: a picture, a PDF or a text', 'Datei loslassen: ein Bild, ein PDF oder ein Text', 'Suelte el archivo: una imagen, un PDF o un texto', '松开以打开文件：图片、PDF 或文本'],
+  'Открыть файл: картинку (скан, фото страницы, снимок экрана), PDF, документ (.docx, .odt), текст (.txt, .tex) или запись речи (MP3, WAV, M4A, OGG) — перевод встанет рядом с оригиналом. Файл можно и перетащить в окно, а картинку — вставить (Ctrl+V)': ['Open a file: a picture (a scan, a photo of a page, a screenshot), a PDF, a document (.docx, .odt), a text (.txt, .tex) or a speech recording (MP3, WAV, M4A, OGG). The translation stands next to the original. A file can also be dragged into the window, and a picture pasted (Ctrl+V)', 'Eine Datei öffnen: ein Bild (Scan, Foto einer Seite, Bildschirmfoto), ein PDF, ein Dokument (.docx, .odt), einen Text (.txt, .tex) oder eine Sprachaufnahme (MP3, WAV, M4A, OGG). Die Übersetzung steht neben dem Original. Eine Datei kann man auch ins Fenster ziehen und ein Bild einfügen (Strg+V)', 'Abrir un archivo: una imagen (escaneo, foto de una página, captura de pantalla), un PDF, un documento (.docx, .odt), un texto (.txt, .tex) o una grabación de voz (MP3, WAV, M4A, OGG). La traducción aparece junto al original. También puede arrastrar un archivo a la ventana o pegar una imagen (Ctrl+V)', '打开文件：图片（扫描件、页面照片、屏幕截图）、PDF、文档（.docx、.odt）、文本（.txt、.tex）或语音录音（MP3、WAV、M4A、OGG）。译文显示在原文旁边。文件也可以拖进窗口，图片也可以粘贴（Ctrl+V）'],
+  'Отпустите файл: картинку, PDF, текст или запись речи': ['Drop the file: a picture, a PDF, a text or a speech recording', 'Datei loslassen: ein Bild, ein PDF, ein Text oder eine Sprachaufnahme', 'Suelte el archivo: una imagen, un PDF, un texto o una grabación de voz', '松开以打开文件：图片、PDF、文本或语音录音'],
   'Перевести страницы, у которых есть текст, — по абзацам, на язык результата вверху': ['Translate the pages that have text, paragraph by paragraph, into the result language at the top', 'Die Seiten mit Text absatzweise in die Zielsprache oben übersetzen', 'Traducir las páginas que tienen texto, párrafo a párrafo, al idioma de destino de arriba', '把有文字的页面逐段翻译成上方选择的目标语言'],
   'Перевода ещё нет — нажмите «Перевести»': ['There is no translation yet: click “Translate”', 'Noch keine Übersetzung – klicken Sie auf „Übersetzen“', 'Todavía no hay traducción: pulse «Traducir»', '还没有译文——请点击“翻译”'],
   'Перевожу: страница {i} из {n}': ['Translating: page {i} of {n}', 'Übersetze: Seite {i} von {n}', 'Traduciendo: página {i} de {n}', '正在翻译：第 {i} 页，共 {n} 页'],
@@ -7008,11 +7884,11 @@ const I18N = {
     '模型无法使用图片文件，现已恢复为不读取图片的工作方式。可能是内存不足：请关闭其他程序，或选择更小的模型（E2B 或 Q4_0）。引擎提示：{e}'],
   'Файл для картинок не скачан: {e}': ['The picture file was not downloaded: {e}', 'Die Bilddatei wurde nicht heruntergeladen: {e}', 'No se descargó el archivo de imágenes: {e}', '图片文件未下载：{e}'],
   'Файл для картинок скачан.': ['The picture file is downloaded.', 'Die Bilddatei ist heruntergeladen.', 'Se descargó el archivo de imágenes.', '图片文件已下载。'],
-  'Файл скачан. Картинки и PDF открывает кнопка «Файл» под полем текста.': ['The file is downloaded. Pictures and PDFs are opened with the “File” button under the text field.', 'Die Datei ist heruntergeladen. Bilder und PDFs öffnet die Schaltfläche „Datei“ unter dem Textfeld.', 'El archivo está descargado. Las imágenes y los PDF se abren con el botón «Archivo» debajo del campo de texto.', '文件已下载。图片和 PDF 用文本框下方的“文件”按钮打开。'],
+  'Файл скачан. Картинки, PDF и записи речи открывает кнопка «Файл» под полем текста, диктовка — 🎤 рядом с ней.': ['The file is downloaded. Pictures, PDFs and speech recordings are opened with the “File” button under the text field; for dictation there is 🎤 next to it.', 'Die Datei ist heruntergeladen. Bilder, PDFs und Sprachaufnahmen öffnet die Schaltfläche „Datei“ unter dem Textfeld, zum Diktieren gibt es 🎤 daneben.', 'El archivo está descargado. Las imágenes, los PDF y las grabaciones de voz se abren con el botón «Archivo» debajo del campo de texto; para dictar está 🎤 a su lado.', '文件已下载。图片、PDF 和语音录音用文本框下方的“文件”按钮打开，听写用旁边的 🎤。'],
   'Читаю PDF: страница {i} из {n}': ['Reading the PDF: page {i} of {n}', 'Lese das PDF: Seite {i} von {n}', 'Leyendo el PDF: página {i} de {n}', '正在读取 PDF：第 {i} 页，共 {n} 页'],
   'Чтобы прочитать картинки, модели нужен ещё один файл ({s}) — программа предложит скачать его при «Распознать».': ['To read pictures the model needs one more file ({s}); the program offers to download it when you click “Recognize”.', 'Um Bilder zu lesen, braucht das Modell eine weitere Datei ({s}); das Programm bietet beim Klick auf „Erkennen“ an, sie herunterzuladen.', 'Para leer imágenes, el modelo necesita un archivo más ({s}); el programa le ofrecerá descargarlo al pulsar «Reconocer».', '要读取图片，模型还需要一个文件（{s}）；点击“识别”时程序会提示下载。'],
   'Чтобы читать картинки, модели нужен ещё один файл — «{n}» ({s}). Он пригодится и для распознавания речи. Скачать?': ['To read pictures the model needs one more file, “{n}” ({s}). It will also serve for speech recognition. Download it?', 'Um Bilder zu lesen, braucht das Modell eine weitere Datei: „{n}“ ({s}). Sie dient auch der Spracherkennung. Herunterladen?', 'Para leer imágenes, el modelo necesita un archivo más: «{n}» ({s}). También servirá para el reconocimiento de voz. ¿Descargarlo?', '要读取图片，模型还需要一个文件“{n}”（{s}）。它也可用于语音识别。要下载吗？'],
-  'Этот файл не открыть: нужна картинка (PNG, JPEG, WebP), PDF, документ (.docx, .odt) или текст (.txt, .tex)': ['This file cannot be opened: a picture (PNG, JPEG, WebP), a PDF, a document (.docx, .odt) or a text (.txt, .tex) is needed', 'Diese Datei lässt sich nicht öffnen: nötig ist ein Bild (PNG, JPEG, WebP), ein PDF, ein Dokument (.docx, .odt) oder ein Text (.txt, .tex)', 'Este archivo no se puede abrir: se necesita una imagen (PNG, JPEG, WebP), un PDF, un documento (.docx, .odt) o un texto (.txt, .tex)', '无法打开此文件：需要图片（PNG、JPEG、WebP）、PDF、文档（.docx、.odt）或文本（.txt、.tex）'],
+  'Этот файл не открыть: нужна картинка (PNG, JPEG, WebP), PDF, документ (.docx, .odt), текст (.txt, .tex) или запись речи (MP3, WAV, M4A, OGG)': ['This file cannot be opened: a picture (PNG, JPEG, WebP), a PDF, a document (.docx, .odt), a text (.txt, .tex) or a speech recording (MP3, WAV, M4A, OGG) is needed', 'Diese Datei lässt sich nicht öffnen: nötig ist ein Bild (PNG, JPEG, WebP), ein PDF, ein Dokument (.docx, .odt), ein Text (.txt, .tex) oder eine Sprachaufnahme (MP3, WAV, M4A, OGG)', 'Este archivo no se puede abrir: se necesita una imagen (PNG, JPEG, WebP), un PDF, un documento (.docx, .odt), un texto (.txt, .tex) o una grabación de voz (MP3, WAV, M4A, OGG)', '无法打开此文件：需要图片（PNG、JPEG、WebP）、PDF、文档（.docx、.odt）、文本（.txt、.tex）或语音录音（MP3、WAV、M4A、OGG）'],
   'в файле нет текста': ['the file has no text', 'die Datei enthält keinen Text', 'el archivo no tiene texto', '文件中没有文字'],
   'картинка': ['picture', 'Bild', 'imagen', '图片'],
   'картинка {a}, текст {b}': ['picture {a}, text {b}', 'Bild {a}, Text {b}', 'imagen {a}, texto {b}', '图片 {a}，文字 {b}'],
@@ -7022,10 +7898,10 @@ const I18N = {
   'нет текста — сначала «Распознать»': ['no text: “Recognize” first', 'kein Text – zuerst „Erkennen“', 'sin texto: primero «Reconocer»', '没有文字——请先“识别”'],
   'нет файла': ['no file', 'keine Datei', 'no hay archivo', '没有文件'],
   'переведено за {t}': ['translated in {t}', 'übersetzt in {t}', 'traducido en {t}', '翻译用时 {t}'],
-  'работает: модель читает картинки': ['in use: the model reads pictures', 'in Betrieb: Das Modell liest Bilder', 'en uso: el modelo lee imágenes', '使用中：模型正在读取图片'],
+  'работает: модель читает картинки и слушает речь': ['in use: the model reads pictures and listens to speech', 'in Betrieb: Das Modell liest Bilder und hört Sprache', 'en uso: el modelo lee imágenes y escucha la voz', '使用中：模型正在读取图片并聆听语音'],
   'распознано за {t}': ['recognized in {t}', 'erkannt in {t}', 'reconocido en {t}', '识别用时 {t}'],
   'с оригиналом': ['with the original', 'mit Original', 'con el original', '包含原文'],
-  'скачан; включится, когда вы откроете картинку или PDF': ['downloaded; it turns on when you open a picture or a PDF', 'heruntergeladen; wird aktiv, wenn Sie ein Bild oder ein PDF öffnen', 'descargado; se activa al abrir una imagen o un PDF', '已下载；打开图片或 PDF 时启用'],
+  'скачан; включится, когда вы откроете картинку, PDF или запись речи или нажмёте 🎤': ['downloaded; it turns on when you open a picture, a PDF or a speech recording or click 🎤', 'heruntergeladen; wird aktiv, wenn Sie ein Bild, ein PDF oder eine Sprachaufnahme öffnen oder 🎤 klicken', 'descargado; se activa al abrir una imagen, un PDF o una grabación de voz, o al pulsar 🎤', '已下载；打开图片、PDF 或语音录音，或点击 🎤 时启用'],
   'скачивается: {p} %': ['downloading: {p} %', 'wird heruntergeladen: {p} %', 'descargando: {p} %', '正在下载：{p}%'],
   'текст': ['text', 'Text', 'texto', '文字'],
   'текст из PDF': ['text from the PDF', 'Text aus dem PDF', 'texto del PDF', 'PDF 中的文字'],
@@ -7358,6 +8234,7 @@ function init() {
   $('#lessonIcon').innerHTML = ICON.cap;
   $('#lessonMore').innerHTML = ICON.caret;
   initDocs();
+  initListen();
   $('#srcSpeak').innerHTML = ICON.speaker; $('#ownSpeak').innerHTML = ICON.speaker;
   $('#srcSpeak').onclick = () => speakToggle($('#srcSpeak'), $('#src'), $('#src').value, resolveDir($('#src').value).src);
   $('#ownSpeak').onclick = () => speakToggle($('#ownSpeak'), $('#ownText'), $('#ownText').value, OWN.run ? OWN.run.dir.tgt : '');
@@ -7407,6 +8284,7 @@ function init() {
   document.addEventListener('keydown', (e) => {
     if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { e.preventDefault(); if (docOpen()) docTranslate(); else translate(); }
     else if (e.key === 'Escape') {
+      if (mic) { micStop(false); return; }   // запись 🎤 — отменить
       if (!$('#welcomeView').hidden) { closeWelcome(); return; }
       if (!$('#docZoom').hidden) { closeDocZoom(); return; }
       disarmQuit(); disarmRandom(); disarmLesson(); disarmField();
@@ -7519,6 +8397,7 @@ function init() {
   $('#closeTestBtn').onclick = () => showPane('results');
   $('#runTestBtn').onclick = () => runTest('full');
   $('#quickTestBtn').onclick = () => runTest('quick');
+  $('#speechTestBtn').onclick = runSpeechTest;
   $('#errorOpenBtn').onclick = () => post('/api/open', { what: 'logs' }).catch(e => toast(e.message));
   $('#openDataBtn').onclick = openDataFolder;
   // Mac: на кнопке «Перевести» — ⌘+Enter, как принято в macOS (Ctrl+Enter тоже работает)

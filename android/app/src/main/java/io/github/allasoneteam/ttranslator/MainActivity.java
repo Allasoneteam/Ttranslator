@@ -61,7 +61,9 @@ import java.util.concurrent.Executors;
  * at start whether it is in the app window: OWN_WINDOW), as ttranslator-window does it with webview's init script.
  */
 public class MainActivity extends Activity {
-    private static final int REQ_OPEN = 1, REQ_SAVE = 2, REQ_NOTIFY = 3;
+    private static final int REQ_OPEN = 1, REQ_SAVE = 2, REQ_NOTIFY = 3, REQ_MIC = 4;
+    /** 1.4: the page asked for the microphone (🎤) while Android asks the user — answered in onRequestPermissionsResult. */
+    private android.webkit.PermissionRequest micRequest;
 
     /**
      * The window functions over the bridge object TtwAndroid. Every call returns a Promise, as with ttranslator-window;
@@ -488,10 +490,43 @@ public class MainActivity extends Activity {
             return true;
         }
 
+        /** 1.4: the microphone for dictation — only for our page and only the sound; Android asks the user once. */
+        @Override
+        public void onPermissionRequest(android.webkit.PermissionRequest r) {
+            boolean audio = false;
+            for (String res : r.getResources()) if (android.webkit.PermissionRequest.RESOURCE_AUDIO_CAPTURE.equals(res)) audio = true;
+            if (!audio || !isOurs(r.getOrigin())) { r.deny(); return; }
+            if (checkSelfPermission(android.Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) {
+                r.grant(new String[]{android.webkit.PermissionRequest.RESOURCE_AUDIO_CAPTURE});
+                return;
+            }
+            if (micRequest != null) micRequest.deny();
+            micRequest = r;
+            requestPermissions(new String[]{android.Manifest.permission.RECORD_AUDIO}, REQ_MIC);
+        }
+
+        @Override
+        public void onPermissionRequestCanceled(android.webkit.PermissionRequest r) {
+            if (micRequest == r) micRequest = null;
+        }
+
         @Override
         public boolean onConsoleMessage(ConsoleMessage m) {
             Log.i(Launcher.TAG, "page: " + m.message() + " (" + m.sourceId() + ":" + m.lineNumber() + ")");
             return true;
+        }
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int req, String[] permissions, int[] results) {
+        super.onRequestPermissionsResult(req, permissions, results);
+        if (req != REQ_MIC || micRequest == null) return;
+        android.webkit.PermissionRequest r = micRequest;
+        micRequest = null;
+        if (results.length > 0 && results[0] == PackageManager.PERMISSION_GRANTED) {
+            r.grant(new String[]{android.webkit.PermissionRequest.RESOURCE_AUDIO_CAPTURE});
+        } else {
+            r.deny();   // the page says where to allow it (Settings → Apps → Ttranslator → Permissions)
         }
     }
 

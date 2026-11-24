@@ -53,6 +53,7 @@ Edge/Chrome и показывает причину в «Настройках». 
 - Окно показывает только страницы программы запуска: переходы на другие сайты и ссылки, открывающие новое окно,
   уходят в браузер по умолчанию (Windows: NavigationStarting и NewWindowRequested; Linux: decide-policy; macOS:
   WKNavigationDelegate — переход без целевой рамки, то есть в новое окно, тоже уходит наружу).
+- Микрофон для диктовки (1.4): страницам программы запуска программа окна разрешает запись звука сама — Windows: обработчик `PermissionRequested` WebView2 (только `MICROPHONE`; другие разрешения — как в библиотеке); Linux: `enable-media-stream` в настройках WebKitGTK и сигнал `permission-request` (звук — да, камера — нет); macOS: метод WKUIDelegate `webView:requestMediaCapturePermissionForOrigin:initiatedByFrame:type:decisionHandler:` добавляется делегату библиотеки, после чего делегат ставится заново (WebKit читает список методов при установке), и `NSMicrophoneUsageDescription` в `Info.plist`. Последнее слово — у системы: Windows — «Параметры → Конфиденциальность и защита → Микрофон», macOS спрашивает один раз.
 - Функции для страницы (возвращают Promise): `ttwOpenExternal(url)` — открыть адрес http, https или mailto снаружи;
   `ttwSaveFile(имя, текст, расширение, заголовок, название типа)` — окно «Сохранить как» системы (Windows:
   GetSaveFileNameW; Linux: GtkFileChooserNative; macOS: NSSavePanel, папка «Загрузки»), текст пишется в файл как есть (UTF-8); ответ `{path}` или

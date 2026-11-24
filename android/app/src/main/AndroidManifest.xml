@@ -11,6 +11,10 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- 1.4: dictation (🎤): the page records the microphone (getUserMedia); Android asks the user at the first 🎤.
+         MODIFY_AUDIO_SETTINGS: WebView needs it to open the microphone (granted without a question) -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
 
     <!-- hasFragileUserData: when the app is removed, Android 10+ offers to keep its data (the models: gigabytes) -->
     <!-- enableOnBackInvokedCallback: «Назад» of the phone comes to the app's callback (Android 13+), which lets the
