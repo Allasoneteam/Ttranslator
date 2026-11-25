@@ -122,6 +122,14 @@ with sync_playwright() as p:
        'phone: the page scrolled to «Перевести» (just under the header), the variants under it: %s' % pos)
     ok(pos['sw'] == 412 and page.evaluate(WIDE) == [], 'phone: the variant cards are as wide as the screen: %s' % page.evaluate(WIDE))
     page.screenshot(path=os.path.join(shots, 'phone-variants.png'))
+    # the ask window on the phone (1.4): its header with the language of the voice conversation is one line, 🎤 in the row
+    page.locator('#askBox').scroll_into_view_if_needed(); time.sleep(0.3)
+    hd = page.evaluate("""() => { const h = document.querySelector('.ask-head').getBoundingClientRect(), s = document.querySelector('#askLang').getBoundingClientRect(),
+      m = document.querySelector('#askMic').getBoundingClientRect(), i = document.querySelector('#askInput').getBoundingClientRect();
+      return { h: Math.round(h.height), right: Math.round(s.right), w: window.innerWidth, mic: Math.round(m.width), input: Math.round(i.width) }; }""")
+    ok(hd['h'] <= 40 and hd['right'] <= hd['w'] and hd['mic'] > 20 and hd['input'] > 150,
+       'phone: the ask window header is one line, the language of the conversation fits, 🎤 in the row, room to type: %s' % hd)
+    page.screenshot(path=os.path.join(shots, 'phone-ask.png'))
     # text from another app (Android: selected text → «Ttranslator»): into the field, «Авто» → «Авто», translated at once
     page.select_option('#srcSel', 'ru'); page.select_option('#tgtSel', 'en')
     page.evaluate("document.querySelector('#cards').innerHTML = ''")

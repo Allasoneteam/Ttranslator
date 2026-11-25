@@ -179,9 +179,10 @@ body.drag-file::after { content: attr(data-drop); position: fixed; inset: 10px; 
 .doc-audio button { white-space: nowrap; display: inline-flex; align-items: center; gap: 4px; font-variant-numeric: tabular-nums; }
 .doc-audio button.on { color: var(--accent-text); border-color: var(--accent); }
 /* Диктовка (1.4): 🎤 у поля текста; во время записи — красная, кольцо вокруг — громкость звука. */
-#micBtn.rec { color: #fff; background: var(--danger); border-color: var(--danger);
+#micBtn.rec, #askMic.rec { color: #fff; background: var(--danger); border-color: var(--danger);
   box-shadow: 0 0 0 calc(2px + 7px * var(--lvl, 0)) color-mix(in srgb, var(--danger) 30%, transparent); transition: box-shadow .12s; }
-body.no-tts #micBtn, body.no-tts #speechTestBtn, body.no-tts #talkTestBtn { display: none; }
+body.no-tts #micBtn, body.no-tts #speechTestBtn, body.no-tts #talkTestBtn, body.no-tts #askMic, body.no-tts #askLang,
+body.no-tts #askVoiceHint { display: none; }
 #randomBtn.confirm #randomLabel, #lessonBtn.confirm #lessonLabel { display: inline !important; }
 @media (max-width: 760px) {
   .doc-cols, .doc-page.has-img .doc-cols, .doc-page.has-audio .doc-cols { grid-template-columns: 1fr; }
@@ -282,6 +283,18 @@ label.check input { width: 15px; height: 15px; margin: 0; accent-color: var(--ac
 .ask-input { display: flex; align-items: flex-end; gap: 6px; padding: 8px; border-top: 1px solid var(--border); }
 .ask-input textarea { min-height: 36px; max-height: 120px; resize: none; font-size: 1rem; line-height: 1.4; padding: 7px 10px; }
 .ask-input button { padding: 7px 12px; white-space: nowrap; }
+.ask-input button.icon { padding: 7px 9px; }
+/* Разговор голосом (1.4): язык разговора — в заголовке окна; пока модель слушает и думает, окно — в фиолетовой рамке, в
+   реплике — вращающийся значок, дело и время */
+.ask-lang { flex: 0 1 auto; min-width: 72px; align-self: center; margin-left: 6px; padding: 2px 4px; font-size: .8571rem; max-width: 150px; }
+/* заголовок окна — в одну строку, чтобы переписка не сдвигалась: вкладки не сжимаются; пометка «начало переписки
+   забыто» рядом с языком разговора — с многоточием, если не хватает места (полностью — в подсказке) */
+.ask-head .tab { flex: 0 0 auto; white-space: nowrap; }
+.ask-head #askInfo { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#askBox.working { border-color: var(--work); box-shadow: 0 0 0 1px var(--work); }
+.msg-work { display: flex; align-items: center; color: var(--work-text); font-size: .8571rem; }
+.msg.thinking .msg-body::after { content: none; }
+.msg.user .msg-meta { color: inherit; opacity: .75; }
 
 .pane-head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 12px; }
 .pane-head h2 { font-size: 1.1429rem; font-weight: 500; margin: 0; }
@@ -542,15 +555,17 @@ details.licenses pre { max-height: 60vh; overflow: auto; white-space: pre-wrap; 
       <div class="ask-head" role="tablist">
         <button id="tabAsk" class="tab on" role="tab" aria-selected="true"><span id="askIcon"></span>Спросить модель</button>
         <button id="tabGloss" class="tab" role="tab" aria-selected="false"><span id="glossIcon"></span>Словарь <span id="glossTabInfo" class="tab-info"></span></button>
-        <span class="spacer"></span><span id="askInfo" class="faint small"></span>
+        <span class="spacer"></span><span id="askInfo" class="faint small"></span><select id="askLang" class="ask-lang" title="Язык разговора голосом: на нём модель слушает вопрос и голос читает ответ" aria-label="Язык разговора голосом"></select>
       </div>
       <div id="askPane" class="pane" role="tabpanel">
         <div id="askNote" class="ask-note" hidden></div>
+        <div id="askVoiceNote" class="ask-note" hidden></div>
         <div id="askLog" class="ask-log" aria-live="polite">
-          <div id="askEmpty" class="ask-empty">Вопрос выбранной модели: как перевести термин, чем различаются варианты, верна ли фраза. Модель видит только эту переписку. Кнопка «?» у варианта перевода задаёт вопрос о нём.</div>
+          <div id="askEmpty" class="ask-empty">Вопрос выбранной модели: как перевести термин, чем различаются варианты, верна ли фраза. Модель видит только эту переписку. Кнопка «?» у варианта перевода задаёт вопрос о нём.<span id="askVoiceHint"> Кнопка 🎤 — спросить голосом: модель ответит вслух.</span></div>
         </div>
         <div class="ask-input">
           <textarea id="askInput" dir="auto" rows="1" maxlength="4000" placeholder="Ваш вопрос…" aria-label="Вопрос модели"></textarea>
+          <button id="askMic" class="icon mic needs-model" type="button" title="Спросить голосом: нажмите и говорите (до 30 секунд), нажмите ещё раз — модель расшифрует вопрос и ответит голосом. Пока она отвечает — остановить ответ и говорить" aria-label="Спросить голосом"></button>
           <button id="askSend" class="primary needs-model" title="Отправить (Enter); новая строка — Shift+Enter">Ввод</button>
           <button id="askReset" title="Стереть переписку: модель её забудет. Сама модель остаётся в памяти">Обновить</button>
         </div>
@@ -1446,26 +1461,31 @@ const WHATS_NEW = {
   version: '1.4',
   ru: [
     'Диктовка: 🎤 у поля текста — нажмите и говорите (до 30 секунд), нажмите ещё раз, и текст появится в поле. Если язык текста и язык перевода разные, перевод начинается сразу; если одинаковые, текст просто встаёт в поле. Речь слушает сама модель Gemma 4 — с тем же файлом, что и для картинок.',
+    'Разговор с моделью голосом: 🎤 в «Спросить модель» — нажмите и спросите (до 30 секунд), нажмите ещё раз — модель расшифрует вопрос и ответит вслух, по предложениям, пока пишет дальше. Язык разговора — в заголовке окна; длина ответа и температура — как в «Настройках»; переписка остаётся в окне, «Обновить» стирает всё.',
     'Записи речи: кнопка «Файл» открывает и запись (MP3, WAV, M4A, OGG — например, голосовое сообщение). Она делится по паузам на части до 30 секунд, каждая распознаётся и переводится; ▶ у части — послушать её.',
     '«Тест речи» в окне «Тест»: наши голоса читают фразы на всех языках, модель их распознаёт — видно, насколько точно и быстро она слушает на вашем компьютере или телефоне. «Тест разговора» проверяет микрофон и динамик вместе: слышит ли программа сама себя и сколько ждать ответа модели голосом.',
   ],
   en: [
     'Dictation: 🎤 next to the text field — click and speak (up to 30 seconds), click again, and the text appears in the field. If the language of the text and the language of the translation differ, the translation starts at once; if they are the same, the text just goes into the field. The Gemma 4 model itself listens to the speech, with the same file as for pictures.',
+    'A voice conversation with the model: 🎤 in “Ask the model” — click and ask (up to 30 seconds), click again — the model transcribes the question and answers aloud, sentence by sentence while it is still writing. The language of the conversation is in the window header; the answer length and temperature are as in “Settings”; the chat stays in the window, “Reset” erases everything.',
     'Speech recordings: the “File” button also opens a recording (MP3, WAV, M4A, OGG — a voice message, for example). It is divided at the pauses into parts of up to 30 seconds, each part is recognized and translated; ▶ next to a part plays it.',
     'The “Speech test” in the “Test” window: our voices read phrases in all the languages and the model recognizes them — you see how accurately and how fast it listens on your computer or phone. The “Conversation test” checks the microphone and the speakers together: does the program hear itself, and how long do you wait for the model’s spoken answer.',
   ],
   de: [
     'Diktieren: 🎤 neben dem Textfeld – klicken und sprechen (bis zu 30 Sekunden), noch einmal klicken, und der Text erscheint im Feld. Sind die Sprache des Textes und die der Übersetzung verschieden, beginnt die Übersetzung sofort; sind sie gleich, kommt der Text nur ins Feld. Die Sprache hört das Modell Gemma 4 selbst – mit derselben Datei wie für Bilder.',
+    'Gespräch mit dem Modell per Stimme: 🎤 in „Modell fragen“ – klicken und fragen (bis zu 30 Sekunden), noch einmal klicken – das Modell schreibt die Frage auf und antwortet laut, Satz für Satz, während es weiterschreibt. Die Sprache des Gesprächs steht in der Kopfzeile des Fensters; Länge der Antwort und Temperatur – wie in den „Einstellungen“; der Chat bleibt im Fenster, „Neu beginnen“ löscht alles.',
     'Sprachaufnahmen: Die Schaltfläche „Datei“ öffnet auch eine Aufnahme (MP3, WAV, M4A, OGG – zum Beispiel eine Sprachnachricht). Sie wird an den Pausen in Teile von bis zu 30 Sekunden geteilt, jeder Teil wird erkannt und übersetzt; ▶ neben einem Teil spielt ihn ab.',
     'Der „Sprachtest“ im Fenster „Test“: Unsere Stimmen lesen Sätze in allen Sprachen vor, das Modell erkennt sie – so sehen Sie, wie genau und wie schnell es auf Ihrem Computer oder Telefon zuhört. Der „Gesprächstest“ prüft Mikrofon und Lautsprecher zusammen: Hört sich das Programm selbst, und wie lange wartet man auf die gesprochene Antwort des Modells?',
   ],
   es: [
     'Dictado: 🎤 junto al campo de texto: pulse y hable (hasta 30 segundos), pulse otra vez y el texto aparecerá en el campo. Si el idioma del texto y el de la traducción son distintos, la traducción empieza enseguida; si son el mismo, el texto solo se coloca en el campo. La voz la escucha el propio modelo Gemma 4, con el mismo archivo que para las imágenes.',
+    'Conversación de viva voz con el modelo: 🎤 en «Preguntar al modelo»: pulse y pregunte (hasta 30 segundos), pulse otra vez: el modelo transcribe la pregunta y responde en voz alta, frase a frase mientras sigue escribiendo. El idioma de la conversación está en la cabecera de la ventana; la longitud de la respuesta y la temperatura son las de «Ajustes»; la conversación queda en la ventana y «Reiniciar» lo borra todo.',
     'Grabaciones de voz: el botón «Archivo» abre también una grabación (MP3, WAV, M4A, OGG; por ejemplo, un mensaje de voz). Se divide en las pausas en partes de hasta 30 segundos, y cada parte se reconoce y se traduce; ▶ junto a una parte la reproduce.',
     'La «Prueba de voz» en la ventana «Prueba»: nuestras voces leen frases en todos los idiomas y el modelo las reconoce; así se ve con qué precisión y rapidez escucha en su ordenador o teléfono. La «Prueba de conversación» comprueba juntos el micrófono y los altavoces: si el programa se oye a sí mismo y cuánto hay que esperar la respuesta hablada del modelo.',
   ],
   zh: [
     '听写：文本框旁边的 🎤——点击后说话（最长 30 秒），再点一次，文字就会出现在文本框中。如果文本语言和译文语言不同，会立即开始翻译；如果相同，文字只放进文本框。语音由 Gemma 4 模型本身聆听，使用与图片相同的文件。',
+    '与模型语音对话：“询问模型”中的 🎤——点击后提问（最长 30 秒），再点一次——模型转写问题并朗读回答，一边写一边逐句朗读。对话语言在窗口标题栏中；回答长度和温度与“设置”中相同；对话保留在窗口中，“重置”清除全部内容。',
     '语音录音：“文件”按钮也可以打开录音（MP3、WAV、M4A、OGG，例如语音消息）。录音按停顿分成最长 30 秒的片段，每段都会识别并翻译；片段旁的 ▶ 可以播放。',
     '“测试”窗口中的“语音测试”：我们的语音用所有语言朗读句子，由模型识别——可以看到它在您的电脑或手机上听得有多准、多快。“对话测试”同时检查麦克风和扬声器：程序能否听到自己，以及要等多久才能听到模型的语音回答。',
   ],
@@ -1491,7 +1511,8 @@ const HELP = {
     ['Правка текста',
       'Если язык результата совпадает с языком текста, программа не переводит, а исправляет текст: первым идёт исправленный вариант с подсветкой правок, за ним — переформулировки. «Замечания» — список логических и смысловых неточностей.'],
     ['Спросить модель',
-      'Внизу слева — переписка с моделью: вопросы о переводе, терминах, грамматике. Модель видит только эту переписку; «Обновить» начинает разговор заново.'],
+      'Внизу слева — переписка с моделью: вопросы о переводе, терминах, грамматике. Модель видит только эту переписку; «Обновить» начинает разговор заново.',
+      '- Разговор голосом (1.4): 🎤 в строке вопроса — нажмите и говорите (до 30 секунд), нажмите ещё раз — модель расшифрует вопрос (он останется в переписке) и ответит: голос читает ответ по предложениям, пока модель пишет дальше. Язык разговора выбирается в заголовке окна; длина ответа и температура — как в «Настройках». 🎤 во время ответа останавливает его и включает микрофон; «Стоп» и Esc — остановить; «Обновить» — стереть всё. Пока модель слушает и думает, окно — в фиолетовой рамке.'],
     ['Словарь терминов',
       'Вкладка «Словарь» рядом с перепиской. Термины, найденные в тексте, передаются модели; кнопка рядом с «Перевести» показывает, сколько их. Словарей может быть несколько; меню «⋯» — новый словарь, копия, импорт таблицы (.tsv, .csv, .txt, в том числе из Excel) и экспорт.'],
     ['Сохранённые',
@@ -1563,7 +1584,8 @@ const HELP = {
     ['Text editing',
       'If the language of the result is the language of the text, the program does not translate but corrects the text: first comes the corrected version with the changes highlighted, then rephrasings. “Remarks” is a list of logical and semantic inaccuracies.'],
     ['Ask the model',
-      'At the bottom left is a chat with the model: questions about the translation, terms, grammar. The model sees only this chat; “Reset” starts the conversation anew.'],
+      'At the bottom left is a chat with the model: questions about the translation, terms, grammar. The model sees only this chat; “Reset” starts the conversation anew.',
+      '- Voice conversation (1.4): 🎤 in the question row — click and speak (up to 30 seconds), click again — the model transcribes the question (it stays in the chat) and answers: the voice reads the answer sentence by sentence while the model is still writing. The language of the conversation is chosen in the window header; the answer length and temperature are as in “Settings”. 🎤 during an answer stops it and turns on the microphone; “Stop” and Esc stop; “Reset” erases everything. While the model listens and thinks, the window has a purple frame.'],
     ['Glossary',
       'The “Glossary” tab next to the chat. Terms found in the text are passed to the model; the button next to “Translate” shows how many. You can have several glossaries; the “⋯” menu offers a new glossary, a copy, import of a table (.tsv, .csv, .txt, also from Excel) and export.'],
     ['Saved',
@@ -1635,7 +1657,8 @@ const HELP = {
     ['Textkorrektur',
       'Wenn die Zielsprache gleich der Sprache des Textes ist, übersetzt das Programm nicht, sondern korrigiert den Text: Zuerst kommt die korrigierte Fassung mit hervorgehobenen Änderungen, dann Umformulierungen. „Anmerkungen“ ist eine Liste logischer und inhaltlicher Ungenauigkeiten.'],
     ['Modell fragen',
-      'Unten links ist ein Chat mit dem Modell: Fragen zur Übersetzung, zu Begriffen, zur Grammatik. Das Modell sieht nur diesen Chat; „Neu beginnen“ startet das Gespräch von vorn.'],
+      'Unten links ist ein Chat mit dem Modell: Fragen zur Übersetzung, zu Begriffen, zur Grammatik. Das Modell sieht nur diesen Chat; „Neu beginnen“ startet das Gespräch von vorn.',
+      '- Gespräch per Stimme (1.4): 🎤 in der Fragezeile – klicken und sprechen (bis zu 30 Sekunden), noch einmal klicken – das Modell schreibt die Frage auf (sie bleibt im Chat) und antwortet: Die Stimme liest die Antwort Satz für Satz, während das Modell weiterschreibt. Die Sprache des Gesprächs wird in der Kopfzeile des Fensters gewählt; Länge der Antwort und Temperatur – wie in den „Einstellungen“. 🎤 während einer Antwort hält sie an und schaltet das Mikrofon ein; „Stopp“ und Esc halten an; „Neu beginnen“ löscht alles. Solange das Modell zuhört und nachdenkt, hat das Fenster einen violetten Rahmen.'],
     ['Glossar',
       'Der Reiter „Glossar“ neben dem Chat. Im Text gefundene Begriffe werden an das Modell übergeben; die Schaltfläche neben „Übersetzen“ zeigt, wie viele. Es kann mehrere Glossare geben; das Menü „⋯“ bietet ein neues Glossar, eine Kopie, den Import einer Tabelle (.tsv, .csv, .txt, auch aus Excel) und den Export.'],
     ['Gespeichert',
@@ -1707,7 +1730,8 @@ const HELP = {
     ['Corrección del texto',
       'Si el idioma del resultado coincide con el del texto, el programa no traduce, sino que corrige el texto: primero aparece la versión corregida con los cambios resaltados y después las reformulaciones. «Observaciones» es una lista de imprecisiones lógicas y de sentido.'],
     ['Preguntar al modelo',
-      'Abajo a la izquierda hay una conversación con el modelo: preguntas sobre la traducción, los términos o la gramática. El modelo solo ve esta conversación; «Reiniciar» la empieza de nuevo.'],
+      'Abajo a la izquierda hay una conversación con el modelo: preguntas sobre la traducción, los términos o la gramática. El modelo solo ve esta conversación; «Reiniciar» la empieza de nuevo.',
+      '- Conversación de viva voz (1.4): 🎤 en la fila de la pregunta: pulse y hable (hasta 30 segundos), pulse otra vez: el modelo transcribe la pregunta (queda en la conversación) y responde; la voz lee la respuesta frase a frase mientras el modelo sigue escribiendo. El idioma de la conversación se elige en la cabecera de la ventana; la longitud de la respuesta y la temperatura son las de «Ajustes». 🎤 durante una respuesta la detiene y enciende el micrófono; «Detener» y Esc detienen; «Reiniciar» lo borra todo. Mientras el modelo escucha y piensa, la ventana tiene un marco morado.'],
     ['Glosario',
       'La pestaña «Glosario», junto a la conversación. Los términos que aparecen en el texto se envían al modelo; el botón junto a «Traducir» muestra cuántos. Puede tener varios glosarios; el menú «⋯» ofrece un glosario nuevo, una copia, importar una tabla (.tsv, .csv, .txt, también de Excel) y exportar.'],
     ['Guardados',
@@ -1779,7 +1803,8 @@ const HELP = {
     ['文本校改',
       '如果结果语言与文本语言相同，程序不翻译，而是校改文本：首先是突出显示修改的修正版，然后是改写。“意见”列出逻辑和语义上的不准确之处。'],
     ['询问模型',
-      '左下方是与模型的对话：可以询问译文、术语、语法等问题。模型只能看到这段对话；“重置”会重新开始对话。'],
+      '左下方是与模型的对话：可以询问译文、术语、语法等问题。模型只能看到这段对话；“重置”会重新开始对话。',
+      '- 语音对话（1.4）：提问栏中的 🎤——点击后说话（最长 30 秒），再点一次——模型转写问题（问题留在对话中）并回答：模型一边写，语音一边逐句朗读回答。对话语言在窗口标题栏中选择；回答长度和温度与“设置”中相同。回答时点击 🎤 会停止回答并打开麦克风；“停止”和 Esc 用于停止；“重置”清除全部内容。模型听和思考时，窗口显示紫色边框。'],
     ['术语表',
       '对话旁边的“术语表”标签页。文本中出现的词条会发送给模型；“翻译”旁的按钮显示词条数量。可以有多个术语表；“⋯”菜单可新建术语表、创建副本、导入表格（.tsv、.csv、.txt，也可来自 Excel）和导出。'],
     ['已保存',
@@ -2378,6 +2403,11 @@ function fillLangSelects() {
   };
   fill($('#srcSel'), t('Определять язык текста автоматически'));
   fill($('#tgtSel'), t('Русский текст — на английский, текст на другом языке — на русский'));
+  // язык разговора голосом в «Спросить модель» (1.4): сначала — язык интерфейса, потом — последний выбранный
+  const al = $('#askLang'), cur = al.value || store.get('askLang', UI_LANG);
+  al.innerHTML = '';
+  for (const k of Object.keys(LANGS)) { const o = el('option', '', langName(k)); o.value = k; al.appendChild(o); }
+  al.value = LANGS[cur] ? cur : LANGS[UI_LANG] ? UI_LANG : 'en';
 }
 
 let lastEdit = null;
@@ -3186,7 +3216,7 @@ function speakToggle(btn, host, text, lang, voice) {
     setSpeakLook(btn, host, speech.paused ? 'paused' : 'playing');
     return;
   }
-  stopSpeech();
+  stopSpeech(); askReaderStop();
   if (MODE !== 'launcher') return;
   const ts = ttsState();
   const v = voice ? (ts && ts.engine.present && (ts.voices || []).find(x => x.id === voice && x.present)) || null : voiceFor(lang);
@@ -4057,10 +4087,10 @@ function renderBotSoon(m, text) {
 }
 function cancelBotRender() { if (askRaf) { cancelAnimationFrame(askRaf); askRaf = 0; } }
 
-function addBotMeta(m, text, info) {
+function addBotMeta(m, text, info, lang0) {
   const bar = el('div', 'msg-meta');
   bar.appendChild(el('span', '', info));
-  const lang = detectLang(text) || UI_LANG;
+  const lang = lang0 || detectLang(text) || UI_LANG;   // ответ голосом — язык разговора
   const sp = speakButton(lang, (b) => speakToggle(b, m, text, lang));
   sp.style.marginLeft = 'auto';
   bar.appendChild(sp);
@@ -4074,9 +4104,10 @@ function addBotMeta(m, text, info) {
 }
 
 // Переписка для модели: инструкция и последние реплики, которые помещаются в контекст.
-// Отбрасываются самые старые пары «вопрос — ответ»; extraDrop — сколько пар убрать сверх оценки.
-function askMessages(nCtx, extraDrop) {
-  const system = askSystem(), maxTokens = askMaxTokens();
+// Отбрасываются самые старые пары «вопрос — ответ»; extraDrop — сколько пар убрать сверх оценки; extra — дописать к
+// инструкции (разговор голосом).
+function askMessages(nCtx, extraDrop, extra) {
+  const system = askSystem() + (extra ? ' ' + extra : ''), maxTokens = askMaxTokens();
   const reserve = Math.min(maxTokens, Math.floor(nCtx / 4));
   const budget = nCtx - reserve - 64;
   const sum = (from) => estTokens(system) + askHistory.slice(from).reduce((s, x) => s + estTokens(x.content), 0);
@@ -4105,7 +4136,7 @@ function markForgotten() {
     x.el.classList.toggle('old', old);
     x.el.title = old ? t('Модель уже не учитывает это сообщение: переписка не помещается в её память. «Обновить» начинает заново.') : '';
   });
-  $('#askInfo').textContent = askFirst > 0 ? t('начало переписки забыто') : '';
+  $('#askInfo').textContent = $('#askInfo').title = askFirst > 0 ? t('начало переписки забыто') : '';
 }
 
 // opts.sampling — свои параметры генерации для этого вопроса (упражнение, проверка «Учебного примера»).
@@ -4115,23 +4146,35 @@ async function askSend(opts = {}) {
   const q = input.value.trim();
   if (!q) { input.focus(); return; }
   if (!isReady()) { needModel(); return; }
+  if (mic && mic.kind === 'ask') micStop(false);   // шёл вопрос голосом — отменить: спрашивают текстом
+  askReaderStop(); askVoiceNote('');
   input.value = ''; askGrow();
+  await askAnswer(q, addAskMsg('user', q), opts);
+}
+
+// Ответ модели на вопрос q (реплика um — уже в переписке). opts.sampling — свои параметры генерации; opts.voice —
+// { lang, t0 }: вопрос голосом (1.4) — просьба писать простым текстом (ASK_VOICE), голос читает ответ по предложениям,
+// пока модель пишет (askReader), под ответом — «голос через …» (от конца речи t0 до первого звука). Пока модель думает,
+// в реплике — вращающийся значок, дело и время; пока пишет — окно в фиолетовой рамке.
+async function askAnswer(q, um, opts = {}) {
   const epoch = askEpoch;
-  const um = addAskMsg('user', q);
   const turn = { role: 'user', content: q, el: um };
   askHistory.push(turn);
   const bm = addAskMsg('bot', ''); bm.classList.add('pending');
   askCtl = new AbortController();
-  setAskBusy(true);
+  setAskBusy(true); askWorking(true);
+  const work = msgWorking(bm, t('Модель думает…'));
+  const reader = opts.voice ? askReaderStart(opts.voice.lang, bm, opts.voice.t0) : null;
   const t0 = performance.now();
   let partial = '';
   try {
     let r = null;
     const nCtx = askCtx();
     for (let drop = 0; !r; drop++) {
-      const req = askMessages(nCtx, drop);
+      const req = askMessages(nCtx, drop, opts.voice ? ASK_VOICE : '');
       try {
-        r = await chat(null, { messages: req.messages, sampling: opts.sampling || askSampling(), maxTokens: req.maxTokens, signal: askCtl.signal, onText: (t) => { partial = t; renderBotSoon(bm, t); } });
+        r = await chat(null, { messages: req.messages, sampling: opts.sampling || askSampling(), maxTokens: req.maxTokens, signal: askCtl.signal,
+          onText: (x) => { partial = x; work.done(); renderBotSoon(bm, x); if (reader) askReaderFeed(reader, cleanAnswer(x)); } });
         askFirst = req.first;
       } catch (e) {
         // модель сама сообщила, что переписка не помещается: убрать ещё одну старую пару и повторить
@@ -4145,20 +4188,24 @@ async function askSend(opts = {}) {
     const text = cleanAnswer(r.text);
     bm.classList.remove('pending');
     if (!text) throw new Error(t('Модель вернула пустой ответ.'));
+    if (reader) askReaderFeed(reader, text, true);
     askHistory.push({ role: 'assistant', content: text, el: bm });
     const tm = r.timings || {};
     let info = fmtSec(performance.now() - t0);
     if (tm.predicted_per_second) info += ' · ' + fmtNum(tm.predicted_per_second, 0) + ' ' + t('ток/с');
     if (r.finish === 'length') info += ' · ' + t('ответ обрезан по длине');
-    askUpdate(() => { renderBot(bm, text); addBotMeta(bm, text, info); });
+    if (reader && reader.sounded) info += ' · ' + askSoundInfo(reader);
+    askUpdate(() => { renderBot(bm, text); addBotMeta(bm, text, info, opts.voice && opts.voice.lang); });
+    if (reader && !reader.sounded) reader.onSound = () => { const s = bm.querySelector('.msg-meta > span'); if (s) s.textContent += ' · ' + askSoundInfo(reader); };
   } catch (e) {
+    if (reader && askReader === reader) askReaderStop();
     if (epoch !== askEpoch) return;
     cancelBotRender();
     bm.classList.remove('pending');
     const text = cleanAnswer(partial);
     if (e.name === 'AbortError' && text) {
       askHistory.push({ role: 'assistant', content: text, el: bm });
-      askUpdate(() => { renderBot(bm, text); addBotMeta(bm, text, t('остановлено')); });
+      askUpdate(() => { renderBot(bm, text); addBotMeta(bm, text, t('остановлено'), opts.voice && opts.voice.lang); });
     } else {
       // вопрос без ответа больше не отправляется модели: реплики должны чередоваться
       askHistory = askHistory.filter(x => x !== turn);
@@ -4168,9 +4215,11 @@ async function askSend(opts = {}) {
       else askUpdate(() => { bm.classList.add('err'); bm.querySelector('.msg-body').textContent = e.message; });
     }
   } finally {
+    work.done();
     if (epoch === askEpoch) {
       askCtl = null;
-      setAskBusy(false);
+      askWorking(false);
+      setAskBusy(!!askReader);
       markForgotten();
     }
   }
@@ -4180,6 +4229,8 @@ async function askSend(opts = {}) {
 // отправляет его целиком, поэтому после очистки она его не знает. Сама модель остаётся в памяти.
 function askReset() {
   askEpoch++;
+  if (mic && mic.kind === 'ask') micStop(false);
+  askReaderStop(); askWorking(false); askVoiceNote('');
   cancelBotRender();
   if (askCtl) { askCtl.abort(); askCtl = null; }
   setAskBusy(false);
@@ -4187,10 +4238,258 @@ function askReset() {
   $('#askLog').querySelectorAll('.msg').forEach(m => m.remove());
   if (speech && !speech.host.isConnected) stopSpeech();   // читался стёртый ответ — в том числе на паузе
   $('#askEmpty').hidden = false;
-  $('#askInfo').textContent = '';
+  $('#askInfo').textContent = $('#askInfo').title = '';
   $('#askInput').value = ''; askGrow();
   $('#askInput').focus();
 }
+
+/* ===================== Разговор с моделью голосом (1.4) ===================== */
+
+// Предложение автора от 25.11.2026: «нажав кнопку — можно говорить; ещё раз нажав (или после 30 секунд) — модель
+// расшифровывает и затем отвечает голосом на выбранном языке, потом снова можно нажать кнопку и спрашивать… Текст
+// общения сохраняется в чате. Можно остановить и обновить (стереть всё), при обдумывании/расшифровке подсвечивать окно
+// фиолетовым цветом и показывать вращающийся значок… Характеристики модели — такие же, как в настройках».
+// 🎤 в строке вопроса: запись — реплика «🎤 Запись 0:03 из 0:30…» в переписке; второе нажатие (или 30 секунд) — модель
+// расшифровывает речь на языке разговора (#askLang в заголовке окна; сначала — язык интерфейса), вопрос остаётся в
+// переписке; ответ — как на вопрос текстом (askAnswer: «Ответы» и температура из «Настроек»), с просьбой писать простым
+// текстом, ведь его прочитают вслух (ASK_VOICE); голос читает ответ по предложениям, пока модель пишет дальше
+// (askReader). 🎤 во время ответа — остановить ответ и голос и говорить; «Стоп» и Esc — остановить; «Обновить» — стереть
+// всё. Пока модель слушает и думает, окно — в фиолетовой рамке (askWorking), в реплике — вращающийся значок, дело и
+// время (msgWorking), как у страниц документа и в окне «Тест».
+const ASK_VOICE = 'The user is talking to you by voice, and your answer will be read aloud: write plain text without tables, lists, headings, formatting or emoji.';
+
+const askVoiceLang = () => { const v = $('#askLang').value; return LANGS[v] ? v : LANGS[UI_LANG] ? UI_LANG : 'en'; };
+function askVoiceNote(s) { const n = $('#askVoiceNote'); n.textContent = s || ''; n.hidden = !s; }
+const askEmptyCheck = () => { $('#askEmpty').hidden = !!$('#askLog').querySelector('.msg'); };
+function askWorking(on) { $('#askBox').classList.toggle('working', on); }
+
+// Реплика в работе: вращающийся значок, что делается и сколько времени прошло (над текстом реплики).
+function msgWorking(m, what) {
+  const t0 = performance.now();
+  const spin = el('span', 'work-spin'); spin.setAttribute('aria-hidden', 'true');
+  const phase = el('span', '', what), clock = el('span', 'work-time', fmtClock(0));
+  const w = el('div', 'msg-work');
+  w.append(spin, phase, clock);
+  m.prepend(w); m.classList.add('thinking');
+  const tick = setInterval(() => { if (clock.isConnected) clock.textContent = fmtClock(performance.now() - t0); else clearInterval(tick); }, 1000);
+  return {
+    phase: (s) => { phase.textContent = s; },
+    done: () => { clearInterval(tick); w.remove(); m.classList.remove('thinking'); },
+  };
+}
+
+// Подготовка модели к вопросу голосом: ход — в реплике, которая распознаётся (или в строке над перепиской), вопрос о
+// скачивании файла для речи — под этой строкой.
+let askVoiceWork = null;
+const ASK_VISION_UI = {
+  note: (s) => askVoiceNote(s),
+  status: (s) => { if (askVoiceWork) askVoiceWork.phase(s || t('Модель слушает запись…')); else askVoiceNote(s); },
+  confirm: (f, sig) => confirmVision(f, sig, $('#askVoiceNote'), true),
+  loading: () => t('Загружаю модель вместе с файлом для картинок и речи…'),
+  downloading: (p) => t('Скачиваю файл для картинок и речи: {p} %', { p }),
+  noModel: () => t('Речь слушает модель Gemma 4 из каталога (E2B или E4B). Выберите её в меню моделей.'),
+};
+
+async function askMicToggle() {
+  if (mic && mic.kind === 'ask') { micStop(true); return; }
+  if (mic) micStop(false);   // шла диктовка в поле текста — отменить её
+  if (busy || docCtl) { toast(t('Дождитесь окончания или нажмите «Стоп»')); return; }
+  if (!isReady()) { needModel(); return; }
+  const v = STATE && STATE.vision;
+  if (!(v && v.current)) { askVoiceNote(ASK_VISION_UI.noModel()); return; }
+  const md = navigator.mediaDevices;
+  if (!md || !md.getUserMedia) { askVoiceNote(t('В этом окне нет доступа к микрофону.')); return; }
+  // модель ещё отвечает или голос читает — 🎤 перебивает: остановить и слушать
+  if (askCtl) askCtl.abort();
+  askReaderStop(); stopSpeech(); askVoiceNote('');
+  // файла для речи ещё нет — сначала вопрос и скачивание, потом запись (чтобы не говорить впустую)
+  const f = (v.files || []).find(x => x.id === v.current);
+  if (!f || !f.present) { await askMicPrepare(); return; }
+  if (!v.loaded) post('/api/vision', { action: 'on' }).catch(() => { /* ensureVision после записи скажет, что не так */ });
+  const um = addAskMsg('user', ''); um.classList.add('rec');
+  const body = um.querySelector('.msg-body');
+  const gone = () => { um.remove(); askEmptyCheck(); };
+  await micRecord({ kind: 'ask', btn: $('#askMic'),
+    status: (s) => { if (s) body.textContent = '🎤 ' + s; },
+    fail: (s) => { gone(); askVoiceNote(s); },
+    cancel: gone,
+    done: (raw, rate) => askVoiceTurn(um, raw, rate) });
+}
+
+// Первая 🎤 без файла для речи: спросить, скачать, загрузить модель с ним — и предложить говорить.
+async function askMicPrepare() {
+  askCtl = new AbortController();
+  setAskBusy(true); askWorking(true);
+  $('#askMic').disabled = true;
+  try {
+    askVoiceNote(await ensureVision(askCtl.signal, ASK_VISION_UI) ? t('Готово: нажмите 🎤 и говорите') : '');
+  } catch (e) {
+    askVoiceNote(e.name === 'AbortError' ? '' : errText(await visionFailed(e)));
+    if (e.name !== 'AbortError') refreshState();
+  } finally {
+    askCtl = null; askWorking(false); setAskBusy(!!askReader);
+    $('#askMic').disabled = false;
+  }
+}
+
+// Запись кончилась (второе нажатие 🎤 или 30 секунд): расшифровать — вопрос в переписке — ответ голосом.
+async function askVoiceTurn(um, raw, rate) {
+  const tEnd = performance.now();   // конец речи: от него считается ожидание первого звука ответа
+  const body = um.querySelector('.msg-body');
+  um.classList.remove('rec');
+  const pcm = trimSilence(resampleTo(raw, rate, LISTEN.rate), LISTEN.rate);
+  const speechMs = 1000 * pcm.length / LISTEN.rate;
+  if (speechMs < 1000 * LISTEN.minSeconds) { um.remove(); askEmptyCheck(); toast(t('Ничего не записано — проверьте микрофон')); return; }
+  const lang = askVoiceLang(), epoch = askEpoch;
+  body.textContent = '';
+  um.classList.add('pending');
+  askCtl = new AbortController();
+  const sig = askCtl.signal;
+  setAskBusy(true); askWorking(true);
+  const work = askVoiceWork = msgWorking(um, t('Модель слушает запись…'));
+  let res = null;
+  try {
+    if (!(await ensureVision(sig, ASK_VISION_UI))) { um.remove(); askEmptyCheck(); return; }
+    work.phase(t('Модель слушает запись…'));
+    let writing = false;
+    res = await listenRequest(pcm, lang, sig, (x) => {
+      if (!writing) { writing = true; work.phase(t('Модель пишет текст…')); }
+      askUpdate(() => { body.textContent = x; });
+    });
+  } catch (e) {
+    if (epoch === askEpoch) {
+      um.remove(); askEmptyCheck();
+      if (e.name !== 'AbortError') { askVoiceNote(errText(await visionFailed(e))); refreshState(); }
+    }
+    return;
+  } finally {
+    work.done(); askVoiceWork = null;
+    if (epoch === askEpoch) { askCtl = null; askWorking(false); setAskBusy(!!askReader); }
+  }
+  if (epoch !== askEpoch) return;
+  um.classList.remove('pending');
+  if (!res.text) { um.remove(); askEmptyCheck(); toast(t('Модель не разобрала речь — попробуйте ещё раз, ближе к микрофону')); return; }
+  body.textContent = res.text;
+  const info = listenInfo(res.timings);
+  um.appendChild(el('div', 'msg-meta', '🎤 ' + t('Речь {a} → текст за {b}', { a: fmtSec(speechMs), b: fmtSec(res.ms) }) + (info ? ' (' + info + ')' : '')));
+  askScroll();
+  await askAnswer(res.text, um, { voice: { lang, t0: tEnd } });
+}
+
+/* --- голос ответа по мере письма модели --- */
+
+// Законченные предложения ответа (feed) — в очередь; синтез идёт на шаг впереди звука: следующий кусок готовится, пока
+// звучит этот (накопившиеся предложения — одним куском, до SPEAK.maxChunk знаков), звук — по порядку. Первое
+// предложение — отдельно: так голос начинает раньше. Пока голос читает, реплика подсвечена, как при 🔊, а кнопка
+// «Ввод» — «Стоп».
+let askReader = null;
+
+// lang — язык разговора; host — реплика с ответом; t0 — конец речи (для «голос через …»). Нет голоса — null (ответ
+// только текстом, с пометкой над перепиской).
+function askReaderStart(lang, host, t0) {
+  askReaderStop();
+  if (!voiceFor(lang)) {
+    const w = voiceWithoutProgram(lang);
+    askVoiceNote(w ? t('Голос «{v}» есть, но нет программы озвучки sherpa-onnx. Скачайте её в меню моделей (кнопка с названием модели вверху) — один раз, голоса скачивать заново не нужно.', { v: voiceLabel(w) })
+      : t('Для языка «{l}» нет голоса — ответ только текстом. Голос можно скачать в меню моделей.', { l: langLower(lang) }));
+    return null;
+  }
+  const R = askReader = { lang, host, t0, todo: [], ready: [], fed: 0, closed: false, stopped: false, synthEnd: false, first: true,
+    ctl: new AbortController(), audio: null, urls: [], wakeS: null, wakeP: null, endPlay: null, sounded: 0, onSound: null, error: null };
+  setAskBusy(true);
+  askReaderSynth(R);
+  askReaderPlay(R);
+  return R;
+}
+
+// text — весь ответ на сейчас (без <think>); в очередь уходят предложения, за которыми уже что-то есть (иначе точка
+// может оказаться внутри числа); final — ответ дописан: остаток — тоже.
+function askReaderFeed(R, text, final) {
+  if (!R || R.stopped || R.closed) return;
+  const part = text.slice(R.fed);
+  const re = /[.!?…;:।॥](?=\s+\S)|[。！？；](?=\S)|\n+(?=\S)/gu;
+  let cut = 0, m;
+  while ((m = re.exec(part))) cut = m.index + m[0].length;
+  if (final) cut = part.length;
+  if (cut > 0) {
+    R.fed += cut;
+    R.todo.push(...speechChunks(part.slice(0, cut), R.lang));
+  }
+  if (final) R.closed = true;
+  const w = R.wakeS; R.wakeS = null; if (w) w();
+}
+
+async function askReaderSynth(R) {
+  const zh = R.lang === 'zh' || R.lang === 'ja';
+  const max = zh ? SPEAK.maxChunkZh : SPEAK.maxChunk, sep = zh ? '' : ' ';
+  const wakePlay = () => { const w = R.wakeP; R.wakeP = null; if (w) w(); };
+  while (!R.stopped) {
+    if (!R.todo.length) {
+      if (R.closed) break;
+      await new Promise((res) => { R.wakeS = res; });
+      continue;
+    }
+    let text = R.todo.shift();
+    if (!R.first) while (R.todo.length && text.length + sep.length + R.todo[0].length <= max) text += sep + R.todo.shift();
+    R.first = false;
+    try {
+      const r = await fetch('/api/tts', { method: 'POST', headers: { 'Content-Type': 'application/json' }, signal: R.ctl.signal,
+        body: JSON.stringify({ lang: R.lang, text, speed: speechSpeed() }) });
+      if (!r.ok) { let j = {}; try { j = await r.json(); } catch (e) { /* пусто */ } throw new Error(j.error || 'HTTP ' + r.status); }
+      R.ready.push(await r.blob());
+    } catch (e) {
+      if (!R.stopped && e.name !== 'AbortError') R.error = e;
+      break;
+    }
+    wakePlay();
+  }
+  R.synthEnd = true;
+  wakePlay();
+}
+
+async function askReaderPlay(R) {
+  while (!R.stopped) {
+    if (!R.ready.length) {
+      if (R.synthEnd) break;
+      await new Promise((res) => { R.wakeP = res; });
+      continue;
+    }
+    const url = URL.createObjectURL(R.ready.shift());
+    R.urls.push(url);
+    const ok = await new Promise((res) => {
+      const a = new Audio(url);
+      R.audio = a; R.endPlay = res;
+      a.onplaying = () => {
+        if (!R.sounded) { R.sounded = performance.now(); if (R.onSound) R.onSound(); }
+        R.host.classList.add('speaking-host');
+      };
+      a.onended = () => res(true);
+      a.onerror = () => res(false);
+      a.play().catch(() => res(false));
+    });
+    R.audio = null; R.endPlay = null;
+    if (!ok) { if (!R.stopped) R.error = R.error || new Error(t('Не удалось воспроизвести звук')); break; }
+  }
+  if (R.error && !R.stopped) toast(t('Не удалось прочитать вслух: {e}', { e: errText(R.error) }));
+  if (askReader === R) askReaderStop();   // всё прочитано: подсветка — прочь, «Стоп» — снова «Ввод»
+}
+
+function askReaderStop() {
+  const R = askReader;
+  if (!R) return;
+  askReader = null;
+  R.stopped = true;
+  R.ctl.abort();
+  if (R.audio) { R.audio.onplaying = R.audio.onended = R.audio.onerror = null; try { R.audio.pause(); } catch (e) { /* уже остановлен */ } }
+  if (R.endPlay) R.endPlay(false);
+  for (const w of [R.wakeS, R.wakeP]) if (w) w();
+  for (const u of R.urls) URL.revokeObjectURL(u);
+  R.host.classList.remove('speaking-host');
+  setAskBusy(!!askCtl);
+}
+
+// «голос через …» в строке под ответом: от конца речи до первого звука ответа.
+const askSoundInfo = (R) => t('голос через {a}', { a: fmtSec(R.sounded - R.t0) });
 
 /* ===================== «?» у варианта: вопрос о нём в чате ===================== */
 
@@ -4269,7 +4568,7 @@ function showLowerTab(which) {
   $('#askPane').hidden = !ask; $('#glossPane').hidden = ask;
   $('#tabAsk').classList.toggle('on', ask); $('#tabGloss').classList.toggle('on', !ask);
   $('#tabAsk').setAttribute('aria-selected', String(ask)); $('#tabGloss').setAttribute('aria-selected', String(!ask));
-  $('#askInfo').hidden = !ask;
+  $('#askInfo').hidden = !ask; $('#askLang').hidden = !ask;
   store.set('lowerTab', ask ? 'ask' : 'gloss');
   if (!ask) glossRefreshFromDisk();
 }
@@ -5169,6 +5468,7 @@ window.ttwSetText = function (text) {
 // (тогда приложение уходит в фон, модель остаётся в памяти).
 window.ttwBack = function () {
   if (mic) { micStop(false); return true; }
+  if (askReader) { askReaderStop(); return true; }
   if (!$('#welcomeView').hidden) { closeWelcome(); return true; }
   if (!$('#popMenu').hidden) { closePop(); return true; }
   if (!$('#modelMenu').hidden) { $('#modelMenu').hidden = true; return true; }
@@ -6596,34 +6896,45 @@ const MIC_VISION_UI = {
 function initListen() {
   $('#micBtn').innerHTML = ICON.mic;
   $('#micBtn').onclick = micToggle;
+  $('#askMic').innerHTML = ICON.mic;
+  $('#askMic').onclick = askMicToggle;
+  $('#askLang').onchange = () => store.set('askLang', $('#askLang').value);
 }
 
 async function micToggle() {
-  if (mic) { micStop(true); return; }
+  if (mic && mic.kind === 'src') { micStop(true); return; }
+  if (mic) micStop(false);   // шёл вопрос голосом в «Спросить модель» — отменить его
   if (busy || docCtl || askCtl) { toast(t('Дождитесь окончания или нажмите «Стоп»')); return; }
   if (!isReady()) { needModel(); return; }
   const v = STATE && STATE.vision;
   if (!(v && v.current)) { formError(MIC_VISION_UI.noModel()); return; }
   const md = navigator.mediaDevices;
   if (!md || !md.getUserMedia) { formError(t('В этом окне нет доступа к микрофону.')); return; }
-  stopSpeech(); formError(''); disarmRandom(); disarmLesson();
+  stopSpeech(); askReaderStop(); formError(''); disarmRandom(); disarmLesson();
   // файла для речи ещё нет — сначала вопрос и скачивание, потом запись (чтобы не говорить впустую)
   const f = (v.files || []).find(x => x.id === v.current);
   if (!f || !f.present) { await micPrepare(); return; }
   // файл есть, но модель загружена без него — она загружается заново, пока человек говорит
   if (!v.loaded) post('/api/vision', { action: 'on' }).catch(() => { /* ensureVision после записи скажет, что не так */ });
+  await micRecord({ kind: 'src', btn: $('#micBtn'), status: (s) => setNote(s, true), fail: (s) => { setNote(''); formError(s); }, done: micRecognize });
+}
+
+// Запись с микрофона — общая для диктовки (kind 'src') и вопроса голосом в «Спросить модель» ('ask', 1.4): m.btn —
+// кнопка (во время записи красная, кольцо — громкость), m.status(текст) — ход записи, m.fail(текст) — микрофон не
+// включился, m.cancel() — запись отменили (Esc, «Назад»), m.done(звук, частота) — второе нажатие или 30 секунд.
+async function micRecord(m) {
   const AC = window.AudioContext || window.webkitAudioContext;
-  let ctx;
-  try { ctx = new AC(); } catch (e) { formError(t('Не удалось включить микрофон: {e}', { e: errText(e) })); return; }
-  const m = { ctx, chunks: [], n: 0, rate: ctx.sampleRate, level: 0 };
+  try { m.ctx = new AC(); } catch (e) { m.fail(t('Не удалось включить микрофон: {e}', { e: errText(e) })); return; }
+  Object.assign(m, { chunks: [], n: 0, rate: m.ctx.sampleRate, level: 0 });
+  const ctx = m.ctx;
   mic = m;
-  $('#micBtn').classList.add('rec');
-  setNote(t('Включаю микрофон…'), true);
+  m.btn.classList.add('rec');
+  m.status(t('Включаю микрофон…'));
   try {
-    m.stream = await md.getUserMedia({ audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true, autoGainControl: true } });
+    m.stream = await navigator.mediaDevices.getUserMedia({ audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true, autoGainControl: true } });
   } catch (e) {
     try { ctx.close(); } catch (er) { /* уже закрыт */ }
-    if (mic === m) { mic = null; micLook(); setNote(''); formError(micErrorText(e)); }
+    if (mic === m) { mic = null; micLook(m); m.fail(micErrorText(e)); }
     return;
   }
   if (mic !== m) { m.stream.getTracks().forEach(x => x.stop()); return; }   // отменили, пока система спрашивала разрешение
@@ -6644,8 +6955,8 @@ async function micToggle() {
   const tick = () => {
     if (mic !== m) return;
     const o = { t: fmtClock(1000 * m.n / m.rate), max: fmtClock(1000 * LISTEN.maxSeconds) };
-    setNote(ANDROID ? t('Запись {t} из {max} — говорите; ещё раз 🎤 — готово', o) : t('Запись {t} из {max} — говорите; ещё раз 🎤 — готово, Esc — отмена', o), true);
-    $('#micBtn').style.setProperty('--lvl', Math.min(1, m.level * 2.5).toFixed(2));
+    m.status(ANDROID ? t('Запись {t} из {max} — говорите; ещё раз 🎤 — готово', o) : t('Запись {t} из {max} — говорите; ещё раз 🎤 — готово, Esc — отмена', o));
+    m.btn.style.setProperty('--lvl', Math.min(1, m.level * 2.5).toFixed(2));
     m.level *= 0.5;
   };
   tick();
@@ -6676,14 +6987,14 @@ function micStop(recognize) {
   try { if (m.node) { m.node.onaudioprocess = null; m.node.disconnect(); } if (m.src) m.src.disconnect(); } catch (e) { /* уже отключено */ }
   if (m.stream) m.stream.getTracks().forEach(x => x.stop());
   try { m.ctx.close(); } catch (e) { /* уже закрыт */ }
-  micLook();
-  if (!recognize) { setNote(''); return; }
+  micLook(m);
+  if (!recognize) { m.status(''); if (m.cancel) m.cancel(); return; }
   const raw = new Float32Array(m.n);
   let o = 0;
   for (const c of m.chunks) { raw.set(c, o); o += c.length; }
-  micRecognize(raw, m.rate);
+  m.done(raw, m.rate);
 }
-function micLook() { const b = $('#micBtn'); b.classList.remove('rec'); b.style.removeProperty('--lvl'); }
+function micLook(m) { m.btn.classList.remove('rec'); m.btn.style.removeProperty('--lvl'); }
 
 // Первая 🎤 без файла для речи: спросить, скачать, загрузить модель с ним — и предложить говорить.
 async function micPrepare() {
@@ -7240,7 +7551,7 @@ const fmtDb = (d) => !isFinite(d) ? '—' : d >= 60 ? '60+' : fmtNum(Math.max(0,
 async function talkVoice(lang, text, sig) {
   const t0 = performance.now();
   const r = await fetch('/api/tts', { method: 'POST', headers: { 'Content-Type': 'application/json' }, signal: sig,
-    body: JSON.stringify({ lang, text: talkSay(text), speed: SPEAK.speed }) });
+    body: JSON.stringify({ lang, text: talkSay(text), speed: speechSpeed() }) });
   if (!r.ok) { let j = {}; try { j = await r.json(); } catch (e) { /* пусто */ } throw new Error(j.error || 'HTTP ' + r.status); }
   const buf = await r.arrayBuffer();
   return { url: URL.createObjectURL(new Blob([buf], { type: 'audio/wav' })), ms: performance.now() - t0 };
@@ -7400,7 +7711,7 @@ async function saveTalkReport(st) {
     engine: { build: ei.build || '', n_ctx: ei.n_ctx || null, threads: ei.threads || null },
     model: { id: am.id || '', name: am.name || '', file: am.file || '' },
     vision: ((s.vision || {}).files || []).find(f => f.id === (s.vision || {}).current) || null,
-    lang: st.lang, voice: st.voice, speed: SPEAK.speed, phrase: st.phrase,
+    lang: st.lang, voice: st.voice, speed: speechSpeed(), phrase: st.phrase,
     prompt: LISTEN.prompt('{LANGUAGE}'), system: ASK.system + ' ' + TALK.voice, sampling: askSampling(),
     settings: { preroll: TALK.preroll, tail: TALK.tail, settle: TALK.settle, hears: TALK.hears, quiet: TALK.quiet },
     steps: st.steps,
@@ -7968,6 +8279,15 @@ const I18N = {
   '{a} от конца вопроса до первого звука ответа; в разговоре прибавится около секунды, пока программа поймёт, что вы замолчали.': ['{a} from the end of the question to the first sound of the answer; in a conversation about a second more will pass before the program notices that you have stopped speaking.', '{a} vom Ende der Frage bis zum ersten Ton der Antwort; im Gespräch kommt etwa eine Sekunde hinzu, bis das Programm merkt, dass Sie aufgehört haben zu sprechen.', '{a} desde el final de la pregunta hasta el primer sonido de la respuesta; en una conversación se añadirá un segundo más o menos hasta que el programa note que ha dejado de hablar.', '从问题结束到回答的第一个声音为 {a}；在对话中还要再加约一秒，程序才能发现您已经说完。'],
   'Тест разговора закончен.': ['The conversation test is finished.', 'Der Gesprächstest ist fertig.', 'La prueba de conversación ha terminado.', '对话测试完成。'],
   'Тест разговора остановлен.': ['The conversation test is stopped.', 'Der Gesprächstest ist angehalten.', 'La prueba de conversación se ha detenido.', '对话测试已停止。'],
+  // 1.4: разговор с моделью голосом (предложение автора от 25.11.2026)
+  'Спросить голосом: нажмите и говорите (до 30 секунд), нажмите ещё раз — модель расшифрует вопрос и ответит голосом. Пока она отвечает — остановить ответ и говорить': ['Ask by voice: click and speak (up to 30 seconds), click again — the model transcribes the question and answers by voice. While it answers — stop the answer and speak', 'Per Stimme fragen: klicken und sprechen (bis zu 30 Sekunden), noch einmal klicken – das Modell schreibt die Frage auf und antwortet per Stimme. Während es antwortet – die Antwort anhalten und sprechen', 'Preguntar de viva voz: pulse y hable (hasta 30 segundos), pulse otra vez: el modelo transcribe la pregunta y responde de viva voz. Mientras responde: detener la respuesta y hablar', '语音提问：点击后说话（最长 30 秒），再点一次——模型转写问题并用语音回答。模型回答时点击——停止回答并说话'],
+  'Спросить голосом': ['Ask by voice', 'Per Stimme fragen', 'Preguntar de viva voz', '语音提问'],
+  'Язык разговора голосом: на нём модель слушает вопрос и голос читает ответ': ['The language of the voice conversation: the model listens to the question and the voice reads the answer in it', 'Sprache des Gesprächs per Stimme: In ihr hört das Modell die Frage, und die Stimme liest die Antwort', 'Idioma de la conversación de viva voz: en él el modelo escucha la pregunta y la voz lee la respuesta', '语音对话的语言：模型用它听问题，语音用它读回答'],
+  'Язык разговора голосом': ['Language of the voice conversation', 'Sprache des Gesprächs per Stimme', 'Idioma de la conversación de viva voz', '语音对话的语言'],
+  'Кнопка 🎤 — спросить голосом: модель ответит вслух.': ['The 🎤 button asks by voice: the model answers aloud.', 'Die Schaltfläche 🎤 fragt per Stimme: Das Modell antwortet laut.', 'El botón 🎤 pregunta de viva voz: el modelo responde en voz alta.', '🎤 按钮用于语音提问：模型会朗读回答。'],
+  'Модель думает…': ['The model is thinking…', 'Das Modell denkt nach …', 'El modelo está pensando…', '模型正在思考…'],
+  'Для языка «{l}» нет голоса — ответ только текстом. Голос можно скачать в меню моделей.': ['There is no voice for {l} — the answer is text only. A voice can be downloaded in the model menu.', 'Für {l} gibt es keine Stimme – die Antwort kommt nur als Text. Eine Stimme lässt sich im Modellmenü herunterladen.', 'No hay voz para el idioma «{l}»: la respuesta será solo texto. Se puede descargar una voz en el menú de modelos.', '“{l}”没有语音——只显示文字回答。可以在模型菜单中下载语音。'],
+  'голос через {a}': ['voice after {a}', 'Stimme nach {a}', 'voz a los {a}', '{a} 后出声'],
   // 1.2: новые языки перевода
   'Итальянский': ['Italian', 'Italienisch', 'Italiano', '意大利语'],
   'итальянский': ['Italian', 'Italienisch', 'italiano', '意大利语'],
@@ -8792,6 +9112,7 @@ function init() {
       disarmQuit(); disarmRandom(); disarmLesson(); disarmField();
       if (!$('#popMenu').hidden) { closePop(); return; }
       if (speech) { stopSpeech(); if (!busy && !askCtl && !docCtl) return; }
+      if (askReader) { askReaderStop(); if (!busy && !askCtl && !docCtl) return; }
       if (busy) stop(); else if (askCtl) askCtl.abort(); else if (docCtl) docCtl.abort();
       $('#modelMenu').hidden = true;
     }
@@ -8801,9 +9122,9 @@ function init() {
   ask.addEventListener('input', askGrow);
   ask.addEventListener('keydown', (e) => {
     if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) { e.preventDefault(); e.stopPropagation(); if (!askCtl) askSend(); }
-    else if (e.key === 'Escape' && askCtl) { e.stopPropagation(); askCtl.abort(); }
+    else if (e.key === 'Escape' && (askCtl || askReader)) { e.stopPropagation(); if (askCtl) askCtl.abort(); else askReaderStop(); }
   });
-  $('#askSend').onclick = () => askSend();
+  $('#askSend').onclick = () => { if (!askCtl && askReader) { askReaderStop(); return; } askSend(); };
   $('#askReset').onclick = askReset;
   $('#glossIcon').innerHTML = ICON.book;
   $('#tabAsk').onclick = () => showLowerTab('ask');

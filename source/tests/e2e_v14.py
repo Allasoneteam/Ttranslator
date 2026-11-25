@@ -13,6 +13,10 @@
 #   - the speech test (Supertonic 3 and sherpa-onnx from the mirror read the phrases): the interface language first,
 #     then English; «Стоп» between them, «Продолжить тест речи» goes on; speech-test-<start>.md is rewritten; the
 #     phrase at work has a purple frame, a spinning icon and its time (the author's wish of 25.11.2026);
+#   - the voice conversation in «Спросить модель» (the author's proposal of 25.11.2026): 🎤 — speak, 🎤 again — the model
+#     (canned) transcribes, the question stays in the chat, the answer is read aloud sentence by sentence while it is
+#     written; purple frame and spinning icon while the model listens and thinks; «Стоп» stops the voice, 🎤 during an
+#     answer interrupts, Esc cancels a recording; the language of the conversation; no voice — text only; «Обновить»;
 #   - the conversation test (the author's proposal of 25.11.2026): the voice says a phrase, a stand-in microphone hears
 #     the sound of the page itself (50 dB quieter with echo cancellation); step 1 — the microphone hears the speakers,
 #     the phrase is recognized; step 2 — with echo cancellation the program hardly hears itself; step 3 — the model
@@ -72,12 +76,15 @@ def sse(text, prompt_ms=4200, predicted_ms=1300):
                                    'timings': {'prompt_n': 120, 'prompt_ms': prompt_ms, 'predicted_n': 12, 'predicted_ms': predicted_ms, 'predicted_per_second': 9.2}}) + '\n\ndata: [DONE]\n\n'
     return body
 talk_answer = 'Самая длинная река в Европе — Волга. Она впадает в Каспийское море.'
+voice_answer = {'text': ''}   # the voice conversation in «Спросить модель»
 def reply(route):
     body = json.loads(route.request.post_data)
     calls.append(body)
     content = body['messages'][0]['content']
     if body['messages'][0].get('role') == 'system' and 'spoken conversation' in content:   # the conversation test
         route.fulfill(status=200, headers={'Content-Type': 'text/event-stream'}, body=sse(talk_answer, 900, 1100)); return
+    if body['messages'][0].get('role') == 'system' and 'talking to you by voice' in content:   # a voice question in the ask window
+        route.fulfill(status=200, headers={'Content-Type': 'text/event-stream'}, body=sse(voice_answer['text'], 900, 1100)); return
     if isinstance(content, list) and any(p.get('type') == 'input_audio' for p in content):
         prompt = content[0].get('text', '')
         m = re.search(r'speech segment in (\w+) into', prompt)
@@ -243,6 +250,96 @@ with sync_playwright() as pw:
         time.sleep(1)
     ok(code == 200 and state()['tts']['engine']['present'], 'Supertonic 3 and sherpa-onnx downloaded (from the mirror)')
     page.reload(); page.wait_for_selector('body[data-model="ready"]', timeout=20000)
+
+    # ================= the voice conversation in «Спросить модель»: 🎤 — speak, 🎤 again — the question is transcribed and
+    # stays in the chat; the answer is read aloud sentence by sentence while it is written
+    page.evaluate(r"""() => {
+      window.__ask = new Set();
+      const box = document.querySelector('#askBox');
+      new MutationObserver(() => {
+        if (box.classList.contains('working')) __ask.add('purple');
+        for (const w of box.querySelectorAll('.msg-work')) if (w.querySelector('.work-spin')) __ask.add(w.textContent.replace(/\d+:\d\d$/, '').trim());
+        if (box.querySelector('.msg.bot.speaking-host')) __ask.add('reading');
+      }).observe(box, { subtree: true, childList: true, attributes: true, characterData: true });
+    }""")
+    am = page.locator('#askMic')
+    ok(am.is_visible() and am.get_attribute('title').startswith('Спросить голосом: нажмите и говорите') and page.input_value('#askLang') == 'ru'
+       and 'Кнопка 🎤 — спросить голосом' in page.inner_text('#askEmpty'), 'the ask window: 🎤, the language of the conversation (that of the interface), the hint')
+    tts_req = []
+    page.on('request', lambda r: tts_req.append(json.loads(r.post_data)) if r.url.endswith('/api/tts') else None)
+    voice_q = 'Как по-немецки «доброе утро»?'
+    voice_answer['text'] = 'По-немецки «доброе утро» — Guten Morgen. Так здороваются до полудня.'
+    asr_next['text'] = voice_q; asr_next['parts'] = []
+    calls.clear()
+    am.click()
+    ok(wait(lambda: 'rec' in am.get_attribute('class') and page.locator('#askLog .msg.user.rec').count() == 1
+            and 'Запись 0:0' in page.inner_text('#askLog .msg.user.rec'), 10), 'recording: a line in the chat says so')
+    page.wait_for_timeout(2600)
+    page.screenshot(path=os.path.join(shots, '4a-ask-recording.png'))
+    am.click()
+    ok(wait(lambda: page.locator('#askLog .msg.bot').count() == 1 and 'Guten Morgen' in page.inner_text('#askLog .msg.bot .msg-body'), 30), 'the answer is written')
+    ok(wait(lambda: page.evaluate("__ask.has('reading')"), 30) and page.inner_text('#askSend') in ('Стоп', 'Ввод'), 'the voice reads the answer: the answer is highlighted')
+    page.screenshot(path=os.path.join(shots, '4b-ask-reading.png'))
+    ok(wait(lambda: page.locator('#askLog .msg.bot.speaking-host').count() == 0 and page.inner_text('#askSend') == 'Ввод', 60), 'the voice has read it all: «Стоп» is «Ввод» again')
+    seen = sorted(page.evaluate('[...__ask]'))
+    ok('purple' in seen and 'Модель слушает запись…' in seen and 'Модель думает…' in seen and not page.evaluate("document.querySelector('#askBox').classList.contains('working')"),
+       'while the model listened and thought: purple frame, spinning icon, what is done; now not: %s' % seen)
+    um = page.inner_text('#askLog .msg.user')
+    ok(voice_q in um and re.search(r'🎤 Речь \d+,\d с → текст за \d+,\d с', um), 'the question stays in the chat, with the time of the speech and of its recognition: ' + um.replace('\n', ' | '))
+    bmeta = page.inner_text('#askLog .msg.bot .msg-meta')
+    ok(re.search(r'голос через \d+,\d с', bmeta), 'under the answer — «голос через …»: ' + bmeta)
+    ac = audio_calls()
+    ok(len(ac) == 1 and 'in Russian into Russian text.' in ac[0]['messages'][0]['content'][0]['text'], 'one recognition, in the language of the conversation')
+    ask = [c for c in calls if c['messages'][0].get('role') == 'system' and 'talking to you by voice' in c['messages'][0]['content']]
+    ok(len(ask) == 1 and ask[0]['messages'][-1] == {'role': 'user', 'content': voice_q}, 'the model is asked the recognized question, to answer in plain text')
+    ok([(x['lang'], x['text']) for x in tts_req] == [('ru', 'По-немецки «доброе утро» — Guten Morgen.'), ('ru', 'Так здороваются до полудня.')],
+       'the voice: the first sentence at once, then the rest: %s' % tts_req)
+
+    # «Стоп» while the voice reads; 🎤 during an answer interrupts it and listens; Esc cancels the recording
+    long_answer = 'Первое предложение длинного ответа. ' + ' '.join('Ещё одно предложение ответа, номер %d.' % i for i in range(1, 9))
+    voice_answer['text'] = long_answer; asr_next['text'] = 'Расскажи подробнее.'
+    am.click(); page.wait_for_timeout(2000); am.click()
+    ok(wait(lambda: page.locator('#askLog .msg.bot.speaking-host').count() == 1, 30) and page.inner_text('#askSend') == 'Стоп', 'the second answer is read aloud; the button says «Стоп»')
+    page.click('#askSend')
+    ok(wait(lambda: page.locator('#askLog .msg.bot.speaking-host').count() == 0 and page.inner_text('#askSend') == 'Ввод', 5)
+       and page.locator('#askLog .msg.bot').count() == 2 and 'номер 8' in page.inner_text('#askLog .msg.bot >> nth=1'), '«Стоп»: the voice stops, the written answer stays')
+    asr_next['text'] = 'И ещё раз, пожалуйста.'
+    am.click(); page.wait_for_timeout(2000); am.click()
+    ok(wait(lambda: page.locator('#askLog .msg.bot.speaking-host').count() == 1, 30), 'the third answer is read aloud')
+    am.click()
+    ok(wait(lambda: page.locator('#askLog .msg.bot.speaking-host').count() == 0 and page.locator('#askLog .msg.user.rec').count() == 1 and 'rec' in am.get_attribute('class'), 10),
+       '🎤 while the voice reads: the voice stops, the microphone listens')
+    page.keyboard.press('Escape')
+    ok(wait(lambda: page.locator('#askLog .msg.user.rec').count() == 0 and 'rec' not in am.get_attribute('class'), 5)
+       and page.locator('#askLog .msg.user').count() == 3, 'Esc: the recording is cancelled, the chat stays')
+
+    # the language of the conversation: German — recognized and read in German; Chinese has no voice here — text only
+    page.select_option('#askLang', 'de')
+    voice_answer['text'] = 'Ich kenne die Uhrzeit leider nicht.'; asr_next['text'] = 'Wie spät ist es?'
+    calls.clear(); tts_req.clear()
+    am.click(); page.wait_for_timeout(2000); am.click()
+    ok(wait(lambda: page.locator('#askLog .msg.bot').count() == 4 and page.inner_text('#askSend') == 'Ввод' and tts_req, 60)
+       and 'in German into German text.' in audio_calls()[0]['messages'][0]['content'][0]['text'] and tts_req[0]['lang'] == 'de', 'German: heard and read in German: %s' % tts_req[:1])
+    page.select_option('#askLang', 'zh')
+    voice_answer['text'] = '我不知道现在几点。'; asr_next['text'] = '现在几点？'
+    calls.clear(); tts_req.clear()
+    am.click(); page.wait_for_timeout(2000); am.click()
+    ok(wait(lambda: page.locator('#askLog .msg.bot').count() == 5 and page.inner_text('#askSend') == 'Ввод', 30)
+       and 'нет голоса — ответ только текстом' in page.inner_text('#askVoiceNote') and not tts_req, 'no voice for Chinese here: text only, with a note: ' + page.inner_text('#askVoiceNote'))
+    page.select_option('#askLang', 'ru')
+    ok(page.evaluate("JSON.parse(localStorage.getItem('tdoc.askLang'))") == 'ru', 'the language of the conversation is remembered')
+
+    # the look of «the model thinks» (canned answers come at once, so it is drawn here): purple frame, spinning icon, time
+    page.evaluate("() => { const m = addAskMsg('bot', ''); m.classList.add('pending'); msgWorking(m, t('Модель думает…')); askWorking(true); }")
+    ok(page.evaluate("getComputedStyle(document.querySelector('#askBox')).borderTopColor") in ('rgb(124, 58, 237)', 'rgb(183, 148, 246)')
+       and page.locator('#askLog .msg.bot.thinking .msg-work .work-spin').count() == 1, 'the model thinks: the window has a purple frame, the answer a spinning icon')
+    page.screenshot(path=os.path.join(shots, '4c-ask-thinking.png'))
+
+    # «Обновить» erases everything
+    page.click('#askReset')
+    ok(page.locator('#askLog .msg').count() == 0 and page.is_visible('#askEmpty') and page.is_hidden('#askVoiceNote')
+       and not page.evaluate("document.querySelector('#askBox').classList.contains('working')"), '«Обновить»: the chat and the note are erased')
+
     phrases = page.evaluate('LISTEN_TEST')
     ok(len(phrases) == 15 and all(len(v) == 4 for v in phrases.values()), 'LISTEN_TEST: four phrases in each of the 15 languages')
     test_phrases['ru'] = list(phrases['ru']); test_phrases['en'] = list(phrases['en'])

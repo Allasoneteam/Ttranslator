@@ -1,6 +1,6 @@
 <!-- The text of the release on GitHub for the version in source/launcher/main.go (appVersion): the release job of
 .github/workflows/ci.yml puts it into the draft release made by a push to main. Rewrite it for each version. -->
-**Ttranslator 1.4** listens: **dictation** with 🎤 and **speech recordings** — voice messages, talks — are recognized and translated by the same local model that translates, Gemma 4. The free, open-source **offline translator** runs on Windows, Linux, macOS and Android — a local language model on your own device: no cloud, no account, no telemetry.
+**Ttranslator 1.4** listens and talks: **dictation** with 🎤, a **voice conversation** with the model and **speech recordings** — voice messages, talks — are recognized by the same local model that translates, Gemma 4. The free, open-source **offline translator** runs on Windows, Linux, macOS and Android — a local language model on your own device: no cloud, no account, no telemetry.
 
 ## Downloads
 
@@ -17,6 +17,7 @@ SHA-256 checksums are in `SHA256SUMS.txt`. Which Mac: Apple menu → About This 
 ## What’s new in 1.4
 
 - **Dictation**: 🎤 next to the text field — click and speak (up to 30 seconds), click again, and the text appears in the field. If the language of the text and the language of the translation differ, the translation starts at once; if they are the same, the text just goes into the field. The speech is recognized by the **Gemma 4 model itself** (E2B or E4B), with the same additional file as for pictures (about 0.56 GB, offered for download the first time) — nothing new to install.
+- **Voice conversation** in **Ask the model**: 🎤 — ask by voice (up to 30 seconds), 🎤 again — the model transcribes the question, which stays in the chat, and answers aloud, sentence by sentence while it is still writing. The language of the conversation is chosen in the window header; the answer length and the temperature are those of Settings. 🎤 during an answer interrupts it, **Stop** stops the voice, **Reset** erases the chat; while the model listens and thinks, the window has a purple frame with a spinning icon. On a 6-core desktop processor without a graphics card the first sound of the answer comes about 6 seconds after the end of the question with Gemma 4 E2B and about 9–13 seconds with E4B.
 - **Speech recordings**: the **File** button also opens a recording — MP3, WAV, M4A, OGG, a voice message for example. It is divided at the pauses into parts of up to 30 seconds; each part is recognized and translated, and ▶ plays it.
 - **Speech test** in the Test window: our voices read four phrases in each of the 15 languages and the model recognizes them — the share of wrong characters and the time, on your own device.
 - **Conversation test** in the Test window: a minute-long check of a voice conversation with the model — the program's voice speaks, the microphone listens (does it hear the speakers; does the program hear itself with echo cancellation on), and the model answers by voice — how long you wait for the answer.
@@ -34,13 +35,13 @@ SHA-256 checksums are in `SHA256SUMS.txt`. Which Mac: Apple menu → About This 
 ## What it does
 
 - Translation between **15 languages** — English, Russian, German, French, Spanish, Italian, Portuguese (Brazil), Greek, Arabic, Japanese, Korean, Hindi, Simplified Chinese, Latin, Swedish — with several variants in different styles, back translation and “why like this?”; editing in the same language; your own glossary; LaTeX formulas kept intact.
-- **Documents** page by page: pictures and scans, PDFs, Word and LibreOffice files, text files; **speech**: dictation and recordings.
+- **Documents** page by page: pictures and scans, PDFs, Word and LibreOffice files, text files; **speech**: dictation, a voice conversation with the model and recordings.
 - **Ask the model** about translations, terms and grammar; **reading aloud** with Supertonic and Piper voices; a built-in **test** to compare models on your device.
 - **Interface in five languages**: English, Russian, German, Spanish and Chinese.
 
 ## Privacy
 
-Your texts and documents never leave the device: the engine listens only on 127.0.0.1 and requires a random key (on Android the program inside the app requires a key of its own too, so other apps cannot read your translations). The network is used only to download the engine, models, the picture files of the models and voices from official sources, with the size and SHA-256 checked, and only after you confirm each download.
+Your texts, documents and speech never leave the device: the microphone works only while 🎤 is on, the model recognizes the speech on the device, and the engine listens only on 127.0.0.1 and requires a random key (on Android the program inside the app requires a key of its own too, so other apps cannot read your translations). The network is used only to download the engine, models, the picture files of the models and voices from official sources, with the size and SHA-256 checked, and only after you confirm each download.
 
 ## License
 
