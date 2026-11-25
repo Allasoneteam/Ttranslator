@@ -19,6 +19,7 @@ SHA-256 checksums are in `SHA256SUMS.txt`. Which Mac: Apple menu → About This 
 - **Dictation**: 🎤 next to the text field — click and speak (up to 30 seconds), click again, and the text appears in the field. If the language of the text and the language of the translation differ, the translation starts at once; if they are the same, the text just goes into the field. The speech is recognized by the **Gemma 4 model itself** (E2B or E4B), with the same additional file as for pictures (about 0.56 GB, offered for download the first time) — nothing new to install.
 - **Speech recordings**: the **File** button also opens a recording — MP3, WAV, M4A, OGG, a voice message for example. It is divided at the pauses into parts of up to 30 seconds; each part is recognized and translated, and ▶ plays it.
 - **Speech test** in the Test window: our voices read four phrases in each of the 15 languages and the model recognizes them — the share of wrong characters and the time, on your own device.
+- **Conversation test** in the Test window: a minute-long check of a voice conversation with the model — the program's voice speaks, the microphone listens (does it hear the speakers; does the program hear itself with echo cancellation on), and the model answers by voice — how long you wait for the answer.
 - The microphone works in the program window on Windows, Linux and macOS and in the Android app (the system asks once).
 - Updating from 1.0–1.3 keeps your models, voices, glossaries and settings.
 

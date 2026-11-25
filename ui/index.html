@@ -181,7 +181,7 @@ body.drag-file::after { content: attr(data-drop); position: fixed; inset: 10px; 
 /* Диктовка (1.4): 🎤 у поля текста; во время записи — красная, кольцо вокруг — громкость звука. */
 #micBtn.rec { color: #fff; background: var(--danger); border-color: var(--danger);
   box-shadow: 0 0 0 calc(2px + 7px * var(--lvl, 0)) color-mix(in srgb, var(--danger) 30%, transparent); transition: box-shadow .12s; }
-body.no-tts #micBtn, body.no-tts #speechTestBtn { display: none; }
+body.no-tts #micBtn, body.no-tts #speechTestBtn, body.no-tts #talkTestBtn { display: none; }
 #randomBtn.confirm #randomLabel, #lessonBtn.confirm #lessonLabel { display: inline !important; }
 @media (max-width: 760px) {
   .doc-cols, .doc-page.has-img .doc-cols, .doc-page.has-audio .doc-cols { grid-template-columns: 1fr; }
@@ -283,8 +283,10 @@ label.check input { width: 15px; height: 15px; margin: 0; accent-color: var(--ac
 .ask-input textarea { min-height: 36px; max-height: 120px; resize: none; font-size: 1rem; line-height: 1.4; padding: 7px 10px; }
 .ask-input button { padding: 7px 12px; white-space: nowrap; }
 
-.pane-head { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+.pane-head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 12px; }
 .pane-head h2 { font-size: 1.1429rem; font-weight: 500; margin: 0; }
+/* Окно «Тест» (1.4): четыре теста — строкой под заголовком («Назад» — справа в заголовке, как в других окнах) */
+.test-btns { display: flex; flex-wrap: wrap; gap: 8px; margin: -2px 0 12px; }
 .list { display: flex; flex-direction: column; gap: 8px; }
 .item { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; }
 .item .src { color: var(--muted); font-size: .9286rem; margin-bottom: 4px; }
@@ -385,16 +387,22 @@ details code { font-size: .8571rem; background: var(--panel2); padding: 1px 4px;
 @keyframes spin { to { transform: rotate(360deg); } }
 /* Модель работает (1.3, по просьбе автора): вращающийся фиолетовый значок, а у страницы документа — и время с начала:
    картинка страницы читается около минуты, и всё это время на экране больше ничего не меняется. */
-.work-spin, #cleanNote.working::before, #docStatus.working:not(:empty)::before, #docNote.working::before {
+.work-spin, #cleanNote.working::before, #docStatus.working:not(:empty)::before, #docNote.working::before,
+#testProgressText.working:not(:empty)::before {
   content: ''; display: inline-block; width: 1.05em; height: 1.05em; flex: none; box-sizing: border-box;
   border: .18em solid var(--work-ring); border-top-color: var(--work); border-right-color: var(--work); border-radius: 50%;
   animation: spin .9s linear infinite; vertical-align: -.1em; margin-right: 6px;
 }
 #cleanNote.working { color: var(--work-text); }
 .doc-meta.busy { color: var(--work-text); }
+/* Окно «Тест» (1.4, просьба автора от 25.11.2026): задание в работе — в фиолетовой рамке, со значком, делом и временем */
+.item.working { border-color: var(--work); }
+.item .meta .work { display: inline-flex; align-items: center; color: var(--work-text); }
+.item .meta .work span[hidden] + .work-time { margin-left: 0; }
 .work-time { margin-left: 8px; color: var(--muted); font-variant-numeric: tabular-nums; }
 @media (prefers-reduced-motion: reduce) {
-  .work-spin, #cleanNote.working::before, #docStatus.working:not(:empty)::before, #docNote.working::before { animation-duration: 3s; }
+  .work-spin, #cleanNote.working::before, #docStatus.working:not(:empty)::before, #docNote.working::before,
+  #testProgressText.working:not(:empty)::before { animation-duration: 3s; }
 }
 pre.log { font-size: .7857rem; background: var(--panel2); border: 1px solid var(--border); border-radius: 8px; padding: 8px; max-height: 220px; overflow: auto; white-space: pre-wrap; }
 
@@ -711,10 +719,13 @@ details.licenses pre { max-height: 60vh; overflow: auto; white-space: pre-wrap; 
       <div class="pane-head">
         <h2>Тест переводчика</h2>
         <span class="spacer"></span>
+        <button id="closeTestBtn">Назад</button>
+      </div>
+      <div class="test-btns">
         <button id="quickTestBtn" class="primary needs-model">Быстрый тест</button>
         <button id="runTestBtn" class="needs-model">Подробный тест</button>
         <button id="speechTestBtn" class="needs-model">Тест речи</button>
-        <button id="closeTestBtn">Назад</button>
+        <button id="talkTestBtn" class="needs-model">Тест разговора</button>
       </div>
       <div id="testIntro" class="note test-intro" style="margin:-6px 0 10px"></div>
       <div id="testProgress" hidden style="margin-bottom:12px">
@@ -1436,27 +1447,27 @@ const WHATS_NEW = {
   ru: [
     'Диктовка: 🎤 у поля текста — нажмите и говорите (до 30 секунд), нажмите ещё раз, и текст появится в поле. Если язык текста и язык перевода разные, перевод начинается сразу; если одинаковые, текст просто встаёт в поле. Речь слушает сама модель Gemma 4 — с тем же файлом, что и для картинок.',
     'Записи речи: кнопка «Файл» открывает и запись (MP3, WAV, M4A, OGG — например, голосовое сообщение). Она делится по паузам на части до 30 секунд, каждая распознаётся и переводится; ▶ у части — послушать её.',
-    '«Тест речи» в окне «Тест»: наши голоса читают фразы на всех языках, модель их распознаёт — видно, насколько точно и быстро она слушает на вашем компьютере или телефоне.',
+    '«Тест речи» в окне «Тест»: наши голоса читают фразы на всех языках, модель их распознаёт — видно, насколько точно и быстро она слушает на вашем компьютере или телефоне. «Тест разговора» проверяет микрофон и динамик вместе: слышит ли программа сама себя и сколько ждать ответа модели голосом.',
   ],
   en: [
     'Dictation: 🎤 next to the text field — click and speak (up to 30 seconds), click again, and the text appears in the field. If the language of the text and the language of the translation differ, the translation starts at once; if they are the same, the text just goes into the field. The Gemma 4 model itself listens to the speech, with the same file as for pictures.',
     'Speech recordings: the “File” button also opens a recording (MP3, WAV, M4A, OGG — a voice message, for example). It is divided at the pauses into parts of up to 30 seconds, each part is recognized and translated; ▶ next to a part plays it.',
-    'The “Speech test” in the “Test” window: our voices read phrases in all the languages and the model recognizes them — you see how accurately and how fast it listens on your computer or phone.',
+    'The “Speech test” in the “Test” window: our voices read phrases in all the languages and the model recognizes them — you see how accurately and how fast it listens on your computer or phone. The “Conversation test” checks the microphone and the speakers together: does the program hear itself, and how long do you wait for the model’s spoken answer.',
   ],
   de: [
     'Diktieren: 🎤 neben dem Textfeld – klicken und sprechen (bis zu 30 Sekunden), noch einmal klicken, und der Text erscheint im Feld. Sind die Sprache des Textes und die der Übersetzung verschieden, beginnt die Übersetzung sofort; sind sie gleich, kommt der Text nur ins Feld. Die Sprache hört das Modell Gemma 4 selbst – mit derselben Datei wie für Bilder.',
     'Sprachaufnahmen: Die Schaltfläche „Datei“ öffnet auch eine Aufnahme (MP3, WAV, M4A, OGG – zum Beispiel eine Sprachnachricht). Sie wird an den Pausen in Teile von bis zu 30 Sekunden geteilt, jeder Teil wird erkannt und übersetzt; ▶ neben einem Teil spielt ihn ab.',
-    'Der „Sprachtest“ im Fenster „Test“: Unsere Stimmen lesen Sätze in allen Sprachen vor, das Modell erkennt sie – so sehen Sie, wie genau und wie schnell es auf Ihrem Computer oder Telefon zuhört.',
+    'Der „Sprachtest“ im Fenster „Test“: Unsere Stimmen lesen Sätze in allen Sprachen vor, das Modell erkennt sie – so sehen Sie, wie genau und wie schnell es auf Ihrem Computer oder Telefon zuhört. Der „Gesprächstest“ prüft Mikrofon und Lautsprecher zusammen: Hört sich das Programm selbst, und wie lange wartet man auf die gesprochene Antwort des Modells?',
   ],
   es: [
     'Dictado: 🎤 junto al campo de texto: pulse y hable (hasta 30 segundos), pulse otra vez y el texto aparecerá en el campo. Si el idioma del texto y el de la traducción son distintos, la traducción empieza enseguida; si son el mismo, el texto solo se coloca en el campo. La voz la escucha el propio modelo Gemma 4, con el mismo archivo que para las imágenes.',
     'Grabaciones de voz: el botón «Archivo» abre también una grabación (MP3, WAV, M4A, OGG; por ejemplo, un mensaje de voz). Se divide en las pausas en partes de hasta 30 segundos, y cada parte se reconoce y se traduce; ▶ junto a una parte la reproduce.',
-    'La «Prueba de voz» en la ventana «Prueba»: nuestras voces leen frases en todos los idiomas y el modelo las reconoce; así se ve con qué precisión y rapidez escucha en su ordenador o teléfono.',
+    'La «Prueba de voz» en la ventana «Prueba»: nuestras voces leen frases en todos los idiomas y el modelo las reconoce; así se ve con qué precisión y rapidez escucha en su ordenador o teléfono. La «Prueba de conversación» comprueba juntos el micrófono y los altavoces: si el programa se oye a sí mismo y cuánto hay que esperar la respuesta hablada del modelo.',
   ],
   zh: [
     '听写：文本框旁边的 🎤——点击后说话（最长 30 秒），再点一次，文字就会出现在文本框中。如果文本语言和译文语言不同，会立即开始翻译；如果相同，文字只放进文本框。语音由 Gemma 4 模型本身聆听，使用与图片相同的文件。',
     '语音录音：“文件”按钮也可以打开录音（MP3、WAV、M4A、OGG，例如语音消息）。录音按停顿分成最长 30 秒的片段，每段都会识别并翻译；片段旁的 ▶ 可以播放。',
-    '“测试”窗口中的“语音测试”：我们的语音用所有语言朗读句子，由模型识别——可以看到它在您的电脑或手机上听得有多准、多快。',
+    '“测试”窗口中的“语音测试”：我们的语音用所有语言朗读句子，由模型识别——可以看到它在您的电脑或手机上听得有多准、多快。“对话测试”同时检查麦克风和扬声器：程序能否听到自己，以及要等多久才能听到模型的语音回答。',
   ],
 };
 
@@ -1512,8 +1523,9 @@ const HELP = {
       'Кнопка с названием модели вверху открывает список. Перед скачиванием модели программа показывает, откуда, в какую папку и под каким именем скачивается файл; ненужную модель можно удалить; свой файл .gguf можно положить в папку models. Кнопка ⏏ выгружает модель из памяти: окно остаётся, а для перевода модель нужно загрузить снова. Если закрыть окно программы, через несколько секунд модель выгрузится из памяти и программа завершится.',
       'На экране первого запуска можно нажать «Пропустить»: окно откроется без модели (вверху — «Выбрать модель»), а модель Вы выберете и скачаете в этом списке.'],
     ['Тест',
-      'Кнопка «Тест» открывает два теста; отчёт со временем и оценкой каждого сохраняется в папку data\\reports — так удобно сравнивать модели.',
+      'Кнопка «Тест» открывает тесты; отчёт со временем и оценкой каждого сохраняется в папку data\\reports — так удобно сравнивать модели.',
       '- «Тест речи» (1.4): наши голоса читают по четыре фразы на каждом языке, модель их распознаёт — доля неверных знаков и время. Первым — язык интерфейса, потом английский; остановить можно в любой момент, следующее нажатие продолжит. Отчёт — speech-test-….md.',
+      '- «Тест разговора» (1.4): короткая проверка разговора с моделью голосом, на языке интерфейса, около минуты. Голос программы говорит фразу в динамик, микрофон её слушает — без подавления эха (слышит ли микрофон динамик, как модель распознаёт речь «через воздух») и с ним (слышит ли программа сама себя: от этого зависит, можно ли будет перебивать модель голосом); затем модель отвечает на расслышанный вопрос, голос читает ответ — видно, сколько его ждать. Нужны динамики (не наушники) и тишина. Отчёт — talk-test-….md.',
       '- «Быстрый тест» — две латинские крылатые фразы (Audentes fortuna iuvat; Cogito, ergo sum): с латыни на язык интерфейса и обратно, в нейтральном стиле — четыре перевода, около минуты. Образцы переводов встроены в программу.',
       '- «Подробный тест» переводит пары фраз из файла ui\\tests.txt в обе стороны в двух стилях и исправляет каждую фразу на своём языке. Пара — две строки на двух языках: «EN: …» и «RU: …» (или LA, DE, FR, ES, EL, ZH, SV, IT, PT, AR); в наборе — две пары английский ↔ русский и четыре латинских крылатых выражения. Свои пары можно дописать в этот файл.',
       '- В окне теста у каждого задания видны исходный текст, перевод модели и Ваш вариант (из файла) или образец перевода.'],
@@ -1583,8 +1595,9 @@ const HELP = {
       'The button with the model name at the top opens the list. Before downloading a model, the program shows where the file comes from, the folder it goes to and its name; a model you do not need can be deleted; your own .gguf file can be put into the models folder. The ⏏ button unloads the model from memory: the window stays, but to translate you need to load the model again. If you close the program window, the model is unloaded from memory within a few seconds and the program exits.',
       'On the first-start screen you can press “Skip”: the window opens without a model (“Choose a model” at the top), and you choose and download a model in this list.'],
     ['Test',
-      'The “Test” button opens two tests; a report with the timings and scores of each is saved to data\\reports — handy for comparing models.',
+      'The “Test” button opens the tests; a report with the timings and scores of each is saved to data\\reports — handy for comparing models.',
       '- “Speech test” (1.4): our voices read four phrases in each language and the model recognizes them — the share of wrong characters and the time. The interface language first, then English; you can stop at any moment, the next click continues. The report is speech-test-….md.',
+      '- “Conversation test” (1.4): a short check of a voice conversation with the model, in the interface language, about a minute. The program’s voice says a phrase through the speakers and the microphone listens to it — without echo cancellation (does the microphone hear the speakers, how does the model recognize speech “through the air”) and with it (does the program hear itself: this decides whether you will be able to interrupt the model by voice); then the model answers the question it heard and the voice reads the answer — you see how long you wait for it. You need speakers (not headphones) and quiet. The report is talk-test-….md.',
       '- “Quick test”: two Latin sayings (Audentes fortuna iuvat; Cogito, ergo sum), from Latin into the interface language and back, in the neutral style — four translations, about a minute. The reference translations are built into the program.',
       '- “Full test” translates the phrase pairs from ui\\tests.txt both ways in two styles and corrects each phrase in its own language. A pair is two lines in two languages: “EN: …” and “RU: …” (or LA, DE, FR, ES, EL, ZH, SV, IT, PT, AR); the set has two English ↔ Russian pairs and four Latin sayings. You can add your own pairs to this file.',
       '- In the test window each task shows the source text, the model translation and your version (from the file) or the reference translation.'],
@@ -1654,8 +1667,9 @@ const HELP = {
       'Die Schaltfläche mit dem Modellnamen oben öffnet die Liste. Vor dem Herunterladen eines Modells zeigt das Programm Quelle, Zielordner und Dateinamen; ein nicht benötigtes Modell lässt sich löschen; eine eigene .gguf-Datei können Sie in den Ordner models legen. Die Schaltfläche ⏏ entlädt das Modell aus dem Arbeitsspeicher: Das Fenster bleibt, zum Übersetzen muss das Modell aber wieder geladen werden. Wenn Sie das Programmfenster schließen, wird das Modell nach wenigen Sekunden aus dem Arbeitsspeicher entladen und das Programm beendet.',
       'Auf dem Bildschirm des ersten Starts können Sie „Überspringen“ wählen: Das Fenster öffnet sich ohne Modell (oben „Modell wählen“), und Sie wählen und laden ein Modell in dieser Liste herunter.'],
     ['Test',
-      'Die Schaltfläche „Test“ öffnet zwei Tests; zu jedem wird ein Bericht mit Zeiten und Bewertungen in data\\reports gespeichert – praktisch, um Modelle zu vergleichen.',
+      'Die Schaltfläche „Test“ öffnet die Tests; zu jedem wird ein Bericht mit Zeiten und Bewertungen in data\\reports gespeichert – praktisch, um Modelle zu vergleichen.',
       '- „Sprachtest“ (1.4): Unsere Stimmen lesen in jeder Sprache vier Sätze vor, das Modell erkennt sie – Anteil falscher Zeichen und Zeit. Zuerst die Sprache der Oberfläche, dann Englisch; Sie können jederzeit anhalten, der nächste Klick macht weiter. Der Bericht heißt speech-test-….md.',
+      '- „Gesprächstest“ (1.4): eine kurze Prüfung eines Gesprächs mit dem Modell per Stimme, in der Sprache der Oberfläche, etwa eine Minute. Die Stimme des Programms spricht einen Satz über die Lautsprecher, das Mikrofon hört ihn – ohne Echounterdrückung (hört das Mikrofon die Lautsprecher, wie erkennt das Modell Sprache „durch die Luft“) und mit ihr (hört sich das Programm selbst: davon hängt ab, ob Sie das Modell mit der Stimme unterbrechen können); dann beantwortet das Modell die gehörte Frage, und die Stimme liest die Antwort – so sehen Sie, wie lange Sie darauf warten. Nötig sind Lautsprecher (keine Kopfhörer) und Ruhe. Der Bericht heißt talk-test-….md.',
       '- „Schnelltest“: zwei lateinische Redewendungen (Audentes fortuna iuvat; Cogito, ergo sum), aus dem Lateinischen in die Sprache der Oberfläche und zurück, im neutralen Stil – vier Übersetzungen, etwa eine Minute. Die Referenzübersetzungen sind im Programm enthalten.',
       '- „Ausführlicher Test“ übersetzt die Satzpaare aus ui\\tests.txt in beide Richtungen in zwei Stilen und korrigiert jeden Satz in seiner Sprache. Ein Paar sind zwei Zeilen in zwei Sprachen: „EN: …“ und „RU: …“ (oder LA, DE, FR, ES, EL, ZH, SV, IT, PT, AR); enthalten sind zwei Paare Englisch ↔ Russisch und vier lateinische Redewendungen. Eigene Paare können Sie in diese Datei schreiben.',
       '- Im Testfenster zeigt jede Aufgabe den Ausgangstext, die Übersetzung des Modells und Ihre Fassung (aus der Datei) oder die Referenzübersetzung.'],
@@ -1725,8 +1739,9 @@ const HELP = {
       'El botón con el nombre del modelo, arriba, abre la lista. Antes de descargar un modelo, el programa muestra de dónde viene el archivo, a qué carpeta va y con qué nombre; un modelo que no necesite se puede eliminar; puede poner su propio archivo .gguf en la carpeta models. El botón ⏏ libera el modelo de la memoria: la ventana sigue abierta, pero para traducir hay que volver a cargar el modelo. Si cierra la ventana del programa, en unos segundos el modelo se libera de la memoria y el programa termina.',
       'En la pantalla del primer inicio puede pulsar «Omitir»: la ventana se abre sin modelo (arriba, «Elegir un modelo») y usted elige y descarga un modelo en esta lista.'],
     ['Prueba',
-      'El botón «Prueba» abre dos pruebas; de cada una se guarda un informe con tiempos y puntuaciones en la carpeta data\\reports: así es fácil comparar modelos.',
+      'El botón «Prueba» abre las pruebas; de cada una se guarda un informe con tiempos y puntuaciones en la carpeta data\\reports: así es fácil comparar modelos.',
       '- «Prueba de voz» (1.4): nuestras voces leen cuatro frases en cada idioma y el modelo las reconoce: proporción de caracteres incorrectos y tiempo. Primero el idioma de la interfaz, luego el inglés; puede detenerla en cualquier momento y la siguiente pulsación continúa. El informe es speech-test-….md.',
+      '- «Prueba de conversación» (1.4): una comprobación breve de una conversación de viva voz con el modelo, en el idioma de la interfaz, de un minuto más o menos. La voz del programa dice una frase por los altavoces y el micrófono la escucha, sin cancelación de eco (¿oye el micrófono los altavoces?, ¿cómo reconoce el modelo la voz «a través del aire»?) y con ella (¿se oye el programa a sí mismo? De ello depende que se pueda interrumpir al modelo de viva voz); luego el modelo responde a la pregunta que oyó y la voz lee la respuesta: así se ve cuánto hay que esperarla. Se necesitan altavoces (no auriculares) y silencio. El informe es talk-test-….md.',
       '- «Prueba rápida»: dos locuciones latinas (Audentes fortuna iuvat; Cogito, ergo sum), del latín al idioma de la interfaz y de vuelta, en estilo neutro: cuatro traducciones, alrededor de un minuto. Las traducciones de referencia vienen incluidas en el programa.',
       '- «Prueba completa» traduce en ambos sentidos y en dos estilos los pares de frases del archivo ui\\tests.txt y corrige cada frase en su propio idioma. Un par son dos líneas en dos idiomas: «EN: …» y «RU: …» (o LA, DE, FR, ES, EL, ZH, SV, IT, PT, AR); el conjunto tiene dos pares inglés ↔ ruso y cuatro locuciones latinas. Puede añadir sus propios pares a este archivo.',
       '- En la ventana de la prueba, cada tarea muestra el texto original, la traducción del modelo y su versión (del archivo) o la traducción de referencia.'],
@@ -1796,8 +1811,9 @@ const HELP = {
       '顶部显示模型名称的按钮会打开模型列表。下载模型前，程序会显示文件来源、保存到哪个文件夹以及文件名；不需要的模型可以删除；也可以把自己的 .gguf 文件放进 models 文件夹。⏏ 按钮可从内存中卸载模型：窗口保留，但要翻译需重新加载模型。关闭程序窗口后，几秒钟内模型会从内存中卸载，程序随之退出。',
       '在首次启动界面可以点击“跳过”：窗口会在没有模型的情况下打开（顶部显示“选择模型”），您可以在此列表中选择并下载模型。'],
     ['测试',
-      '“测试”按钮提供两种测试；每次测试都会把带用时和评分的报告保存到 data\\reports 文件夹——便于比较模型。',
+      '“测试”按钮打开各项测试；每次测试都会把带用时和评分的报告保存到 data\\reports 文件夹——便于比较模型。',
       '- “语音测试”（1.4）：我们的语音用每种语言朗读四句话，由模型识别——错误字符比例和用时。先测界面语言，然后是英语；随时可以停止，再次点击会继续。报告为 speech-test-….md。',
+      '- “对话测试”（1.4）：简短检查与模型的语音对话，使用界面语言，约一分钟。程序的语音通过扬声器说一句话，麦克风来听——先不消除回声（麦克风能否听到扬声器，模型“隔空”识别语音的效果如何），再消除回声（程序能否听到自己：这决定能否用语音打断模型）；然后模型回答听到的问题，由语音朗读回答——可以看到要等多久。需要扬声器（不是耳机）和安静的环境。报告为 talk-test-….md。',
       '- “快速测试”：两句拉丁语名言（Audentes fortuna iuvat；Cogito, ergo sum），从拉丁语译成界面语言再译回，中性风格——共四次翻译，约一分钟。参考译文内置于程序中。',
       '- “详细测试”以两种风格双向翻译 ui\\tests.txt 文件中的句子对，并用每个句子本身的语言校改它。一对句子是两种语言的两行：“EN: …”和“RU: …”（或 LA、DE、FR、ES、EL、ZH、SV、IT、PT、AR）；默认包含两对英语 ↔ 俄语句子和四句拉丁语名言。您可以在此文件中添加自己的句子对。',
       '- 在测试窗口中，每项任务都会显示原文、模型译文，以及您的译文（来自文件）或参考译文。'],
@@ -4842,8 +4858,9 @@ async function renderTestIntro() {
   if (pairs.length && nM) full += ' ' + t('Ещё {n} {w} фраз с формулами LaTeX — проверяется, что формулы остаются на месте.', { n: nM, w: plural(nM, 'перевод', 'перевода', 'переводов') });
   if (pairs.length && GL.on && GL.loaded) full += ' ' + t('Словарь терминов включён ({f}): найденные в фразах термины учитываются; выключить можно во вкладке «Словарь».', { f: GL.file || t('в браузере') });
   para(t('Подробный тест'), full);
-  // 1.4: «Тест речи» — только с программой запуска (голоса и модель, которая слушает речь)
+  // 1.4: «Тест речи» и «Тест разговора» — только с программой запуска (голоса и модель, которая слушает речь)
   if (MODE === 'launcher') para(t('Тест речи'), t('Наши голоса читают по четыре фразы на каждом языке, модель Gemma 4 их распознаёт: доля неверных знаков и время. Первым — язык интерфейса, потом английский, дальше — остальные. Остановить можно в любой момент; следующее нажатие продолжит со следующего языка. Нужны файл модели для картинок и речи и голоса (Supertonic 3 — один файл для 13 языков).'));
+  if (MODE === 'launcher') para(t('Тест разговора'), t('Короткая проверка разговора с моделью голосом, на языке интерфейса, около минуты: голос программы говорит фразу в динамик, микрофон её слушает — без подавления эха и с ним (слышит ли программа сама себя); затем модель отвечает на расслышанный вопрос, и голос читает ответ — видно, сколько его ждать. Нужны динамики (не наушники) и тишина.'));
 }
 
 // Строка задания в окне теста: «Исходный текст: …», затем результат модели с подписью, у перевода — «Ваш вариант: …»
@@ -4865,6 +4882,31 @@ function testRow(j) {
   return { row, head, out, body };
 }
 
+// Задание теста в работе (просьба автора от 25.11.2026 — как у страниц документа): фиолетовая рамка, вращающийся значок,
+// что делается и сколько времени прошло; вращающийся значок — и в строке хода теста (testBusy).
+let testWork = null, testTick = null;   // { r: { row, head }, w, phase }
+function testWorking(r, what) {
+  testIdle();
+  const t0 = performance.now();
+  const spin = el('span', 'work-spin'); spin.setAttribute('aria-hidden', 'true');
+  const phase = el('span', '', what || ''), clock = el('span', 'work-time', fmtClock(0));
+  phase.hidden = !what;
+  const w = el('span', 'work');
+  w.append(spin, phase, clock);
+  r.head.appendChild(w); r.row.classList.add('working');
+  testWork = { r, w, phase };
+  testTick = setInterval(() => { if (clock.isConnected) clock.textContent = fmtClock(performance.now() - t0); else testIdle(); }, 1000);
+}
+// Что делается сейчас (время идёт дальше).
+function testPhase(what) { if (testWork) { testWork.phase.textContent = what; testWork.phase.hidden = !what; } }
+function testIdle() {
+  clearInterval(testTick); testTick = null;
+  if (!testWork) return;
+  testWork.w.remove(); testWork.r.row.classList.remove('working');
+  testWork = null;
+}
+function testBusy(on) { $('#testProgressText').classList.toggle('working', on); }
+
 // kind: 'quick' — «Быстрый тест», 'full' — «Подробный тест». Повторное нажатие той же кнопки останавливает тест.
 async function runTest(kind) {
   if (testRunning) { stop(); return; }
@@ -4881,8 +4923,8 @@ async function runTest(kind) {
   const btn = $(kind === 'quick' ? '#quickTestBtn' : '#runTestBtn'), other = $(kind === 'quick' ? '#runTestBtn' : '#quickTestBtn');
   testRunning = kind; setBusy(true);
   abortCtl = new AbortController();
-  btn.textContent = t('Остановить'); other.disabled = true; $('#speechTestBtn').disabled = true;
-  $('#testProgress').hidden = false;
+  btn.textContent = t('Остановить'); other.disabled = true; $('#speechTestBtn').disabled = true; $('#talkTestBtn').disabled = true;
+  $('#testProgress').hidden = false; testBusy(true);
   $('#testSummary').innerHTML = ''; const rowsBox = $('#testRows'); rowsBox.innerHTML = '';
   const started = new Date();
   const t0 = performance.now();
@@ -4897,16 +4939,19 @@ async function runTest(kind) {
       $('#testBar').style.width = (100 * k / jobs.length) + '%';
       const { row, head, out, body } = testRow(j);
       rowsBox.appendChild(row);
+      testWorking({ row, head }, '');
       const s0 = performance.now();
       let r;
       try {
         r = await askVariant(run, j.style, { seed: BASE_SEED, signal: abortCtl.signal, onText: (x) => { body.textContent = x; } });
       } catch (e) {
         if (e.name === 'AbortError') throw e;
+        testIdle();
         out.querySelector('.lbl').textContent = t('Ошибка:'); body.textContent = e.message; out.classList.add('error');
         results.push(Object.assign({}, j, { output: '', error: e.message, ms: Math.round(performance.now() - s0), chrf: NaN, timings: {} }));
         continue;
       }
+      testIdle();
       const ms = performance.now() - s0;
       const text = r.text;
       const tm = r.timings || {};
@@ -4934,8 +4979,9 @@ async function runTest(kind) {
     if (e.name === 'AbortError') $('#testProgressText').textContent = t('Тест остановлен.');
     else { $('#testProgressText').textContent = t('Ошибка: {e}', { e: e.message }); refreshState(); }
   } finally {
+    testIdle(); testBusy(false);
     testRunning = false; setBusy(false);
-    btn.textContent = kind === 'quick' ? t('Быстрый тест') : t('Подробный тест'); other.disabled = false; $('#speechTestBtn').disabled = false;
+    btn.textContent = kind === 'quick' ? t('Быстрый тест') : t('Подробный тест'); other.disabled = false; $('#speechTestBtn').disabled = false; $('#talkTestBtn').disabled = false;
   }
 }
 
@@ -6874,12 +6920,12 @@ async function runSpeechTest() {
   }
   const st = speechTest, order = speechTestOrder();
   const todo = order.filter(l => !st.langs.some(x => x.lang === l) && !st.skipped.includes(l));
-  const btn = $('#speechTestBtn'), others = [$('#quickTestBtn'), $('#runTestBtn')];
+  const btn = $('#speechTestBtn'), others = [$('#quickTestBtn'), $('#runTestBtn'), $('#talkTestBtn')];
   testRunning = 'speech'; setBusy(true);
   abortCtl = new AbortController();
   const sig = abortCtl.signal;
   btn.textContent = t('Остановить'); others.forEach(b => { b.disabled = true; });
-  $('#testProgress').hidden = false;
+  $('#testProgress').hidden = false; testBusy(true);
   renderSpeechSummary(st);
   try {
     if (!(await ensureVision(sig, TEST_VISION_UI))) { $('#testProgressText').textContent = ''; return; }
@@ -6895,8 +6941,12 @@ async function runSpeechTest() {
         $('#testProgressText').textContent = t('{l}: фраза {k} из {n} · язык {i} из {m}', { l: langName(lang), k: k + 1, n: phrases.length, i: done + 1, m: order.length });
         $('#testBar').style.width = (100 * (done + k / phrases.length) / order.length) + '%';
         const row = speechTestRow(lang, k, phrases[k]);
+        testWorking(row, t('Голос готовит фразу…'));
         const pcm = await ttsAudio(lang, phrases[k], sig);
-        const r = await listenRequest(pcm, lang, sig, (x) => { row.body.textContent = x; });
+        testPhase(t('Модель слушает запись…'));
+        let writing = false;
+        const r = await listenRequest(pcm, lang, sig, (x) => { if (!writing) { writing = true; testPhase(t('Модель пишет текст…')); } row.body.textContent = x; });
+        testIdle();
         const one = { ref: phrases[k], out: r.text, cer: charErrors(phrases[k], r.text, lang), speech_ms: Math.round(1000 * pcm.length / LISTEN.rate),
           ms: Math.round(r.ms), timings: r.timings, finish: r.finish };
         res.phrases.push(one);
@@ -6917,6 +6967,7 @@ async function runSpeechTest() {
     if (e.name === 'AbortError') $('#testProgressText').textContent = t('Тест речи остановлен. Нажмите «Продолжить тест речи», чтобы проверить следующие языки.');
     else { $('#testProgressText').textContent = t('Ошибка: {e}', { e: errText(await visionFailed(e)) }); refreshState(); }
   } finally {
+    testIdle(); testBusy(false);
     testRunning = false; setBusy(false);
     btn.textContent = st.done || !(st.langs.length + st.skipped.length) ? t('Тест речи') : t('Продолжить тест речи');
     others.forEach(b => { b.disabled = false; });
@@ -6999,6 +7050,406 @@ async function saveSpeechReport(st) {
     if (!r.ok) throw new Error(j.error || 'HTTP ' + r.status);
     $('#testSummary').appendChild(el('div', 'note', t('Отчёт сохранён: {p}', { p: j.path || '' })));
   } catch (e) { $('#testSummary').appendChild(el('div', 'error', t('Не удалось сохранить отчёт: {e}', { e: errText(e) }))); }
+}
+
+/* --- «Тест разговора» --- */
+// Предложение автора от 25.11.2026: короткий тест «разговора с моделью голосом» — и голос программы, и микрофон; на
+// языке интерфейса (нет его голоса — на английском), около минуты. Он проверяет то, чего не видит «Тест речи» (там звук
+// идёт модели напрямую): путь динамик → воздух → микрофон, эхо и сколько ждать ответа голосом.
+//   1) Голос программы говорит фразу в динамик, микрофон слушает её без подавления эха: слышит ли он динамик (на
+//      сколько голос громче фона) и как модель распознаёт речь «через воздух».
+//   2) То же с подавлением эха, как при диктовке: слышит ли программа сама себя. Если нет — в разговоре модель можно
+//      будет перебивать голосом; если да — пока она говорит, микрофон должен молчать.
+//   3) Расслышанный вопрос — модели (как в «Спросить модель», с просьбой отвечать коротко); ответ читает голос по
+//      предложениям: первое звучит, пока готовится остальное. Время — от конца вопроса до первого звука ответа.
+// Нужны динамики (не наушники) и тишина. Отчёт — talk-test-<начало>.md и .json в data/reports.
+const TALK = {
+  phrase: {
+    ru: 'Добрый день! Как называется самая длинная река в Европе?',
+    en: 'Good afternoon! What is the longest river in Europe?',
+    de: 'Guten Tag! Wie heißt der längste Fluss Europas?',
+    es: '¡Buenas tardes! ¿Cuál es el río más largo de Europa?',
+    zh: '你好！欧洲最长的河流叫什么名字？',
+  },
+  preroll: 1.0,   // с: запись до голоса — микрофон включается, слышен фон
+  tail: 0.8,      // с: запись после голоса — задержка звука, отзвук комнаты
+  settle: 0.5,    // с: начало голоса не в счёт громкости — подавление эха подстраивается (в разговоре микрофон не выключается)
+  hears: 10,      // дБ: голос громче фона хотя бы на столько — микрофон слышит динамик
+  quiet: 6,       // дБ: с подавлением эха голос громче фона не больше чем на столько — программа почти не слышит себя
+  voice: 'This is a spoken conversation: the question was dictated, and your answer will be read aloud. Answer in one or two short sentences of plain text, without lists, formatting or emoji.',
+  maxTokens: 160,
+};
+
+let talkTest = null;   // последний тест: { started, stamp, model, lang, voice, phrase, steps: { hear, echo, answer } }
+
+async function runTalkTest() {
+  if (testRunning) { stop(); return; }
+  if (busy) { toast(t('Дождитесь окончания перевода')); return; }
+  if (!isReady()) { needModel(); return; }
+  if (!(STATE && STATE.vision && STATE.vision.current)) { toast(TEST_VISION_UI.noModel()); return; }
+  const lang = [UI_LANG, 'en'].find(l => TALK.phrase[l] && voiceFor(l));
+  if (!lang) { toast(t('Для «Теста разговора» нужен голос языка интерфейса или английского: скачайте Supertonic 3 в меню моделей.')); return; }
+  const md = navigator.mediaDevices;
+  if (!md || !md.getUserMedia) { toast(t('В этом окне нет доступа к микрофону.')); return; }
+  if (mic) micStop(false);
+  stopSpeech();
+  const st = talkTest = { started: new Date(), stamp: reportStamp(new Date()), model: (activeModel() || {}).id || '', lang,
+    voice: voiceLabel(voiceFor(lang)).replace(langName(lang) + ' · ', ''), phrase: TALK.phrase[lang], steps: {} };
+  const btn = $('#talkTestBtn'), others = ['#quickTestBtn', '#runTestBtn', '#speechTestBtn'].map(s => $(s));
+  testRunning = 'talk'; setBusy(true);
+  abortCtl = new AbortController();
+  const sig = abortCtl.signal, urls = [];
+  btn.textContent = t('Остановить');
+  for (const b of others) b.disabled = true;
+  $('#testRows').innerHTML = '';
+  $('#testProgress').hidden = false; $('#testBar').style.width = '0%';
+  testBusy(true);
+  renderTalkSummary(st);
+  const step = (k, s) => { $('#testProgressText').textContent = t('Шаг {k} из {n}: {s}', { k, n: 3, s }); $('#testBar').style.width = (100 * (k - 1) / 3) + '%'; };
+  try {
+    if (!(await ensureVision(sig, TEST_VISION_UI))) { $('#testProgressText').textContent = ''; return; }
+
+    // 1. динамик → микрофон, без подавления эха
+    step(1, t('Слышит ли микрофон динамик?'));
+    const r1 = talkRow(1, t('Слышит ли микрофон динамик?'), t('без подавления эха'));
+    testWorking(r1, t('Голос готовит фразу…'));
+    const say = await talkVoice(lang, st.phrase, sig);
+    urls.push(say.url);
+    talkLine(r1, t('Голос сказал:'), st.phrase);
+    testPhase(t('Голос говорит, микрофон слушает…'));
+    const c1 = await talkLoopback(say.url, false, sig);
+    const s1 = st.steps.hear = talkLevels(c1);
+    s1.heard = s1.snr >= TALK.hears;
+    talkLine(r1, t('Микрофон:'), s1.heard ? t('голос громче фона на {d} дБ', { d: fmtDb(s1.snr) })
+      : t('голос почти не слышен — громче фона лишь на {d} дБ', { d: fmtDb(s1.snr) }));
+    if (s1.heard) {
+      Object.assign(s1, await talkListen(r1, c1, lang, sig));
+      s1.cer = charErrors(st.phrase, s1.out, lang);
+    }
+    testIdle();
+    if (s1.heard) r1.head.textContent += ' · ' + t('неверных знаков: {p}', { p: pct(s1.cer) }) + ' · ' + t('речь {a} → {b}', { a: fmtSec(s1.speech_ms), b: fmtSec(s1.ms) });
+    renderTalkSummary(st);
+
+    // 2. то же с подавлением эха, как при диктовке: слышит ли программа себя
+    step(2, t('Слышит ли программа себя?'));
+    const r2 = talkRow(2, t('Слышит ли программа себя?'), t('с подавлением эха, как при диктовке'));
+    const s2 = st.steps.echo = {};
+    if (!s1.heard) {
+      s2.skipped = true;
+      talkLine(r2, t('Итог:'), t('не проверено: микрофон не слышит динамик'));
+    } else {
+      testWorking(r2, t('Голос говорит, микрофон слушает…'));
+      const c2 = await talkLoopback(say.url, true, sig);
+      Object.assign(s2, talkLevels(c2));
+      s2.drop = Math.round((s1.voice - s2.voice) * 10) / 10;
+      talkLine(r2, t('Микрофон:'), t('голос тише на {d} дБ, чем без подавления эха; громче фона на {e} дБ', { d: fmtDb(s2.drop), e: fmtDb(s2.snr) }));
+      // голос едва громче фона — слушать нечего (модель на шуме иногда «слышит» слова)
+      if (s2.snr > 3) Object.assign(s2, await talkListen(r2, c2, lang, sig));
+      else { s2.out = ''; talkLine(r2, t('Распознала модель:'), '—', 'tr'); }
+      s2.cer = s2.out ? charErrors(st.phrase, s2.out, lang) : 1;
+      s2.verdict = s2.out && s2.cer < 0.5 ? 'words' : s2.snr <= TALK.quiet && s2.cer >= 0.8 ? 'quiet' : 'noise';
+      testIdle();
+      talkLine(r2, t('Итог:'), talkEchoText(s2.verdict));
+    }
+    renderTalkSummary(st);
+
+    // 3. ответ голосом: расслышанный вопрос (не расслышан — как написан) → короткий ответ модели → голос по предложениям
+    step(3, t('Ответ голосом'));
+    const r3 = talkRow(3, t('Ответ голосом'), t('модель отвечает на расслышанный вопрос, голос читает ответ'));
+    const s3 = st.steps.answer = { question: s1.out || st.phrase, heard: !!s1.out };
+    testWorking(r3, t('Модель отвечает…'));
+    talkLine(r3, t('Вопрос:'), s3.question + (s3.heard ? '' : ' (' + t('текстом: микрофон не расслышал') + ')'));
+    const outA = talkLine(r3, t('Ответ модели:'), '…', 'tr');
+    const t0 = performance.now();
+    let first = null, firstP = null;
+    const sayFirst = (f) => {
+      first = f; s3.first_ms = Math.round(performance.now() - t0);
+      testPhase(t('Голос готовит ответ…'));
+      firstP = talkVoice(lang, f.text, sig);
+      firstP.catch(() => { /* ошибку покажет await ниже */ });
+    };
+    const r = await chat(null, {
+      messages: [{ role: 'system', content: ASK.system + ' ' + TALK.voice }, { role: 'user', content: s3.question }],
+      maxTokens: TALK.maxTokens, seed: BASE_SEED, signal: sig, sampling: askSampling(),
+      onText: (x) => {
+        const c = cleanAnswer(x);
+        outA.textContent = c || '…';
+        if (!firstP) { const f = talkFirstSentence(c); if (f) sayFirst(f); }
+      },
+    });
+    s3.answer = cleanAnswer(r.text); s3.llm_ms = Math.round(performance.now() - t0); s3.timings = r.timings || {};
+    outA.textContent = s3.answer || '—';
+    if (!s3.answer) throw new Error(t('модель не ответила'));
+    if (!firstP) sayFirst({ text: s3.answer, end: s3.answer.length });
+    const rest = talkSay(s3.answer.slice(first.end));
+    const restP = /[\p{L}\p{N}]/u.test(rest) ? talkVoice(lang, rest, sig) : null;
+    if (restP) restP.catch(() => { /* ошибку покажет await ниже */ });
+    const v1 = await firstP;
+    urls.push(v1.url);
+    s3.tts_first_ms = Math.round(v1.ms);
+    testPhase(t('Голос отвечает…'));
+    await talkPlay(v1.url, sig, () => {
+      s3.sound_ms = Math.round(performance.now() - t0);
+      s3.wait_ms = (s3.heard ? s1.ms : 0) + s3.sound_ms;
+      talkLine(r3, t('Время:'), talkTimeText(st));
+    });
+    if (restP) { const v2 = await restP; urls.push(v2.url); await talkPlay(v2.url, sig); }
+    testIdle();
+    r3.head.textContent += ' · ' + t('до первого звука ответа: {a}', { a: fmtSec(s3.wait_ms) });
+    $('#testBar').style.width = '100%';
+    $('#testProgressText').textContent = t('Тест разговора закончен.');
+  } catch (e) {
+    testIdle();
+    if (e.name === 'AbortError') $('#testProgressText').textContent = t('Тест разговора остановлен.');
+    else { $('#testProgressText').textContent = t('Ошибка: {e}', { e: errText(await visionFailed(e)) }); refreshState(); }
+  } finally {
+    testIdle(); testBusy(false);
+    testRunning = false; setBusy(false);
+    btn.textContent = t('Тест разговора');
+    for (const b of others) b.disabled = false;
+    for (const u of urls) URL.revokeObjectURL(u);
+    renderTalkSummary(st);
+    if (st.steps.hear) await saveTalkReport(st);
+  }
+}
+
+// Строка шага в окне теста: номер, что проверяется и как; ниже — строки с подписями (talkLine).
+function talkRow(n, title, how) {
+  const row = el('div', 'item test-out');
+  const head = el('div', 'meta', `${n}. ${title} · ${how}`);
+  row.appendChild(head);
+  $('#testRows').appendChild(row);
+  row.scrollIntoView({ block: 'nearest' });
+  return { row, head };
+}
+function talkLine(r, label, text, cls = 'src-line') {
+  const d = el('div', cls);
+  d.appendChild(el('span', 'lbl', label)); d.appendChild(document.createTextNode(' '));
+  const body = el('span', 'txt', text);
+  d.appendChild(body);
+  r.row.appendChild(d);
+  return body;
+}
+
+// Текст для голоса: без формул и разметки.
+const talkSay = (x) => stripMath(String(x || '')).replace(/[*_`#>|~]+/g, ' ').replace(/\s+/g, ' ').trim();
+// Децибелы для экрана: целые, не меньше нуля, больше 60 — «60+».
+const fmtDb = (d) => !isFinite(d) ? '—' : d >= 60 ? '60+' : fmtNum(Math.max(0, d), 0);
+
+// Голос программы: текст → WAV (адрес для <audio>), время синтеза.
+async function talkVoice(lang, text, sig) {
+  const t0 = performance.now();
+  const r = await fetch('/api/tts', { method: 'POST', headers: { 'Content-Type': 'application/json' }, signal: sig,
+    body: JSON.stringify({ lang, text: talkSay(text), speed: SPEAK.speed }) });
+  if (!r.ok) { let j = {}; try { j = await r.json(); } catch (e) { /* пусто */ } throw new Error(j.error || 'HTTP ' + r.status); }
+  const buf = await r.arrayBuffer();
+  return { url: URL.createObjectURL(new Blob([buf], { type: 'audio/wav' })), ms: performance.now() - t0 };
+}
+
+// Сыграть голос (как кнопка 🔊 — элементом <audio>); onStart — когда пошёл звук. Конец — когда доиграл.
+function talkPlay(url, sig, onStart) {
+  return new Promise((resolve, reject) => {
+    if (sig.aborted) { reject(docAbort()); return; }
+    const a = new Audio(url);
+    let started = false, over = false;
+    const start = () => { if (!started) { started = true; if (onStart) onStart(); } };
+    const done = (err) => {
+      if (over) return;
+      over = true;
+      sig.removeEventListener('abort', ab);
+      a.onplaying = a.onended = a.onerror = null;
+      try { a.pause(); } catch (e) { /* уже остановлен */ }
+      if (err) reject(err); else { start(); resolve(); }
+    };
+    const ab = () => done(docAbort());
+    sig.addEventListener('abort', ab, { once: true });
+    a.onplaying = start;
+    a.onended = () => done();
+    a.onerror = () => done(new Error(t('голос не звучит')));
+    a.play().catch((e) => done(new Error(t('голос не звучит') + ': ' + errText(e))));
+  });
+}
+
+// Пауза, которую можно прервать «Стопом».
+function talkWait(ms, sig) {
+  return new Promise((resolve, reject) => {
+    if (sig.aborted) { reject(docAbort()); return; }
+    const ab = () => { clearTimeout(tm); reject(docAbort()); };
+    const tm = setTimeout(() => { sig.removeEventListener('abort', ab); resolve(); }, ms);
+    sig.addEventListener('abort', ab, { once: true });
+  });
+}
+
+// Программа говорит фразу (url — WAV голоса) и одновременно слушает микрофоном: фон до голоса, голос, хвост после него.
+// aec — подавление эха, как при диктовке (true), или без него (false); шумоподавление и автоусиление — как при
+// диктовке. → звук 16 кГц и где в нём начался и кончился голос (a, b — в отсчётах).
+async function talkLoopback(url, aec, sig) {
+  const AC = window.AudioContext || window.webkitAudioContext;
+  const ctx = new AC(), rate = ctx.sampleRate, chunks = [];
+  let n = 0, a = 0, b = 0, stream = null, src = null, node = null;
+  try {
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({ audio: { channelCount: 1, echoCancellation: aec, noiseSuppression: true, autoGainControl: true } });
+    } catch (e) { throw new Error(micErrorText(e)); }
+    if (sig.aborted) throw docAbort();
+    try { if (ctx.state === 'suspended') await ctx.resume(); } catch (e) { /* запись пойдёт и так */ }
+    src = ctx.createMediaStreamSource(stream);
+    node = ctx.createScriptProcessor(4096, 1, 1);
+    node.onaudioprocess = (e) => { const x = e.inputBuffer.getChannelData(0); chunks.push(new Float32Array(x)); n += x.length; };
+    src.connect(node);
+    node.connect(ctx.destination);   // ScriptProcessor работает, только когда подключён к выходу; его выход — тишина
+    await talkWait(1000 * TALK.preroll, sig);
+    a = n;
+    await talkPlay(url, sig);
+    b = n;
+    await talkWait(1000 * TALK.tail, sig);
+  } finally {
+    try { if (node) { node.onaudioprocess = null; node.disconnect(); } if (src) src.disconnect(); } catch (e) { /* уже отключено */ }
+    if (stream) stream.getTracks().forEach(x => x.stop());
+    try { ctx.close(); } catch (e) { /* уже закрыт */ }
+  }
+  const raw = new Float32Array(n);
+  let o = 0;
+  for (const c of chunks) { if (o + c.length > n) break; raw.set(c, o); o += c.length; }
+  const k = LISTEN.rate / rate;
+  return { pcm: resampleTo(raw.subarray(0, o), rate, LISTEN.rate), a: Math.round(a * k), b: Math.round(b * k) };
+}
+
+// Громкость записи шага, дБ от полной шкалы: фон — средний кадр (медиана) до голоса без первых 0,25 с (микрофон
+// включается), голос — громкие кадры (90-й процентиль) от начала голоса + TALK.settle до конца записи; snr — на сколько
+// голос громче фона.
+function talkLevels(cap) {
+  const { e } = frameEnergy(cap.pcm, LISTEN.rate);   // кадры по 20 мс: 50 в секунду
+  const fa = Math.min(e.length, Math.floor(cap.a / (LISTEN.rate / 50)));
+  const f0 = Math.min(fa, Math.round(0.25 * 50)), fv = Math.min(e.length, fa + Math.round(TALK.settle * 50));
+  const q = (arr, p) => { const s = Array.from(arr).sort((x, y) => x - y); return s.length ? s[Math.min(s.length - 1, Math.floor(p * s.length))] : 0; };
+  const db = (x) => 10 * Math.log10(Math.max(x, 1e-9));
+  const r1 = (x) => Math.round(x * 10) / 10;
+  const noise = db(q(e.subarray(f0, fa), 0.5)), voice = db(q(e.subarray(fv), 0.9));
+  return { noise: r1(noise), voice: r1(voice), snr: r1(voice - noise) };
+}
+
+// Запись шага → текст: от начала голоса (с запасом 0,2 с), без тишины по краям.
+async function talkListen(r, cap, lang, sig) {
+  const pcm = trimSilence(cap.pcm.subarray(Math.max(0, cap.a - Math.round(0.2 * LISTEN.rate))), LISTEN.rate);
+  const out = talkLine(r, t('Распознала модель:'), '…', 'tr');
+  if (pcm.length < LISTEN.minSeconds * LISTEN.rate) { out.textContent = '—'; return { out: '', ms: 0, speech_ms: 0 }; }
+  testPhase(t('Модель слушает запись…'));
+  let writing = false;
+  const res = await listenRequest(pcm, lang, sig, (x) => { if (!writing) { writing = true; testPhase(t('Модель пишет текст…')); } out.textContent = x; });
+  out.textContent = res.text || '—';
+  return { out: res.text, ms: Math.round(res.ms), speech_ms: Math.round(1000 * pcm.length / LISTEN.rate), timings: res.timings || {}, finish: res.finish };
+}
+
+// Первое предложение ответа — когда за ним в ответе уже что-то есть (иначе точка может оказаться внутри числа).
+function talkFirstSentence(x) {
+  const m = /[.!?…](?=\s+\S)|[。！？](?=\S)/u.exec(x);
+  if (!m) return null;
+  const end = m.index + m[0].length, s = x.slice(0, end).trim();
+  return /[\p{L}\p{N}]/u.test(s) ? { text: s, end } : null;
+}
+
+function talkEchoText(v) {
+  return v === 'quiet' ? t('Программа почти не слышит себя: пока модель говорит, микрофон можно не выключать — её можно будет перебить голосом.')
+    : v === 'words' ? t('Программа слышит себя и разбирает слова: пока модель говорит, микрофон придётся выключать.')
+    : t('Программа слышит себя, хоть и не разбирает слов: перебивать модель голосом рискованно — надёжнее выключать микрофон, пока она говорит.');
+}
+
+// Из чего сложилось ожидание ответа: распознавание вопроса + модель до конца первого предложения + голос (синтез и
+// начало звука).
+function talkTimeText(st) {
+  const h = st.steps.hear || {}, a = st.steps.answer || {};
+  const parts = [];
+  if (a.heard) parts.push(t('распознавание {a}', { a: fmtSec(h.ms) }));
+  parts.push(t('модель до конца первого предложения {b}', { b: fmtSec(a.first_ms) }));
+  parts.push(t('голос {c}', { c: fmtSec(a.sound_ms - a.first_ms) }));
+  return parts.join(' + ') + ' = ' + fmtSec(a.wait_ms);
+}
+
+// Итог по шагам — над строками шагов (и в отчёте).
+function talkSummaryRows(st) {
+  const h = st.steps.hear, e = st.steps.echo, a = st.steps.answer, rows = [];
+  if (h && (!h.heard || h.out != null)) rows.push([t('Слышит ли микрофон динамик?'), h.heard
+    ? t('да: голос громче фона на {d} дБ; модель распознала фразу с {p} неверных знаков', { d: fmtDb(h.snr), p: pct(h.cer) })
+    : t('нет: голос громче фона лишь на {d} дБ — наушники или тихо? Включите динамики, прибавьте громкость и повторите тест.', { d: fmtDb(h.snr) })]);
+  if (e && (e.skipped || e.verdict)) rows.push([t('Слышит ли программа себя?'), e.skipped ? t('не проверено: микрофон не слышит динамик')
+    : t('Голос тише на {d} дБ, чем без подавления эха.', { d: fmtDb(e.drop) }) + ' ' + talkEchoText(e.verdict)]);
+  if (a && a.wait_ms != null) rows.push([t('Ожидание ответа'), t('{a} от конца вопроса до первого звука ответа; в разговоре прибавится около секунды, пока программа поймёт, что вы замолчали.', { a: fmtSec(a.wait_ms) })]);
+  return rows;
+}
+function renderTalkSummary(st) {
+  const sum = $('#testSummary');
+  sum.innerHTML = '';
+  sum.appendChild(el('div', 'note', t('Программа скажет фразу в динамик и сама её послушает: нужны динамики (не наушники) на средней громкости и тишина в комнате.')));
+  const rows = talkSummaryRows(st);
+  if (!rows.length) return;
+  const tbl = el('table', 'res'), hr = el('tr'), thead = el('thead'), tb = el('tbody');
+  for (const h of [t('Проверка'), t('Итог')]) hr.appendChild(el('th', '', h));
+  thead.appendChild(hr); tbl.appendChild(thead);
+  for (const [a, b] of rows) { const tr = el('tr'); tr.appendChild(el('td', '', a)); tr.appendChild(el('td', '', b)); tb.appendChild(tr); }
+  tbl.appendChild(tb);
+  sum.appendChild(tbl);
+}
+
+async function saveTalkReport(st) {
+  const s = STATE || {}, mi = s.machine || {}, ei = s.engine_info || {}, am = activeModel() || {};
+  const report = {
+    app_version: s.version || '', kind: 'talk', started: st.started.toISOString(),
+    machine: { cpu: mi.cpu || '', threads: mi.threads || navigator.hardwareConcurrency || null, ram_gb: mi.ram_gb || null, os: mi.os || navigator.platform },
+    window: navigator.userAgent,
+    engine: { build: ei.build || '', n_ctx: ei.n_ctx || null, threads: ei.threads || null },
+    model: { id: am.id || '', name: am.name || '', file: am.file || '' },
+    vision: ((s.vision || {}).files || []).find(f => f.id === (s.vision || {}).current) || null,
+    lang: st.lang, voice: st.voice, speed: SPEAK.speed, phrase: st.phrase,
+    prompt: LISTEN.prompt('{LANGUAGE}'), system: ASK.system + ' ' + TALK.voice, sampling: askSampling(),
+    settings: { preroll: TALK.preroll, tail: TALK.tail, settle: TALK.settle, hears: TALK.hears, quiet: TALK.quiet },
+    steps: st.steps,
+  };
+  const h = st.steps.hear, e = st.steps.echo, a = st.steps.answer;
+  const L = [];
+  L.push(`# ${t('Тест разговора')} — ${st.started.toLocaleString(LOCALE)}`, '');
+  L.push(`- ${t('Модель:')} ${report.model.name || '—'} (${report.model.file || ''})`);
+  L.push(`- ${t('Компьютер: {cpu}; потоков: {th}; ОЗУ: {ram}', { cpu: report.machine.cpu || '—', th: report.machine.threads || '—', ram: report.machine.ram_gb ? t('{n} ГБ', { n: report.machine.ram_gb }) : '—' })}; ${report.machine.os || ''}`);
+  L.push(`- ${t('Движок: llama.cpp {b}; контекст {c}; потоков {th}', { b: report.engine.build || '—', c: report.engine.n_ctx || '—', th: report.engine.threads || '—' })}`);
+  L.push(`- ${t('Язык')}: ${langName(st.lang)}; ${t('Голос')}: ${st.voice}`, '');
+  const rows = talkSummaryRows(st);
+  if (rows.length) {
+    L.push(`| ${t('Проверка')} | ${t('Итог')} |`, '|---|---|');
+    for (const [x, y] of rows) L.push(`| ${x} | ${y} |`);
+  }
+  if (h) {
+    L.push('', `## 1. ${t('Слышит ли микрофон динамик?')} (${t('без подавления эха')})`, '');
+    L.push(`- ${t('Голос сказал:')} ${st.phrase}`);
+    L.push(`- ${t('Микрофон:')} ${t('голос громче фона на {d} дБ', { d: fmtDb(h.snr) })} (${h.voice} / ${h.noise} dBFS)`);
+    if (h.out != null) {
+      const info = listenInfo(h.timings);
+      L.push(`- ${t('Распознала модель:')} ${h.out || '—'}`);
+      L.push(`- ${t('неверных знаков: {p}', { p: pct(h.cer) })}; ${t('речь {a} → {b}', { a: fmtSec(h.speech_ms), b: fmtSec(h.ms) })}${info ? ' (' + info + ')' : ''}`);
+    }
+  }
+  if (e && (e.skipped || e.verdict)) {
+    L.push('', `## 2. ${t('Слышит ли программа себя?')} (${t('с подавлением эха, как при диктовке')})`, '');
+    if (e.skipped) L.push(`- ${t('не проверено: микрофон не слышит динамик')}`);
+    else {
+      L.push(`- ${t('Микрофон:')} ${t('голос тише на {d} дБ, чем без подавления эха; громче фона на {e} дБ', { d: fmtDb(e.drop), e: fmtDb(e.snr) })} (${e.voice} / ${e.noise} dBFS)`);
+      L.push(`- ${t('Распознала модель:')} ${e.out || '—'}`);
+      L.push(`- ${t('Итог:')} ${talkEchoText(e.verdict)}`);
+    }
+  }
+  if (a && a.answer) {
+    L.push('', `## 3. ${t('Ответ голосом')}`, '');
+    L.push(`- ${t('Вопрос:')} ${a.question}${a.heard ? '' : ' (' + t('текстом: микрофон не расслышал') + ')'}`);
+    L.push(`- ${t('Ответ модели:')} ${a.answer}`);
+    if (a.wait_ms != null) L.push(`- ${t('Время:')} ${talkTimeText(st)}`);
+  }
+  L.push('', `- ${t('Запрос к модели:')} ${LISTEN.prompt('{LANGUAGE}').replace(/\n+/g, ' ')} (temperature 0)`);
+  const md = L.join('\n');
+  try {
+    const r = await fetch('/api/report', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ markdown: md, json: report, kind: 'talk', stamp: st.stamp }) });
+    const j = await r.json();
+    if (!r.ok) throw new Error(j.error || 'HTTP ' + r.status);
+    $('#testSummary').appendChild(el('div', 'note', t('Отчёт сохранён: {p}', { p: j.path || '' })));
+  } catch (err) { $('#testSummary').appendChild(el('div', 'error', t('Не удалось сохранить отчёт: {e}', { e: errText(err) }))); }
 }
 
 /* ===================== Настройки, справка, «О программе» ===================== */
@@ -7471,6 +7922,52 @@ const I18N = {
   'Неверных знаков — доля знаков, которые модель написала не так, как в тексте, прочитанном голосом (без учёта регистра и знаков препинания). У китайского и японского доля бывает завышена: одно слово можно записать разными знаками. «Дольше речи, раз» — во сколько раз распознавание длилось дольше самой речи.': ['Wrong characters — the share of characters the model wrote differently from the text the voice read (ignoring case and punctuation). For Chinese and Japanese it can be too high: one word can be written with different characters. “Times longer than speech” — how many times longer the recognition took than the speech itself.', 'Falsche Zeichen – der Anteil der Zeichen, die das Modell anders geschrieben hat als im Text, den die Stimme gelesen hat (ohne Groß- und Kleinschreibung und Satzzeichen). Bei Chinesisch und Japanisch kann er zu hoch sein: Ein Wort lässt sich mit verschiedenen Zeichen schreiben. „Mal länger als die Sprache“ – wie viel Mal länger die Erkennung gedauert hat als die Sprache selbst.', 'Caracteres incorrectos: proporción de caracteres que el modelo escribió de forma distinta al texto que leyó la voz (sin contar mayúsculas ni signos de puntuación). En chino y japonés puede salir demasiado alta: una palabra se puede escribir con caracteres distintos. «Veces más que el habla»: cuántas veces más duró el reconocimiento que el habla misma.', '错误字符——模型写出的文字与语音朗读的文本不一致的字符比例（不计大小写和标点）。中文和日语的比例可能偏高：同一个词可以用不同的字来写。“为语音时长的倍数”——识别用时是语音本身时长的几倍。'],
   'Движок: llama.cpp {b}; контекст {c}; потоков {th}': ['Engine: llama.cpp {b}; context {c}; threads {th}', 'Engine: llama.cpp {b}; Kontext {c}; Threads {th}', 'Motor: llama.cpp {b}; contexto {c}; hilos {th}', '引擎：llama.cpp {b}；上下文 {c}；线程 {th}'],
   'Запрос к модели:': ['Request to the model:', 'Anfrage an das Modell:', 'Solicitud al modelo:', '对模型的请求：'],
+  // 1.4: «Тест разговора» (предложение автора от 25.11.2026)
+  'Тест разговора': ['Conversation test', 'Gesprächstest', 'Prueba de conversación', '对话测试'],
+  'Короткая проверка разговора с моделью голосом, на языке интерфейса, около минуты: голос программы говорит фразу в динамик, микрофон её слушает — без подавления эха и с ним (слышит ли программа сама себя); затем модель отвечает на расслышанный вопрос, и голос читает ответ — видно, сколько его ждать. Нужны динамики (не наушники) и тишина.': ['A short check of a voice conversation with the model, in the interface language, about a minute: the program’s voice says a phrase through the speakers and the microphone listens to it — without echo cancellation and with it (does the program hear itself?); then the model answers the question it heard and the voice reads the answer — you see how long you wait for it. You need speakers (not headphones) and quiet.', 'Eine kurze Prüfung eines Gesprächs mit dem Modell per Stimme, in der Sprache der Oberfläche, etwa eine Minute: Die Stimme des Programms spricht einen Satz über die Lautsprecher, das Mikrofon hört ihn – ohne und mit Echounterdrückung (hört sich das Programm selbst?); dann beantwortet das Modell die gehörte Frage, und die Stimme liest die Antwort – so sehen Sie, wie lange Sie darauf warten. Nötig sind Lautsprecher (keine Kopfhörer) und Ruhe.', 'Una comprobación breve de una conversación de viva voz con el modelo, en el idioma de la interfaz, de un minuto más o menos: la voz del programa dice una frase por los altavoces y el micrófono la escucha, sin cancelación de eco y con ella (¿se oye el programa a sí mismo?); luego el modelo responde a la pregunta que oyó y la voz lee la respuesta: así se ve cuánto hay que esperarla. Se necesitan altavoces (no auriculares) y silencio.', '简短检查与模型的语音对话，使用界面语言，约一分钟：程序的语音通过扬声器说一句话，麦克风来听——先不消除回声，再消除回声（程序能否听到自己？）；然后模型回答听到的问题，由语音朗读回答——可以看到要等多久。需要扬声器（不是耳机）和安静的环境。'],
+  'Для «Теста разговора» нужен голос языка интерфейса или английского: скачайте Supertonic 3 в меню моделей.': ['The “Conversation test” needs a voice for the interface language or for English: download Supertonic 3 in the model menu.', 'Der „Gesprächstest“ braucht eine Stimme für die Sprache der Oberfläche oder für Englisch: Laden Sie Supertonic 3 im Modellmenü herunter.', 'La «Prueba de conversación» necesita una voz para el idioma de la interfaz o para el inglés: descargue Supertonic 3 en el menú de modelos.', '“对话测试”需要界面语言或英语的语音：请在模型菜单中下载 Supertonic 3。'],
+  'Программа скажет фразу в динамик и сама её послушает: нужны динамики (не наушники) на средней громкости и тишина в комнате.': ['The program will say a phrase through the speakers and listen to it itself: you need speakers (not headphones) at medium volume and a quiet room.', 'Das Programm spricht einen Satz über die Lautsprecher und hört ihn selbst ab: Nötig sind Lautsprecher (keine Kopfhörer) bei mittlerer Lautstärke und Ruhe im Raum.', 'El programa dirá una frase por los altavoces y la escuchará él mismo: se necesitan altavoces (no auriculares) a volumen medio y silencio en la habitación.', '程序会通过扬声器说一句话，再自己用麦克风听：需要扬声器（不是耳机）、中等音量和安静的房间。'],
+  'Шаг {k} из {n}: {s}': ['Step {k} of {n}: {s}', 'Schritt {k} von {n}: {s}', 'Paso {k} de {n}: {s}', '第 {k} 步，共 {n} 步：{s}'],
+  'Слышит ли микрофон динамик?': ['Does the microphone hear the speakers?', 'Hört das Mikrofon die Lautsprecher?', '¿Oye el micrófono los altavoces?', '麦克风能否听到扬声器？'],
+  'без подавления эха': ['without echo cancellation', 'ohne Echounterdrückung', 'sin cancelación de eco', '不消除回声'],
+  'Слышит ли программа себя?': ['Does the program hear itself?', 'Hört sich das Programm selbst?', '¿Se oye el programa a sí mismo?', '程序能否听到自己？'],
+  'с подавлением эха, как при диктовке': ['with echo cancellation, as in dictation', 'mit Echounterdrückung wie beim Diktieren', 'con cancelación de eco, como en el dictado', '消除回声，与听写时相同'],
+  'Ответ голосом': ['Answer by voice', 'Antwort per Stimme', 'Respuesta de viva voz', '语音回答'],
+  'модель отвечает на расслышанный вопрос, голос читает ответ': ['the model answers the question it heard, the voice reads the answer', 'das Modell beantwortet die gehörte Frage, die Stimme liest die Antwort', 'el modelo responde a la pregunta que oyó y la voz lee la respuesta', '模型回答听到的问题，由语音朗读回答'],
+  'Голос готовит фразу…': ['The voice is preparing the phrase…', 'Die Stimme bereitet den Satz vor …', 'La voz está preparando la frase…', '语音正在准备句子…'],
+  'Голос говорит, микрофон слушает…': ['The voice speaks, the microphone listens…', 'Die Stimme spricht, das Mikrofon hört zu …', 'La voz habla y el micrófono escucha…', '语音在说，麦克风在听…'],
+  'Голос сказал:': ['The voice said:', 'Die Stimme sagte:', 'La voz dijo:', '语音说：'],
+  'Микрофон:': ['Microphone:', 'Mikrofon:', 'Micrófono:', '麦克风：'],
+  'голос громче фона на {d} дБ': ['the voice is {d} dB above the background', 'die Stimme liegt {d} dB über dem Hintergrund', 'la voz está {d} dB por encima del fondo', '语音比背景高 {d} dB'],
+  'голос почти не слышен — громче фона лишь на {d} дБ': ['the voice is hardly heard — only {d} dB above the background', 'die Stimme ist kaum zu hören – nur {d} dB über dem Hintergrund', 'la voz apenas se oye: solo {d} dB por encima del fondo', '几乎听不到语音——只比背景高 {d} dB'],
+  'голос тише на {d} дБ, чем без подавления эха; громче фона на {e} дБ': ['the voice is {d} dB quieter than without echo cancellation; {e} dB above the background', 'die Stimme ist {d} dB leiser als ohne Echounterdrückung; {e} dB über dem Hintergrund', 'la voz suena {d} dB más baja que sin cancelación de eco; {e} dB por encima del fondo', '语音比不消除回声时低 {d} dB；比背景高 {e} dB'],
+  'Голос тише на {d} дБ, чем без подавления эха.': ['The voice is {d} dB quieter than without echo cancellation.', 'Die Stimme ist {d} dB leiser als ohne Echounterdrückung.', 'La voz suena {d} dB más baja que sin cancelación de eco.', '语音比不消除回声时低 {d} dB。'],
+  'не проверено: микрофон не слышит динамик': ['not checked: the microphone does not hear the speakers', 'nicht geprüft: Das Mikrofon hört die Lautsprecher nicht', 'no comprobado: el micrófono no oye los altavoces', '未检查：麦克风听不到扬声器'],
+  'Итог:': ['Result:', 'Ergebnis:', 'Resultado:', '结论：'],
+  'Программа почти не слышит себя: пока модель говорит, микрофон можно не выключать — её можно будет перебить голосом.': ['The program hardly hears itself: while the model speaks, the microphone can stay on — you will be able to interrupt it by voice.', 'Das Programm hört sich kaum selbst: Während das Modell spricht, kann das Mikrofon an bleiben – Sie können es mit der Stimme unterbrechen.', 'El programa apenas se oye a sí mismo: mientras habla el modelo, el micrófono puede seguir encendido y se le podrá interrumpir de viva voz.', '程序几乎听不到自己：模型说话时麦克风可以不关——可以用语音打断它。'],
+  'Программа слышит себя и разбирает слова: пока модель говорит, микрофон придётся выключать.': ['The program hears itself and makes out the words: while the model speaks, the microphone will have to be off.', 'Das Programm hört sich selbst und versteht die Wörter: Während das Modell spricht, muss das Mikrofon aus sein.', 'El programa se oye a sí mismo y entiende las palabras: mientras habla el modelo, habrá que apagar el micrófono.', '程序能听到自己并听清字词：模型说话时必须关闭麦克风。'],
+  'Программа слышит себя, хоть и не разбирает слов: перебивать модель голосом рискованно — надёжнее выключать микрофон, пока она говорит.': ['The program hears itself, though it does not make out the words: interrupting the model by voice is risky — it is safer to turn the microphone off while it speaks.', 'Das Programm hört sich selbst, versteht aber die Wörter nicht: Das Modell mit der Stimme zu unterbrechen ist unsicher – besser ist es, das Mikrofon auszuschalten, solange es spricht.', 'El programa se oye a sí mismo, aunque no entiende las palabras: interrumpir al modelo de viva voz es arriesgado; es más seguro apagar el micrófono mientras habla.', '程序能听到自己，但听不清字词：用语音打断模型有风险——更稳妥的是在它说话时关闭麦克风。'],
+  'Вопрос:': ['Question:', 'Frage:', 'Pregunta:', '问题：'],
+  'текстом: микрофон не расслышал': ['as text: the microphone did not hear it', 'als Text: Das Mikrofon hat sie nicht gehört', 'como texto: el micrófono no la oyó', '以文字提问：麦克风没有听清'],
+  'Ответ модели:': ['The model’s answer:', 'Antwort des Modells:', 'Respuesta del modelo:', '模型的回答：'],
+  'Модель отвечает…': ['The model is answering…', 'Das Modell antwortet …', 'El modelo está respondiendo…', '模型正在回答…'],
+  'Голос готовит ответ…': ['The voice is preparing the answer…', 'Die Stimme bereitet die Antwort vor …', 'La voz está preparando la respuesta…', '语音正在准备回答…'],
+  'Голос отвечает…': ['The voice is answering…', 'Die Stimme antwortet …', 'La voz está respondiendo…', '语音正在回答…'],
+  'Время:': ['Time:', 'Zeit:', 'Tiempo:', '时间：'],
+  'распознавание {a}': ['recognition {a}', 'Erkennung {a}', 'reconocimiento {a}', '识别 {a}'],
+  'модель до конца первого предложения {b}': ['the model to the end of the first sentence {b}', 'das Modell bis zum Ende des ersten Satzes {b}', 'el modelo hasta el final de la primera frase {b}', '模型写完第一句 {b}'],
+  'голос {c}': ['the voice {c}', 'die Stimme {c}', 'la voz {c}', '语音 {c}'],
+  'до первого звука ответа: {a}': ['to the first sound of the answer: {a}', 'bis zum ersten Ton der Antwort: {a}', 'hasta el primer sonido de la respuesta: {a}', '到回答的第一个声音：{a}'],
+  'модель не ответила': ['the model did not answer', 'das Modell hat nicht geantwortet', 'el modelo no respondió', '模型没有回答'],
+  'голос не звучит': ['the voice does not play', 'die Stimme ist nicht zu hören', 'la voz no suena', '语音无法播放'],
+  'Проверка': ['Check', 'Prüfung', 'Comprobación', '检查项'],
+  'Итог': ['Result', 'Ergebnis', 'Resultado', '结论'],
+  'да: голос громче фона на {d} дБ; модель распознала фразу с {p} неверных знаков': ['yes: the voice is {d} dB above the background; the model recognized the phrase with {p} wrong characters', 'ja: Die Stimme liegt {d} dB über dem Hintergrund; das Modell hat den Satz mit {p} falschen Zeichen erkannt', 'sí: la voz está {d} dB por encima del fondo; el modelo reconoció la frase con un {p} de caracteres incorrectos', '能：语音比背景高 {d} dB；模型识别这句话的错误字符为 {p}'],
+  'нет: голос громче фона лишь на {d} дБ — наушники или тихо? Включите динамики, прибавьте громкость и повторите тест.': ['no: the voice is only {d} dB above the background — headphones, or too quiet? Turn on the speakers, raise the volume and repeat the test.', 'nein: Die Stimme liegt nur {d} dB über dem Hintergrund – Kopfhörer oder zu leise? Schalten Sie die Lautsprecher ein, drehen Sie lauter und wiederholen Sie den Test.', 'no: la voz está solo {d} dB por encima del fondo: ¿auriculares o volumen bajo? Active los altavoces, suba el volumen y repita la prueba.', '不能：语音只比背景高 {d} dB——戴着耳机或音量太小？请打开扬声器、调大音量后重新测试。'],
+  'Ожидание ответа': ['Waiting for the answer', 'Warten auf die Antwort', 'Espera de la respuesta', '等待回答'],
+  '{a} от конца вопроса до первого звука ответа; в разговоре прибавится около секунды, пока программа поймёт, что вы замолчали.': ['{a} from the end of the question to the first sound of the answer; in a conversation about a second more will pass before the program notices that you have stopped speaking.', '{a} vom Ende der Frage bis zum ersten Ton der Antwort; im Gespräch kommt etwa eine Sekunde hinzu, bis das Programm merkt, dass Sie aufgehört haben zu sprechen.', '{a} desde el final de la pregunta hasta el primer sonido de la respuesta; en una conversación se añadirá un segundo más o menos hasta que el programa note que ha dejado de hablar.', '从问题结束到回答的第一个声音为 {a}；在对话中还要再加约一秒，程序才能发现您已经说完。'],
+  'Тест разговора закончен.': ['The conversation test is finished.', 'Der Gesprächstest ist fertig.', 'La prueba de conversación ha terminado.', '对话测试完成。'],
+  'Тест разговора остановлен.': ['The conversation test is stopped.', 'Der Gesprächstest ist angehalten.', 'La prueba de conversación se ha detenido.', '对话测试已停止。'],
   // 1.2: новые языки перевода
   'Итальянский': ['Italian', 'Italienisch', 'Italiano', '意大利语'],
   'итальянский': ['Italian', 'Italienisch', 'italiano', '意大利语'],
@@ -8403,6 +8900,7 @@ function init() {
   $('#runTestBtn').onclick = () => runTest('full');
   $('#quickTestBtn').onclick = () => runTest('quick');
   $('#speechTestBtn').onclick = runSpeechTest;
+  $('#talkTestBtn').onclick = runTalkTest;
   $('#errorOpenBtn').onclick = () => post('/api/open', { what: 'logs' }).catch(e => toast(e.message));
   $('#openDataBtn').onclick = openDataFolder;
   // Mac: на кнопке «Перевести» — ⌘+Enter, как принято в macOS (Ctrl+Enter тоже работает)

@@ -1526,16 +1526,17 @@ func jsonError(w http.ResponseWriter, code int, msg string) {
 
 // reportName: the file name (without extension) of a test report in data/reports. The quick test — quick-test-…,
 // the full test — test-…, the speech test (1.4) — speech-test-<the time of its start>: the page sends the same stamp
-// after each language, so one report grows; a stamp that is not a date and time is replaced by now.
+// after each language, so one report grows; the conversation test (1.4) — talk-test-<the time of its start>; a stamp
+// that is not a date and time is replaced by now.
 func reportName(kind, stamp string, now time.Time) string {
 	switch kind {
 	case "quick":
 		return "quick-test-" + now.Format("2006-01-02_15-04-05")
-	case "speech":
+	case "speech", "talk":
 		if _, err := time.Parse("2006-01-02_15-04-05", stamp); err != nil {
 			stamp = now.Format("2006-01-02_15-04-05")
 		}
-		return "speech-test-" + stamp
+		return kind + "-test-" + stamp
 	}
 	return "test-" + now.Format("2006-01-02_15-04-05")
 }
@@ -1729,8 +1730,8 @@ func (a *App) routes() http.Handler {
 		var req struct {
 			Markdown string          `json:"markdown"`
 			JSON     json.RawMessage `json:"json"`
-			Kind     string          `json:"kind"`  // "quick": the quick test (1.0), "speech": the speech test (1.4), else the full one
-			Stamp    string          `json:"stamp"` // the speech test: the time of its start — the same report is rewritten after each language
+			Kind     string          `json:"kind"`  // "quick": the quick test (1.0), "speech" and "talk": the speech and conversation tests (1.4), else the full one
+			Stamp    string          `json:"stamp"` // the speech and conversation tests: the time of the start — the same report is rewritten as the test goes on
 		}
 		if err := json.NewDecoder(io.LimitReader(r.Body, 8*1024*1024)).Decode(&req); err != nil {
 			jsonError(w, 400, tr("неверный запрос"))

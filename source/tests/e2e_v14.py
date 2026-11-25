@@ -11,7 +11,12 @@
 #     at once and then translated (the languages differ); «Сохранить .txt» with the parts; a silent recording and an
 #     unreadable file — a clear message;
 #   - the speech test (Supertonic 3 and sherpa-onnx from the mirror read the phrases): the interface language first,
-#     then English; «Стоп» between them, «Продолжить тест речи» goes on; speech-test-<start>.md is rewritten.
+#     then English; «Стоп» between them, «Продолжить тест речи» goes on; speech-test-<start>.md is rewritten; the
+#     phrase at work has a purple frame, a spinning icon and its time (the author's wish of 25.11.2026);
+#   - the conversation test (the author's proposal of 25.11.2026): the voice says a phrase, a stand-in microphone hears
+#     the sound of the page itself (50 dB quieter with echo cancellation); step 1 — the microphone hears the speakers,
+#     the phrase is recognized; step 2 — with echo cancellation the program hardly hears itself; step 3 — the model
+#     answers the question it heard, the voice reads the answer sentence by sentence; talk-test-<start>.md and .json.
 # Usage: e2e_v14.py <work> <ui_url> <root>   (the launcher runs with TDOC_TEST_VISION and the test voices)
 import sys, json, os, io, re, time, base64, glob, wave, struct, math, urllib.request
 from playwright.sync_api import sync_playwright
@@ -66,10 +71,13 @@ def sse(text, prompt_ms=4200, predicted_ms=1300):
     body += 'data: ' + json.dumps({'choices': [{'delta': {}, 'finish_reason': 'stop'}],
                                    'timings': {'prompt_n': 120, 'prompt_ms': prompt_ms, 'predicted_n': 12, 'predicted_ms': predicted_ms, 'predicted_per_second': 9.2}}) + '\n\ndata: [DONE]\n\n'
     return body
+talk_answer = 'Самая длинная река в Европе — Волга. Она впадает в Каспийское море.'
 def reply(route):
     body = json.loads(route.request.post_data)
     calls.append(body)
     content = body['messages'][0]['content']
+    if body['messages'][0].get('role') == 'system' and 'spoken conversation' in content:   # the conversation test
+        route.fulfill(status=200, headers={'Content-Type': 'text/event-stream'}, body=sse(talk_answer, 900, 1100)); return
     if isinstance(content, list) and any(p.get('type') == 'input_audio' for p in content):
         prompt = content[0].get('text', '')
         m = re.search(r'speech segment in (\w+) into', prompt)
@@ -243,6 +251,15 @@ with sync_playwright() as pw:
     calls.clear()
     page.click('#speechTestBtn')
     ok(page.inner_text('#speechTestBtn') == 'Остановить', 'the button stops the test while it runs')
+    seen = {}
+    def at_work():
+        loc = page.locator('#testRows .item.working')
+        if loc.count() != 1: return False
+        seen.update(meta=loc.locator('.meta').inner_text(), color=loc.evaluate('e => getComputedStyle(e).borderTopColor'),
+                    spin=loc.locator('.meta .work-spin').count(), line=page.evaluate("document.querySelector('#testProgressText').classList.contains('working')"))
+        return seen['spin'] == 1 and seen['line'] and re.search(r'\d:\d\d', seen['meta']) and seen['color'] in ('rgb(124, 58, 237)', 'rgb(183, 148, 246)')
+    ok(wait(at_work, 30), 'the phrase at work: purple frame, spinning icon, what is done and the time; a spinning icon in the progress line too: %s' % seen)
+    page.screenshot(path=os.path.join(shots, '5a-speech-at-work.png'))
     ok(wait(lambda: page.locator('#testSummary table tbody tr').count() >= 1, 180), 'the first language is done')
     page.click('#speechTestBtn')   # stop: during English (or between the languages)
     ok(wait(lambda: page.inner_text('#speechTestBtn') == 'Продолжить тест речи', 30), 'stopped — the button continues: ' + page.inner_text('#speechTestBtn'))
@@ -268,6 +285,70 @@ with sync_playwright() as pw:
     ok(reps2 == reps and '| Английский |' in rep and '| Русский |' in rep, 'the same report, now with two languages')
     j = json.load(open(reps2[0][:-3] + '.json', encoding='utf-8'))
     ok(j['kind'] == 'speech' and [x['lang'] for x in j['langs']][:2] == ['ru', 'en'] and j['sampling']['temperature'] == 0, 'the JSON report: languages and parameters')
+    ok(page.locator('#testRows .item.working').count() == 0 and not page.evaluate("document.querySelector('#testProgressText').classList.contains('working')"), 'stopped: no task at work, no spinning icon')
+
+    # ================= the conversation test: a stand-in microphone hears what the page plays (with echo cancellation
+    # 50 dB quieter) over a faint noise; the model (canned) recognizes the phrase and answers it
+    page.evaluate('''() => {
+      const ctx = new AudioContext(), dest = ctx.createMediaStreamDestination(), gain = ctx.createGain();
+      gain.connect(dest);
+      const nb = ctx.createBuffer(1, ctx.sampleRate, ctx.sampleRate), nd = nb.getChannelData(0);
+      for (let i = 0; i < nd.length; i++) nd[i] = (Math.random() * 2 - 1) * 0.001;
+      const ns = ctx.createBufferSource(); ns.buffer = nb; ns.loop = true; ns.connect(dest); ns.start();
+      window.__talk = { aec: [] };
+      navigator.mediaDevices.getUserMedia = async (c) => {
+        const aec = !!(c && c.audio && c.audio.echoCancellation);
+        window.__talk.aec.push(aec); gain.gain.value = aec ? 0.003 : 1;
+        return dest.stream.clone();
+      };
+      const play = HTMLMediaElement.prototype.play;
+      HTMLMediaElement.prototype.play = function () {
+        if (!this.__routed) { this.__routed = true; const s = ctx.createMediaElementSource(this); s.connect(gain); s.connect(ctx.destination); }
+        return play.call(this);
+      };
+    }''')
+    talk_phrase = page.evaluate('TALK.phrase.ru')
+    asr_next['text'] = talk_phrase; asr_next['parts'] = []; test_phrases.clear()
+    ok(page.is_visible('#talkTestBtn') and 'Тест разговора' in page.inner_text('#testIntro'), 'the test pane: «Тест разговора» and its description')
+    calls.clear()
+    tts_texts = []
+    page.on('request', lambda r: tts_texts.append(json.loads(r.post_data)['text']) if r.url.endswith('/api/tts') else None)
+    page.click('#talkTestBtn')
+    ok(page.inner_text('#talkTestBtn') == 'Остановить' and page.is_disabled('#speechTestBtn') and page.is_disabled('#quickTestBtn'), 'the button stops the conversation test; the other tests wait')
+    ok(wait(lambda: page.locator('#testRows .item.working .meta .work-spin').count() == 1, 30), 'the step at work: purple frame and spinning icon')
+    page.screenshot(path=os.path.join(shots, '6a-talk-at-work.png'))
+    ok(wait(lambda: page.inner_text('#talkTestBtn') == 'Тест разговора', 240), 'the conversation test is over: ' + page.inner_text('#testProgressText'))
+    rows = page.locator('#testRows .item').all_inner_texts()
+    ok(len(rows) == 3, 'three steps: %d' % len(rows))
+    r1, r2, r3 = (rows + ['', '', ''])[:3]
+    m = re.search(r'громче фона на (\d+|60\+) дБ', r1)
+    ok(r1.startswith('1. Слышит ли микрофон динамик? · без подавления эха') and m and (m.group(1) == '60+' or int(m.group(1)) >= 30)
+       and 'неверных знаков: 0,0 %' in r1 and talk_phrase in r1, 'step 1: the microphone hears the speakers, the phrase recognized: ' + r1.replace('\n', ' | ')[:300])
+    ok(r2.startswith('2. Слышит ли программа себя? · с подавлением эха') and 'Программа почти не слышит себя' in r2 and re.search(r'тише на (\d+) дБ', r2)
+       and int(re.search(r'тише на (\d+) дБ', r2).group(1)) >= 35, 'step 2: with echo cancellation the program hardly hears itself: ' + r2.replace('\n', ' | ')[:300])
+    ok(r3.startswith('3. Ответ голосом') and 'Волга' in r3 and re.search(r'до первого звука ответа: \d+,\d с', r3)
+       and re.search(r'Время: распознавание \d+,\d с \+ модель до конца первого предложения \d+,\d с \+ голос \d+,\d с = \d+,\d с', r3),
+       'step 3: the answer by voice and the time: ' + r3.replace('\n', ' | ')[:300])
+    ok(page.evaluate('window.__talk.aec') == [False, True], 'the microphone: first without echo cancellation, then with it')
+    ac = audio_calls()
+    ok(len(ac) == 1 and 'in Russian into Russian text.' in ac[0]['messages'][0]['content'][0]['text'], 'one recognition (step 2 heard only the background): %d' % len(ac))
+    ask = [c for c in calls if c['messages'][0].get('role') == 'system']
+    ok(len(ask) == 1 and ask[0]['messages'][1]['content'] == talk_phrase and 'one or two short sentences' in ask[0]['messages'][0]['content'],
+       'the model is asked the question it heard, to answer briefly')
+    ok(tts_texts[:3] == [talk_phrase, 'Самая длинная река в Европе — Волга.', 'Она впадает в Каспийское море.'],
+       'the voice: the phrase, then the answer sentence by sentence: %s' % tts_texts[:3])
+    srows = page.locator('#testSummary table tbody tr').all_inner_texts()
+    ok(len(srows) == 3 and srows[0].startswith('Слышит ли микрофон динамик?') and 'да: голос громче фона' in srows[0]
+       and srows[1].split('\t')[1].startswith('Голос тише на') and 'почти не слышит себя' in srows[1] and 'от конца вопроса до первого звука ответа' in srows[2], 'the summary: three checks')
+    reps = glob.glob(os.path.join(ROOT, 'data', 'reports', 'talk-test-*.md'))
+    rep = open(reps[0], encoding='utf-8').read() if len(reps) == 1 else ''
+    ok(len(reps) == 1 and '# Тест разговора' in rep and '## 3. Ответ голосом' in rep and 'Волга' in rep, 'the report: %s' % [os.path.basename(r) for r in reps])
+    j = json.load(open(reps[0][:-3] + '.json', encoding='utf-8')) if reps else {}
+    ok(j.get('kind') == 'talk' and j['steps']['hear']['heard'] and j['steps']['echo']['verdict'] == 'quiet' and j['steps']['answer']['wait_ms'] > 0,
+       'the JSON report: kind, steps, verdict, waiting time')
+    ok(page.locator('#testRows .item.working').count() == 0 and not page.evaluate("document.querySelector('#testProgressText').classList.contains('working')")
+       and not page.is_disabled('#speechTestBtn'), 'done: nothing at work, the other tests are free')
+    page.screenshot(path=os.path.join(shots, '6-talk-test.png'), full_page=True)
     ok(not errs, 'no page errors: %s' % errs[:3])
     b.close()
 

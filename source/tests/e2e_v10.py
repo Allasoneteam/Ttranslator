@@ -174,7 +174,8 @@ try:
       ok('Pares de frases: 6' in intro and 'Idiomas: inglés ↔ ruso — 2, latín ↔ inglés — 4.' in intro, 'the test panel: six pairs, the languages: %s' % intro.replace('\n', ' | ')[:300])
       ok(intro.startswith('Modelo: ') and 'Prueba rápida. Dos locuciones latinas (Audentes fortuna iuvat; Cogito, ergo sum): latín ↔ español' in intro and '4 traducciones' in intro
          and 'Prueba completa. Pares de frases: 6' in intro, 'the test panel: the model, the quick test, the full test: %s' % intro.replace('\n', ' | ')[:300])
-      ok(texts(page, '#testView .pane-head button') == ['Prueba rápida', 'Prueba completa', 'Prueba de voz', 'Atrás'], 'the buttons (the speech test, 1.4): %s' % texts(page, '#testView .pane-head button'))
+      ok(texts(page, '#testView .test-btns button') == ['Prueba rápida', 'Prueba completa', 'Prueba de voz', 'Prueba de conversación'] and texts(page, '#testView .pane-head button') == ['Atrás'],
+         'the buttons (the speech and conversation tests, 1.4): %s / %s' % (texts(page, '#testView .test-btns button'), texts(page, '#testView .pane-head button')))
       page.click('#runTestBtn')
       page.wait_for_function("document.querySelector('#testProgressText').textContent.startsWith('Hecho') || document.querySelector('#testProgressText').textContent.startsWith('Error')", timeout=120000)
       ok(page.inner_text('#testProgressText').startswith('Hecho: 38 tareas'), 'the test: 6 pairs × 6 + 2 with formulas = 38 tasks: %s' % page.inner_text('#testProgressText'))
